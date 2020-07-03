@@ -1,0 +1,82 @@
+h1, h2, h3, h4, h5, h6 {
+  display: block;
+  margin-top: 0.67em;
+  margin-bottom: 0.67em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #f7f7f7;
+}
+
+body {
+  background-color: #5c5980;
+  padding: 5px 20px 20px 5px;
+  font-family: "Roboto", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #fff;
+  background-color: transparent;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #a3a3a3;
+  background-color: transparent;
+  text-decoration: none;
+}
+
+a:visited {
+  text-decoration: none;
+}
+
+a:active {
+  text-decoration: none;
+}
+
+.subheader-container {
+  z-index: 999;
+  top: 0;
+  background: #5c5980;
+  opacity: 0.9;
+  width: 100%;
+  padding: 5px 5px 5px 5px;
+  display: none;
+  font-size: 0.7em;
+}
+
+.subheader {
+  font-size: 0.7em;
+  font-weight: 200;
+  line-height: 1;
+}
+
+/* text that outputs the probability at the top of the page  */
+.emphasis {
+  font-size: 0.95em;
+  font-weight: 800;
+  line-height: 1;
+  font-family: "Inconsolata", Helvetica, Arial, sans-serif;
+}
+
+/* left side box that contains the sliders  */
+.well {
+  padding: 10px 20px 10px 20px;
+}
+
+/* text above sliders  */
+.control-label {
+    color: #4f4f4f;
+    line-height: 1.2;
+    font-weight: 500;
+}
+
+/* text at the bottom of the page  */
+.belowplot {
+  font-size: 0.8em;
+  color: #fff;
+  font-style: italic;
+  padding: 10px 0 0 0;
+  font-weight: 300;
+}
