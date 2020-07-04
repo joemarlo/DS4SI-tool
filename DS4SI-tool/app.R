@@ -2,6 +2,7 @@ library(tidyverse)
 library(shiny)
 library(shinyWidgets)
 library(DT)
+library(plotly)
 
 # todo --------------------------------------------------------------------
 
@@ -21,7 +22,7 @@ library(DT)
 
 # load data ---------------------------------------------------------------
 
-sites.DF <- read.csv("jpta_cleaned.csv")
+sites.DF <- read_csv("jpta_cleaned.csv")
 
 
 # joe's assignment code ---------------------------------------------------
@@ -79,14 +80,44 @@ mean(top.sites.DF$comfort) * nrow(top.sites.DF)
 sites.ranked.DF$top_site <- sites.ranked.DF$site_id %in% top.sites.DF$site_id
 rm(C.sites.DF, proportions, top.sites.DF, weights)
 
+final_table <- sites.DF
 
 # app ----------------------------------------------------------------------
+
+
+# shinyApp(
+#     ui = fluidPage(
+#         tabsetPanel(
+#             tabPanel("Filters", fluid = TRUE,
+#                      sidebarLayout(
+#                          sidebarPanel(selectInput("Country", "Select Country", choices = "", selected = "")),
+#                          mainPanel(
+#                              htmlOutput("Attacks")
+#                          )
+#                      )
+#             ),
+#             tabPanel("Weights", fluid = TRUE,
+#                      sidebarLayout(
+#                          sidebarPanel(sliderInput("year", "Year:", min = 1968, max = 2009, value = 2009, sep='')),
+#                          mainPanel(fluidRow(
+#                              column(7,  plotlyOutput("")),
+#                              column(5, plotlyOutput(""))   
+#                          )
+#                          )
+#                      )
+#             )
+#         )
+#     ), 
+#     server = function(input, output) {
+#         
+#     }
+# )
 
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
     # theme = "my-shiny.css",
-    
+
     # jQuery to keep text at top when scrolling
     # tags$script(
     #     HTML(
@@ -102,7 +133,7 @@ ui <- fluidPage(
     # });"
     #     )
     # ),
-    # 
+    #
     # download roboto and inconsolata font
     HTML(
         '<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'
@@ -110,31 +141,70 @@ ui <- fluidPage(
     HTML(
         '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata">'
     ),
-    
+
     # choose default slider skin
     chooseSliderSkin(skin = "Flat",
                      color = "#5c5980"),
-    
+
     # text output of title with probability results
     # htmlOutput("probability_results"),
     # htmlOutput("probability_results_scroll"),
-    
-    # header
-    HTML('<h3>Weights</h3>'),
-             
+
+    br(),
+
     sidebarLayout(
         sidebarPanel(
+            
+            tabsetPanel(type = 'tabs',
+            tabPanel("Filters",
+                     br(),
+            # these should be reactive -> move to server side?
+            selectInput("region_slider", "Region:", multiple = TRUE,
+                        choices = unique(as.character(final_table$region)),
+                        selected = unique(as.character(final_table$region))),
+            selectInput("urban_slider", "Urban:", multiple = TRUE,
+                        choices = rev(unique(as.character(final_table$urban))),
+                        selected = rev(unique(as.character(final_table$urban)))),
+            selectInput("other_program_slider", "Other program available:", multiple = TRUE,
+                        choices = rev(unique(as.character(final_table$other_prog))),
+                        selected = rev(unique(as.character(final_table$other_prog)))),
+            sliderInput("unemp_slider", "Unemployment: ", min = 0.05, max = 0.15,
+                        value = c(0.05, 0.15), step = 0.01),
+            sliderInput("hs_slider", "High school graduation rate: ", min = 0.5, max = 0.9,
+                        value = c(0.5, 0.9), step = 0.01),
+            sliderInput("income_slider", "Income: ", min = 40, max = 75,
+                        value = c(40, 75), step = 1),
+            sliderInput("comfort_slider", "Comfort: ", min = 0.08, max = 0.95,
+                        value = c(0.08, 0.95), step = 0.01),
+            sliderInput("cost_slider", "Cost: ", min = 770, max = 3100,
+                        value = c(770, 3100), step = 10)
+            ),
+            
+            
+            tabPanel("Weights",
+                     br(),
             sliderInput("slider1", "Unemployment: ", min = 0, max = 100, value = 0, step = 1),
             sliderInput("slider2", "High school graduation rate: ", min = 0, max = 100, value = 0, step = 1),
             sliderInput("slider3", "Income: ", min = 0, max = 100, value = 0, step = 1),
             sliderInput("slider4", "Comfort: ", min = 0, max = 100, value = 0, step = 1),
-            sliderInput("slider4", "Site cost: ", min = 0, max = 100, value = 0, step = 1)),
+            sliderInput("slider4", "Site cost: ", min = 0, max = 100, value = 0, step = 1)
+
+            ))),
         
+        mainPanel(
+            
+        # Output: Tabset w/ plot, summary, and table ----
+        tabsetPanel(type = "tabs",
+                    tabPanel("Plots", plotOutput("scatter")), # height = "500px"),
+                    tabPanel("Table of selected sites", DT::dataTableOutput('table')), # height = "500px"),
+                    tabPanel("Summary plots", plotOutput("boxplots")))
+                    # tabPanel("Table", tableOutput("table"))
+
         # Show a plot of the generated distribution
-        mainPanel(DT::dataTableOutput('table'), # height = "500px")
-                  plotOutput("boxplots"))
-    ),
-    
+        # mainPanel(DT::dataTableOutput('table'), # height = "500px")
+        #           plotOutput("boxplots"))
+    )
+
     # text for bottom of the page
     # HTML(
     #     '<div class="belowplot" >
@@ -145,32 +215,78 @@ ui <- fluidPage(
     #      </div>'
     # )
 )
+)
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-    
-    # datatable(FVI_DATA_COMPOSITE, 
-              # options = list(pageLength = 10,lengthChange=FALSE)) %>% formatRound(c(3:9), 2)
-    
-    output$table <- renderDT(datatable(sites.DF,
-                             filter = "top",
-                             options = list(
-                                 pageLength = 10,
-                                 lengthChange = FALSE)) %>% 
-                                 formatRound(5:9, 2))
-    
-    output$boxplots <- renderPlot({
-        # draw the plot
-        sites.DF[input$table_rows_all,] %>%
+
+
+    # the table
+    output$table <- DT::renderDataTable(DT::datatable({
+        data <- final_table
+
+        # filters
+        data <- data[data$region == input$region_slider,]
+        data <- data[data$urban == input$urban_slider,]
+        data <- data[data$other_prog == input$other_program_slider,]
+        data <- data[data$unemp >= input$unemp_slider[1] & data$unemp <= input$unemp_slider[2],]
+        data <- data[data$pct_hs >= input$hs_slider[1] & data$pct_hs <= input$hs_slider[2],]
+        data <- data[data$income >= input$income_slider[1] & data$income <= input$income_slider[2],]
+        data <- data[data$comfort >= input$comfort_slider[1] & data$comfort <= input$comfort_slider[2],]
+        data <- data[data$cost >= input$cost_slider[1] & data$cost <= input$cost_slider[2],]
+
+        data
+    }, options = list(
+        # sets n observations shown
+        pageLength = 10,
+        # removes option to change n observations shown
+        lengthChange = FALSE,
+        # removes the search bar
+        sDom  = '<"top">lrt<"bottom">ip')) %>%
+        formatRound(5:8, 2) %>%
+        formatRound(9, 0))
+
+    # the plots
+    output$scatter <- renderPlot({
+        
+        # filters
+        data <- final_table
+        data <- data[data$region == input$region_slider,]
+        data <- data[data$urban == input$urban_slider,]
+        data <- data[data$other_prog == input$other_program_slider,]
+        data <- data[data$unemp >= input$unemp_slider[1] & data$unemp <= input$unemp_slider[2],]
+        data <- data[data$pct_hs >= input$hs_slider[1] & data$pct_hs <= input$hs_slider[2],]
+        data <- data[data$income >= input$income_slider[1] & data$income <= input$income_slider[2],]
+        data <- data[data$comfort >= input$comfort_slider[1] & data$comfort <= input$comfort_slider[2],]
+        data <- data[data$cost >= input$cost_slider[1] & data$cost <= input$cost_slider[2],]
+        
+        data %>% 
             select(unemp, pct_hs, income, comfort, cost) %>% 
             pivot_longer(cols = everything()) %>% 
+            ggplot(aes(x = value)) +
+            geom_density() +
+            facet_wrap(~name, scales = 'free')
+
+    })
+    
+    # the summary plots
+    output$boxplots <- renderPlot({
+
+        # use table output as the inferred selected sites to approach
+        selected_sites <- sites.DF[input$table_rows_all,]
+
+
+        # draw the plot
+        sites.DF[input$table_rows_all,] %>%
+            select(unemp, pct_hs, income, comfort, cost) %>%
+            pivot_longer(cols = everything()) %>%
             ggplot(aes(y = value)) +
             geom_boxplot() +
             facet_wrap(~name, scales = 'free_y')
     })
 }
 
-# Run the application 
+# Run the application
 shinyApp(ui = ui, server = server)
 
 
