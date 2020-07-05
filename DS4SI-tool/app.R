@@ -3,7 +3,14 @@ library(shiny)
 library(shinyWidgets)
 library(DT)
 library(gridExtra)
-options(scipen = 999)
+library(plotly)
+library(rlang)
+# library(shinydashboard)
+# library(shinyBS)
+# options(scipen = 999999)
+
+# ggplot theme
+theme_set(theme_minimal())
 
 # todo --------------------------------------------------------------------
 
@@ -22,86 +29,87 @@ options(scipen = 999)
     # https://rstudio.github.io/shinydashboard/
 # table should only be filtered once and then used for everything else
 # should there be an advanced plotting tab? 
+# fix slider finicky behavior
+    # probably should round all values in the data cleaning process
+# plotly + shiny
+    # https://plotly-r.com/linking-views-with-shiny.html
+
+
+# notes -------------------------------------------------------------------
+
+# if there are any issues in the future, it's most likely due to the quantile sliders;
+#  best strategy is just to delete them and move on with your life
+
+# 2020-07-05 can't get the back and forth behavior between the value slider and the quantile slider
+#   to work as it gets stuck in a loop. This could replicates it. There is a possibly related issue
+#   that stats::ecdf() doesn't return a 0 for the minimal value
+# x1 <- get_quantile(final_table$pct_hs, 0.60)
+# x2 <- get_value(final_table$pct_hs, x1)
+# x3 <- get_quantile(final_table$pct_hs, x2)
+# x4 <- get_value(final_table$pct_hs, x3)
+# x5 <- get_quantile(final_table$pct_hs, x4)
+# x6 <- get_value(final_table$pct_hs, x5)
 
 # load data ---------------------------------------------------------------
 
-original.DF <- read_csv("jpta_cleaned.csv")
-sites.DF <- original.DF
+final_table <- read_csv("jpta_cleaned.csv")
 
-# joe's assignment code ---------------------------------------------------
-# 
-# #function "scales" the data between 0:1
-# calc.proportion <- function(distribution){
-#     (distribution - min(distribution)) / (max(distribution) - min(distribution))
-# }
-# 
-# C.sites.DF <- sites.DF %>% select(site_id, cost, unemp, pct_hs, income, comfort)
-# proportions <- apply(X = C.sites.DF, MARGIN = 2, FUN = calc.proportion)
-# proportions <- proportions[, 2:ncol(proportions)]
-# colnames(proportions) <- c("cost.P", "unemp.P", "pct_hs.P", "income.P", "comfort.P")
-# proportions <- as.data.frame(proportions)
-# 
-# #need to make sure percentiles are ordered correctly; high income proportion may mean more income
-# # cost: down
-# # unemp: up
-# # pct_hs: down
-# # income: down
-# # comfort: up
-# 
-# #categories to apply the weight against is determined by position in DF
-# weights <- c(1.25, 1.5, 1, 1.5, 1)
-# 
-# #reverse percentiles for relevant categories; 
-# #    sum P to generate a single score based on weights
-# #    bind back to original DF
-# sites.ranked.DF <- proportions %>%
-#     mutate(cost.P = 1 - cost.P,
-#            pct_hs.P = 1 - pct_hs.P,
-#            income.P = 1 - income.P) %>%
-#     rowwise() %>%
-#     # mutate(site_score = sum(c(cost.P, unemp.P, pct_hs.P, income.P, comfort.P))) %>%
-#     mutate(site_score = sum(c(cost.P, unemp.P, pct_hs.P, income.P, comfort.P) * weights)) %>%
-#     cbind(sites.DF, .) %>%
-#     ungroup()
-# 
-# #top sites
-# top.sites.DF <- sites.ranked.DF %>%
-#     filter(other_prog == F) %>% #remove sites that have another program
-#     arrange(desc(site_score)) %>%
-#     mutate(Exp_site_ct = cummean(comfort)*row_number()) %>%
-#     filter(Exp_site_ct <= 35) #filters the DF so we expect that we'll have 35 sites after accounting for comfort
-# 
-# #total expected sites
-# mean(top.sites.DF$comfort) * nrow(top.sites.DF)
-# 
-# #add identifier for top site to the main DF
-# sites.ranked.DF$top_site <- sites.ranked.DF$site_id %in% top.sites.DF$site_id
-# rm(C.sites.DF, proportions, top.sites.DF, weights)
+# custom functions --------------------------------------------------------
 
-final_table <- original.DF
+get_quantile = function(distribution, value){
+    # function to return the quantile amount
+    
+    # find the value in distribution that is closest to value
+    closest_value_in_distribution <- distribution[which.min(abs(distribution - value))]
 
+    # find the quantile of this closest value
+    closest_quantile <- ecdf(distribution)(closest_value_in_distribution)
+    return(closest_quantile)
+} 
+
+get_value <- function(distribution, probs){
+    # function to get the quantile, but make sure it matches an actual value in the distribution
+    # similar to stats::quantile() but returns the quantile to the closest value in the distribution
+    
+    # get the actual quantile
+    actual_quantile <- as.numeric(quantile(distribution, probs = probs))
+    
+    # find the value in distribution that is closest to value
+    closest_prob_in_distribution <- distribution[which.min(abs(distribution - actual_quantile))]
+    
+    # closest_value <- distribution[all_quantiles  == closest_quantile_in_distribution]
+    
+    return(closest_prob_in_distribution)
+}
+
+
+# custom variables --------------------------------------------------------
+
+# custom HTML code for collapsiible
+#  see http://jsfiddle.net/thurstanh/emtAm/2/
+HTML_for_collapsible_1 <- '<details><summary>View quantile</summary>'
+HTML_for_collapsible_2 <- '</details><br>'
+
+# create df of min and maxes to use in slider calculations
+min_max_df <- final_table %>% 
+    select(unemp, pct_hs, income, comfort, cost) %>% 
+    pivot_longer(cols = everything()) %>% 
+    group_by(name) %>% 
+    summarize(min = floor(min(value) * 0.999 * 100) / 100,
+              max = ceiling(max(value) * 1.001 * 100) / 100) %>%
+    as.data.frame() %>% 
+    `rownames<-`(.[,'name']) %>% 
+    select(-name)
+min_max_df['cost',] <- round(min_max_df['cost',], 0)
+
+    
 # app ----------------------------------------------------------------------
+
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-    # theme = "my-shiny.css",
+    theme = "my-shiny.css",
 
-    # jQuery to keep text at top when scrolling
-    # tags$script(
-    #     HTML(
-    #         "$(window).scroll(function(e){
-    #     var $el = $('.subheader-container');
-    #     var isPositionFixed = ($el.css('position') == 'fixed');
-    #     if ($(this).scrollTop() >= 110 && !isPositionFixed){
-    #         $el.css({'position': 'fixed', 'top': '0px', 'display': 'block'});
-    #         }
-    #     if ($(this).scrollTop() < 110 && isPositionFixed){
-    #     $el.css({'position': 'static', 'top': '0px', 'display': 'none'});
-    #     }
-    # });"
-    #     )
-    # ),
-    #
     # download roboto and inconsolata font
     HTML(
         '<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'
@@ -118,13 +126,15 @@ ui <- fluidPage(
     br(),
 
     sidebarLayout(
-        sidebarPanel(
-            
+        sidebarPanel(width = 5,
+
             # text output of title with number of sites selected
             htmlOutput("n_sites_selected"),
             
+            br(),
+
             tabsetPanel(type = 'tabs',
-            
+
                 # tab one containing the filters
                 tabPanel("Filters",
                      br(),
@@ -138,20 +148,69 @@ ui <- fluidPage(
                     selectInput("other_program_slider", "Other program available:", multiple = TRUE,
                                 choices = rev(unique(as.character(final_table$other_prog))),
                                 selected = rev(unique(as.character(final_table$other_prog)))),
-                    sliderInput("unemp_slider", "Unemployment: ", min = 0.05, max = 0.15,
-                                value = c(0.05, 0.15), step = 0.01),
-                    sliderInput("hs_slider", "High school graduation rate: ", min = 0.5, max = 0.9,
-                                value = c(0.5, 0.9), step = 0.01),
-                    sliderInput("income_slider", "Income: ", min = 40, max = 75,
-                                value = c(40, 75), step = 1),
-                    sliderInput("comfort_slider", "Comfort: ", min = 0.08, max = 0.95,
-                                value = c(0.08, 0.95), step = 0.01),
-                    sliderInput("cost_slider", "Cost: ", min = 770, max = 3100,
-                                value = c(770, 3100), step = 10),
+                    
+                    br(),
+                    
+                    # unemployment rate sliders
+                    sliderInput("unemp_slider", "Unemployment: ",
+                                min = min_max_df['unemp', 'min'],
+                                max = min_max_df['unemp', 'max'],
+                                value = c(min_max_df['unemp', 'min'], 
+                                          min_max_df['unemp', 'max'])),
+                    HTML(HTML_for_collapsible_1),
+                    sliderInput(inputId = "unemp_quantile", label = NULL, min = 0, max = 1,
+                                value = c(0, 1)),
+                    HTML(HTML_for_collapsible_2),
+                    
+                    # high school graduation rate sliders
+                    sliderInput("hs_slider", "High school graduation rate: ",
+                                min = min_max_df['pct_hs', 'min'],
+                                max = min_max_df['pct_hs', 'max'],
+                                value = c(min_max_df['pct_hs', 'min'], min_max_df['pct_hs', 'max'])),
+                    HTML(HTML_for_collapsible_1),
+                    sliderInput(inputId = "hs_quantile", label = NULL, min = 0, max = 1,
+                                value = c(get_quantile(final_table$pct_hs, min_max_df['pct_hs', 'min']),
+                                          get_quantile(final_table$pct_hs, min_max_df['pct_hs', 'max']))),
+                    HTML(HTML_for_collapsible_2),
+
+                    # income sliders
+                    sliderInput("income_slider", "Income: ", #round = -0.2,
+                                min = min_max_df['income', 'min'],
+                                max = min_max_df['income', 'max'],
+                                value = c(min_max_df['income', 'min'], min_max_df['income', 'max'])),
+                    HTML(HTML_for_collapsible_1),
+                    sliderInput(inputId = "income_quantile", label = NULL, min = 0, max = 1,
+                                value = c(get_quantile(final_table$income, min_max_df['income', 'min']),
+                                          get_quantile(final_table$income, min_max_df['income', 'max']))),
+                    HTML(HTML_for_collapsible_2),
+
+                    # comfort sliders
+                    sliderInput("comfort_slider", "Comfort: ", #round = -0.2,
+                                min = min_max_df['comfort', 'min'],
+                                max = min_max_df['comfort', 'max'],
+                                value = c(min_max_df['comfort', 'min'], min_max_df['comfort', 'max'])),
+                    HTML(HTML_for_collapsible_1),
+                    sliderInput(inputId = "comfort_quantile", label = NULL, min = 0, max = 1,
+                                value = c(get_quantile(final_table$comfort, min_max_df['comfort', 'min']),
+                                          get_quantile(final_table$comfort, min_max_df['comfort', 'max']))),
+                    HTML(HTML_for_collapsible_2),
+
+                    # cost sliders
+                    sliderInput("cost_slider", "Cost: ", #round = -0.2,
+                                min = min_max_df['cost', 'min'],
+                                max = min_max_df['cost', 'max'],
+                                value = c(min_max_df['cost', 'min'], min_max_df['cost', 'max'])),
+                    HTML(HTML_for_collapsible_1),
+                    sliderInput(inputId = "cost_quantile", label = NULL, min = -0.001, max = 1,
+                                value = c(get_quantile(final_table$cost, min_max_df['cost', 'min']),
+                                          get_quantile(final_table$cost, min_max_df['cost', 'max']))),
+                    HTML(HTML_for_collapsible_2),
+                    
+                    # manually exclude sites
                     selectInput("sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
                                 choices = sort(unique(as.character(final_table$site_id)))),
                     ),
-            
+
                 # tab two containing the weight selections
                 tabPanel("Weights",
                          br(),
@@ -161,29 +220,111 @@ ui <- fluidPage(
                          sliderInput("slider4", "Comfort: ", min = 0, max = 100, value = 50, step = 1),
                          sliderInput("slider4", "Site cost: ", min = 0, max = 100, value = 50, step = 1)
 
-            ))),
-        
-        mainPanel(
-            
-        # Output: Tabset w/ plot, summary, and table ----
-        tabsetPanel(type = "tabs",
-                    tabPanel("Plots", plotOutput("densities")), # height = "500px"),
-                    tabPanel("Table of selected sites", DT::dataTableOutput('table')), # height = "500px"),
-                    tabPanel("Summary plots", plotOutput("boxplots")))
+                ),
+                tabPanel("Exploration",
+                         br(),
+                         selectInput("plot_type", "Plot type:", multiple = FALSE,
+                                     choices = c("Scatter", "Histogram"),
+                                     selected = "Scatter"),
+                         selectInput("x_variable", "X: ", multiple = FALSE,
+                                     choices = colnames(final_table),
+                                     selected = "unemp"),
+                         selectInput("y_variable", "Y: ", multiple = FALSE,
+                                     choices = colnames(final_table),
+                                     selected = "cost"),
+                         selectInput("size_variable", "Size: ", multiple = FALSE,
+                                     choices = colnames(final_table),
+                                     selected = "comfort"),
+                         selectInput("fill_variable", "Fill color: ", multiple = FALSE,
+                                     choices = colnames(final_table),
+                                     selected = "cost" ),
+                         selectInput("facet_variable", "Facet variable: ",multiple = FALSE,
+                                     choices = c("none", "region", "urban", "other_prog"),
+                                     selected = "none"),
+                         sliderInput("alpha_variable", "Opacity: ", min = 0, max = 1, value = 0.7, step = 0.1)
+                )
+            )
+            ),
 
+        mainPanel(width = 7,
+                  
+                  # Output: Tabset w/ plot, summary, and table ----
+                  tabsetPanel(
+                      type = "tabs",
+                      tabPanel("Plots",
+                               plotOutput("densities", height = 900)),
+                      tabPanel("Table of selected sites", DT::dataTableOutput('table')),
+                      tabPanel(
+                          "Summary plots",
+                          htmlOutput("summary_text"),
+                          plotOutput("boxplots", height = 800),
+                          br(),
+                          downloadButton("downloadData", "Download the data")
+                      ),
+                      tabPanel("Data exploration",
+                               plotlyOutput('advanced_plotly'),
+                               plotOutput('advanced_ggplot'))
+                  ))
     )
-)
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+
     
-    # number of current sites selected
-    output$n_sites_selected <- renderText({
+    # code for sliders to react to it's respective quantile slider ------------
+    
+    # closure to define server side absolute <-> quantile slider behavior
+    absolute_quantile_observeEvent <- function(slider_name, quantile_name, variable_name) {
         
+        # when quantile slider changes, update the original slider
+        # observeEvent(input[[quantile_name]], {
+        #     updateSliderInput(session = session, inputId = slider_name,
+        #                       value = c(get_value(distribution = final_table[[variable_name]],
+        #                                           probs = input[[quantile_name]][1]),
+        #                                 get_value(distribution = final_table[[variable_name]],
+        #                                           probs = input[[quantile_name]][2]))
+        #     )
+        # })
+        
+        # when original slider changes, update the quantile slider
+        observeEvent(input[[slider_name]],  {
+            updateSliderInput(session = session, inputId = quantile_name,
+                              value = c(get_quantile(value = input[[slider_name]][1], 
+                                                     distribution = final_table[[variable_name]]),
+                                        get_quantile(value = input[[slider_name]][2], 
+                                                     distribution = final_table[[variable_name]])))
+        })
+    }
+    
+    # the non-closure version of this code is:
+        # #unemployment
+        # observeEvent(input$unemp_quantile,  {
+        #     updateSliderInput(session = session, inputId = "unemp_slider",
+        #                       value = c(as.numeric(quantile(final_table$unemp, probs = input$unemp_quantile[1])),
+        #                                 as.numeric(quantile(final_table$unemp, probs = input$unemp_quantile[2])))
+        #     )
+        # })
+        
+        # observeEvent(input$unemp_slider,  {
+        #     updateSliderInput(session = session, inputId = "unemp_quantile",
+        #                       value = c(get_quantile(input$unemp_slider[1], final_table$unemp),
+        #                                 get_quantile(input$unemp_slider[2], final_table$unemp)))
+        # })
+    
+    # make the quantile slider dependent on the input slider
+    absolute_quantile_observeEvent("unemp_slider", "unemp_quantile", "unemp")
+    absolute_quantile_observeEvent("hs_slider", "hs_quantile", "pct_hs")
+    absolute_quantile_observeEvent("income_slider", "income_quantile", "income")
+    absolute_quantile_observeEvent("comfort_slider", "comfort_quantile", "comfort")
+    absolute_quantile_observeEvent("cost_slider", "cost_quantile", "cost")
+    
+
+    # reactive function to return the current table filtered based on user inputs
+    filtered_table <- reactive({
+        
+        # filter dataframe
         data <- final_table
-        
-        # filters
         data <- data[data$region %in% input$region_slider,]
         data <- data[data$urban %in% input$urban_slider,]
         data <- data[data$other_prog %in% input$other_program_slider,]
@@ -194,210 +335,153 @@ server <- function(input, output, session) {
         data <- data[data$cost >= input$cost_slider[1] & data$cost <= input$cost_slider[2],]
         data <- data[!data$site_id %in% input$sites_excl,]
         
-        paste0(
-            '<h4>',
-            nrow(data),
-            ' sites are currently selected to be approached</h4>'
-        )
-        
+        return(data)
     })
     
-    
-    # the table
-    output$table <- DT::renderDataTable(DT::datatable({
-        data <- final_table
+    # number of current sites selected to use in header
+    output$n_sites_selected <- renderText({
+        paste0(
+            '<h4>',
+            nrow(filtered_table()),
+            ' sites are currently selected to be approached</h4>'
+        )
+    })
 
-        # filters
-        data <- data[data$region %in% input$region_slider,]
-        data <- data[data$urban %in% input$urban_slider,]
-        data <- data[data$other_prog %in% input$other_program_slider,]
-        data <- data[data$unemp >= input$unemp_slider[1] & data$unemp <= input$unemp_slider[2],]
-        data <- data[data$pct_hs >= input$hs_slider[1] & data$pct_hs <= input$hs_slider[2],]
-        data <- data[data$income >= input$income_slider[1] & data$income <= input$income_slider[2],]
-        data <- data[data$comfort >= input$comfort_slider[1] & data$comfort <= input$comfort_slider[2],]
-        data <- data[data$cost >= input$cost_slider[1] & data$cost <= input$cost_slider[2],]
-        data <- data[!data$site_id %in% input$sites_excl,]
-
-        data
-    }, options = list(
-        # sets n observations shown
-        pageLength = 20,
-        # removes option to change n observations shown
-        lengthChange = FALSE,
-        # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip')) %>%
+    # display the table in the 'table of selected sites' tab
+    output$table <- DT::renderDataTable(DT::datatable(
+        filtered_table(), rownames = FALSE, options = list(
+            # sets n observations shown
+            pageLength = 20,
+            # removes option to change n observations shown
+            lengthChange = FALSE,
+            # removes the search bar
+            sDom  = '<"top">lrt<"bottom">ip')
+        ) %>%
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
 
     # the plots
     output$densities <- renderPlot({
-        
-        # filters
-        data <- final_table
-        data <- data[data$region == input$region_slider,]
-        data <- data[data$urban == input$urban_slider,]
-        data <- data[data$other_prog == input$other_program_slider,]
-        data <- data[data$unemp >= input$unemp_slider[1] & data$unemp <= input$unemp_slider[2],]
-        data <- data[data$pct_hs >= input$hs_slider[1] & data$pct_hs <= input$hs_slider[2],]
-        data <- data[data$income >= input$income_slider[1] & data$income <= input$income_slider[2],]
-        data <- data[data$comfort >= input$comfort_slider[1] & data$comfort <= input$comfort_slider[2],]
-        data <- data[data$cost >= input$cost_slider[1] & data$cost <= input$cost_slider[2],]
-        data <- data[!data$site_id %in% input$sites_excl,]
-        
-        # density plot of numeric variables
-        p1 <- data %>% 
-            select(unemp, pct_hs, income, comfort, cost) %>% 
-            pivot_longer(cols = everything()) %>% 
-            ggplot(aes(x = value)) +
-            geom_density() +
-            facet_wrap(~name, scales = 'free') +
-            labs(x = NULL,
-                 y = NULL)
-        
+
         # bar plot of categorical variables
-        p2 <- data %>% 
+        p1 <- filtered_table() %>%
             select(region, urban, other_prog) %>%
             mutate(urban = as.character(urban),
-                   other_prog = as.character(other_prog)) %>% 
-            pivot_longer(cols = everything()) %>% 
+                   other_prog = as.character(other_prog)) %>%
+            pivot_longer(cols = everything()) %>%
+            mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
             ggplot(aes(x = value)) +
-            geom_bar() +
-            facet_wrap(~name, scales = 'free_x') +
+            geom_bar(fill = 'grey60', alpha = 0.8) +
+            facet_wrap(~name, scales = 'free_x', ncol = 2) +
+            labs(x = NULL,
+                 y = NULL) +
             theme(axis.text.x = element_text(angle = 40, hjust = 1))
-        
+
+        # density plot of numeric variables
+        p2 <- filtered_table() %>%
+            select(unemp, pct_hs, income, comfort, cost) %>%
+            pivot_longer(cols = everything()) %>%
+            mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
+            ggplot(aes(x = value)) +
+            geom_density(fill = 'grey60', alpha = 0.8, color = 'white') +
+            facet_wrap(~name, scales = 'free', ncol = 2) +
+            labs(x = NULL,
+                 y = NULL)
+
         # render both plots vertically
         grid.arrange(p1, p2, ncol = 1)
+
+    })
+    
+    # text for summary page
+    output$summary_text <- renderText({
         
+        n_sites <- nrow(filtered_table())
+        mean_acceptance <- mean(filtered_table()$comfort)
+        
+        paste0(
+            '<h4>',
+            n_sites,
+            ' sites have been selected to approached. 
+            These sites have a mean probability of accepting the invitation of ',
+            round(mean_acceptance, 2), 
+            '. The expected final sample of sites that will accept is ',
+            floor(n_sites * mean_acceptance), ' sites. </h4>'
+        )
     })
     
     # the summary plots
     output$boxplots <- renderPlot({
 
-        # use table output as the inferred selected sites to approach
-        selected_sites <- sites.DF[input$table_rows_all,]
-
-
-        # draw the plot
-        sites.DF[input$table_rows_all,] %>%
-            select(unemp, pct_hs, income, comfort, cost) %>%
-            pivot_longer(cols = everything()) %>%
-            ggplot(aes(y = value)) +
+        # boxplots of the population, sites to approach, and expected sample
+        
+        # create the three groups
+        population <- final_table %>% mutate(weight = 1, group = "Population")
+        sites_to_approach <- filtered_table() %>% mutate(weight = 1, group = "Sites to \n approach")
+        expected_sample <- filtered_table() %>% mutate(weight = comfort, group = 'Expected \n sample')
+        
+        bind_rows(population, sites_to_approach, expected_sample) %>% 
+            select(cost, unemp, pct_hs, income, comfort, group, weight) %>% 
+            mutate(group = factor(group,
+                                 levels = c("Expected \n sample", "Sites to \n approach", "Population"),
+                                 labels = c("Expected \n sample", "Sites to \n approach", "Population"))) %>%
+            rename('Site cost ($)' = cost,
+                   'County level \n unemployment (%)' = unemp,
+                   'County level high \n school grad rate (%)' = pct_hs,
+                   'County level \n median income ($)' = income,
+                   'Site probability \n of participation' = comfort) %>%
+            pivot_longer(cols = -c("group", "weight")) %>%  
+            ggplot(aes(y = value, x = group, weight = weight)) +
             geom_boxplot() +
-            facet_wrap(~name, scales = 'free_y')
+            stat_summary(fun.y = mean, geom = "errorbar",
+                         aes(ymax = ..y.., ymin = ..y..),
+                         width = .75, linetype = "dashed") +
+            facet_wrap(~name, scale = "free", ncol = 1) +
+            labs(x = NULL, 
+                 y = NULL)
+    })
+    
+    # create dataset with identifier indicating if site is to be approached
+    data_to_download <- reactive({
+        final_table %>%
+        mutate(site_to_approach = site_id %in% filtered_table()$site_id)
+    })
+    
+    # download button for data_to_download
+    output$downloadData <- downloadHandler(
+        filename <- "sites.csv",
+        content <- function(file) {
+            write.csv(data_to_download(), file, row.names = FALSE)
+        }
+    )
+    
+    # draft of advanced plotting
+    output$advanced_plotly <- renderPlotly(
+        plot_ly(
+            x = filtered_table()$unemp,
+            y = filtered_table()$cost, 
+            type = 'scatter',
+            mode = 'markers')
+    )
+    
+    # draft of advanced plotting
+    output$advanced_ggplot <- renderPlot({
+        
+        p <- final_table %>% 
+            ggplot(aes_string(x = input$x_variable, y = input$y_variable,
+                       size = input$size_variable, fill = input$fill_variable,
+                       color = input$fill_variable)) +
+            geom_point(alpha = input$alpha_variable)
+        
+        if(input$facet_variable != "none"){
+            # facet_variable <- parse_quo(input$facet_variable, env = caller_env())
+            p <- p + facet_wrap(~get(input$facet_variable), scales = 'free')
+        } 
+        
+        # show plot
+        p
     })
 }
 
 # Run the application
 shinyApp(ui = ui, server = server)
-
-
-
-# old code ----------------------------------------------------------------
-# 
-# server <- function(input, output) {
-#     
-#     # look up variables from the slider text to the actuql value
-#     sample_size <- reactive({sample_size_values[input$sample_size == sample_size_text]})
-# 
-#     # filter dataset to inputs and pull out probability
-#     probs <- reactive({
-#         summarized_results %>%
-#             filter(n_checks == input$n_stops,
-#                    n_comparisons == input$n_comparisons,
-#                    effect_size == input$effect_size,
-#                    sample_size == sample_size(),
-#                    std_dev == input$spread) %>%
-#             pull(Probability_of_finding_an_effect)
-#     })
-# 
-#     # html for text that stays at the top
-#     output$probability_results <- renderText({
-# 
-#         paste0(
-#             '<h2>A/B testing: pulling it all together
-#             <div>
-#             <span class="subheader">Probability of finding at least one effect: &nbsp </span>
-#             <span class="emphasis"> ~',
-#             round(min(0.99, max(0.05, probs())), 2),
-#             '</span>
-#             </div>
-#             </h2>'
-#         )
-# 
-#     })
-# 
-#     # html for text that scrolls
-#     output$probability_results_scroll <- renderText({
-# 
-#         # this contains '.subheader-container' which is responsive to scroll position
-#         paste0(
-#             '<h2>
-#             <div class="subheader-container">
-#             <span class="subheader">Probability of finding at least one effect: &nbsp </span>
-#             <span class="emphasis"> ~',
-#             round(min(0.99, max(0.05, probs())), 2),
-#             '</span>
-#             </div>
-#             </h2>'
-#         )
-#     })
-# 
-#     output$distPlot <- renderPlot({
-# 
-#         # simulate random distributions
-#         dat <-
-#             tibble(
-#                 As = as.vector(replicate(input$n_comparisons, rnorm(
-#                     n = sample_size(),
-#                     mean = 45,
-#                     sd = 45 * input$spread
-#                 ))),
-#                 Bs = as.vector(replicate(input$n_comparisons, rnorm(
-#                     n = sample_size(),
-#                     mean = 45 * (1 + input$effect_size),
-#                     sd = 45 * input$spread
-#                 )))
-#             )
-# 
-#         # dynamically adjust facet labels so its readable on mobile
-#         if (input$n_comparisons == 1){
-#             dat$ID <- "A single comparison between A and B"
-#         } else if (input$n_comparisons <= 5){
-#             dat$ID <- factor(
-#                 rep(paste0("Comparison ", 1:input$n_comparisons), each = sample_size()),
-#                 levels = paste0("Comparison ", 1:input$n_comparisons))
-#         } else {
-#             dat$ID <- factor(
-#                 rep(c("Comp. 1", 2:input$n_comparisons), each = sample_size()),
-#                 levels =  c("Comp. 1", 2:input$n_comparisons))
-#         }
-# 
-#         # calculate means for each distribution
-#         means <- dat %>%
-#             group_by(ID) %>%
-#             summarize(meanA = mean(As),
-#                       meanB = mean(Bs))
-# 
-#         # facet font size; responsive to number of facets so its readable on mobile
-#         facet_font <- if_else(input$n_comparisons > 5, 10, 12)
-# 
-#         # draw the plot
-#         fill_colors <- c("A" = "grey20", "B" = "#4e917e")
-#         dat %>%
-#             ggplot() +
-#             geom_density(aes(x = As, fill = "A"), alpha = 0.6) +
-#             geom_density(aes(x = Bs, fill = "B"), alpha = 0.6) +
-#             geom_vline(data = means, aes(xintercept = meanA), color = 'black') +
-#             geom_vline(data = means, aes(xintercept = meanB), color = '#6fd9bb') +
-#             scale_x_continuous(labels = NULL, lim = c(20, 70)) +
-#             scale_y_continuous(labels = NULL) +
-#             scale_fill_manual(values = fill_colors) +
-#             facet_wrap(~ID) +
-#             labs(title = "Distributions of A and B",
-#                  x = NULL,
-#                  y = NULL) +
-#             theme(strip.text = element_text(size = facet_font))
-# 
-#     })
-# }
-

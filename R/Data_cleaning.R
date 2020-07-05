@@ -14,8 +14,9 @@ cleaned_df <- original_df %>%
     ),
     urban = as.logical(urban),
     other_prog = as.logical(other_prog),
-    cost = 1000 + (distance * 500)
+    cost = round(1000 + (distance * 500), 0)
   ) %>% 
-  select(-distance)
+  select(-distance) %>% 
+  mutate_if(is.numeric, round, digits = 3)
 
 write_csv(cleaned_df, "DS4SI-tool/jpta_cleaned.csv")

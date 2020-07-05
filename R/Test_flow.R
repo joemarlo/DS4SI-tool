@@ -77,7 +77,7 @@ p.a.s.plot <- pop.approach.samp %>%
          'County level high \n school grad rate (%)' = pct_hs,
          'County level \n median income ($)' = income,
          'Site probability \n of participation' = comfort) %>%
-  gather(., key = "key", value = "value", -Type, -Weight) %>%
+  gather(., key = "key", value = "value", -Type, -Weight) %>% 
   ggplot(aes(y = value, x = Type, weight = Weight)) +
   geom_boxplot() +
   stat_summary(fun.y = mean, geom = "errorbar",

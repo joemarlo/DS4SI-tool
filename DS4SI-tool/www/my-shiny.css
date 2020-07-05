@@ -1,3 +1,12 @@
+
+
+/* color of "Quantile" text */
+summary{
+    color: #a3a3a3;
+    font-size: 0.9em;
+}
+
+/*
 h1, h2, h3, h4, h5, h6 {
   display: block;
   margin-top: 0.67em;
