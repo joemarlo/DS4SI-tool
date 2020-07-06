@@ -33,7 +33,8 @@ theme_set(theme_minimal())
     # probably should round all values in the data cleaning process
 # plotly + shiny
     # https://plotly-r.com/linking-views-with-shiny.html
-
+# implement plot brushing
+    # https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html
 
 # notes -------------------------------------------------------------------
 
@@ -85,6 +86,12 @@ get_value <- function(distribution, probs){
 
 # custom variables --------------------------------------------------------
 
+# welcome page text
+
+welcome_text <- "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+<br><br>
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+
 # custom HTML code for collapsiible
 #  see http://jsfiddle.net/thurstanh/emtAm/2/
 HTML_for_collapsible_1 <- '<details><summary>View quantile</summary>'
@@ -124,9 +131,54 @@ ui <- fluidPage(
 
     # <br> for spacing
     br(),
+    
+    navlistPanel(widths = c(2, 10),
+        tabPanel("Welcome",
+                 mainPanel(
+                     h1("Welcome"),
+                     HTML(welcome_text)
+                     )
+        ),
+                 
+        tabPanel("Site exploration",
+                 sidebarLayout(
+                     sidebarPanel(width = 4,
+                          selectInput("plot_type", "Plot type:", multiple = FALSE,
+                                      choices = c("Scatter", "Histogram"),
+                                      selected = "Scatter"),
+                          selectInput("x_variable", "X: ", multiple = FALSE,
+                                      choices = colnames(final_table),
+                                      selected = "unemp"),
+                          selectInput("y_variable", "Y: ", multiple = FALSE,
+                                      choices = colnames(final_table),
+                                      selected = "cost"),
+                          selectInput("size_variable", "Size: ", multiple = FALSE,
+                                      choices = colnames(final_table),
+                                      selected = "comfort"),
+                          selectInput("fill_variable", "Fill color: ", multiple = FALSE,
+                                      choices = colnames(final_table),
+                                      selected = "cost" ),
+                          selectInput("facet_variable", "Facet variable: ",multiple = FALSE,
+                                      choices = c("none", "region", "urban", "other_prog"),
+                                      selected = "none"),
+                          sliderInput("alpha_variable", "Opacity: ", min = 0.1, max = 1, value = 0.7, step = 0.1)
+                 ),
+                 mainPanel(width = 6,
+                     # plotlyOutput('advanced_plotly'),
+                     plotOutput('advanced_ggplot', 
+                                brush = brushOpts(id = "plot1_brush")),
+                     br(),
+                     h4("Select data points on the above plot to their information here"),
+                     DT::dataTableOutput("brush_info"),
+                     h6("Selection is not possible when using a facet variable")
+                 )
+                 )
+        ),
+
+        tabPanel("Selection tool",
 
     sidebarLayout(
-        sidebarPanel(width = 5,
+        sidebarPanel(width = 4,
 
             # text output of title with number of sites selected
             htmlOutput("n_sites_selected"),
@@ -220,51 +272,31 @@ ui <- fluidPage(
                          sliderInput("slider4", "Comfort: ", min = 0, max = 100, value = 50, step = 1),
                          sliderInput("slider4", "Site cost: ", min = 0, max = 100, value = 50, step = 1)
 
-                ),
-                tabPanel("Exploration",
-                         br(),
-                         selectInput("plot_type", "Plot type:", multiple = FALSE,
-                                     choices = c("Scatter", "Histogram"),
-                                     selected = "Scatter"),
-                         selectInput("x_variable", "X: ", multiple = FALSE,
-                                     choices = colnames(final_table),
-                                     selected = "unemp"),
-                         selectInput("y_variable", "Y: ", multiple = FALSE,
-                                     choices = colnames(final_table),
-                                     selected = "cost"),
-                         selectInput("size_variable", "Size: ", multiple = FALSE,
-                                     choices = colnames(final_table),
-                                     selected = "comfort"),
-                         selectInput("fill_variable", "Fill color: ", multiple = FALSE,
-                                     choices = colnames(final_table),
-                                     selected = "cost" ),
-                         selectInput("facet_variable", "Facet variable: ",multiple = FALSE,
-                                     choices = c("none", "region", "urban", "other_prog"),
-                                     selected = "none"),
-                         sliderInput("alpha_variable", "Opacity: ", min = 0, max = 1, value = 0.7, step = 0.1)
                 )
             )
             ),
 
-        mainPanel(width = 7,
+        mainPanel(width = 6,
                   
                   # Output: Tabset w/ plot, summary, and table ----
                   tabsetPanel(
                       type = "tabs",
                       tabPanel("Plots",
                                plotOutput("densities", height = 900)),
-                      tabPanel("Table of selected sites", DT::dataTableOutput('table')),
-                      tabPanel(
-                          "Summary plots",
-                          htmlOutput("summary_text"),
-                          plotOutput("boxplots", height = 800),
-                          br(),
-                          downloadButton("downloadData", "Download the data")
-                      ),
-                      tabPanel("Data exploration",
-                               plotlyOutput('advanced_plotly'),
-                               plotOutput('advanced_ggplot'))
+                      tabPanel("Table of selected sites", DT::dataTableOutput('table'))
                   ))
+    )),
+    
+    tabPanel("Summary of selected sites",
+             mainPanel(width = 9,
+                 htmlOutput("summary_text"),
+                 plotOutput("boxplots", height = 800),
+                 br(),
+                 downloadButton("downloadData", "Download the data"),
+                 br(),
+                 br()
+             ))
+    
     )
 )
 
@@ -398,6 +430,7 @@ server <- function(input, output, session) {
         
         n_sites <- nrow(filtered_table())
         mean_acceptance <- mean(filtered_table()$comfort)
+        expected_cost <- sum(filtered_table()$comfort * filtered_table()$cost)
         
         paste0(
             '<h4>',
@@ -406,7 +439,8 @@ server <- function(input, output, session) {
             These sites have a mean probability of accepting the invitation of ',
             round(mean_acceptance, 2), 
             '. The expected final sample of sites that will accept is ',
-            floor(n_sites * mean_acceptance), ' sites. </h4>'
+            floor(n_sites * mean_acceptance), ' sites, and has a total expected cost of ',
+            scales::label_dollar(accuracy = 1)(expected_cost), '</h4>'
         )
     })
     
@@ -436,7 +470,7 @@ server <- function(input, output, session) {
             stat_summary(fun.y = mean, geom = "errorbar",
                          aes(ymax = ..y.., ymin = ..y..),
                          width = .75, linetype = "dashed") +
-            facet_wrap(~name, scale = "free", ncol = 1) +
+            facet_wrap(~name, scale = "free", ncol = 2) +
             labs(x = NULL, 
                  y = NULL)
     })
@@ -455,14 +489,14 @@ server <- function(input, output, session) {
         }
     )
     
-    # draft of advanced plotting
-    output$advanced_plotly <- renderPlotly(
-        plot_ly(
-            x = filtered_table()$unemp,
-            y = filtered_table()$cost, 
-            type = 'scatter',
-            mode = 'markers')
-    )
+    # # draft of advanced plotting
+    # output$advanced_plotly <- renderPlotly(
+    #     plot_ly(
+    #         x = filtered_table()$unemp,
+    #         y = filtered_table()$cost, 
+    #         type = 'scatter',
+    #         mode = 'markers')
+    # )
     
     # draft of advanced plotting
     output$advanced_ggplot <- renderPlot({
@@ -481,6 +515,29 @@ server <- function(input, output, session) {
         # show plot
         p
     })
+    
+    
+    # table of brushed data points from plot
+    output$brush_info <- DT::renderDataTable(
+        
+        # show only if there isn't faceting
+        if (input$facet_variable == "none") {
+            DT::datatable(
+                brushedPoints(final_table, input$plot1_brush),
+                rownames = FALSE,
+                options = list(
+                    # sets n observations shown
+                    pageLength = 10,
+                    # removes option to change n observations shown
+                    lengthChange = FALSE,
+                    # removes the search bar
+                    sDom  = '<"top">lrt<"bottom">ip'
+                )
+            ) %>%
+                formatRound(5:8, 2) %>%
+                formatRound(9, 0)
+        })
+
 }
 
 # Run the application
