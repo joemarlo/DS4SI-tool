@@ -5,6 +5,7 @@ library(DT)
 library(gridExtra)
 library(plotly)
 library(rlang)
+library(quantreg) # for weighted box
 # library(shinydashboard)
 # library(shinyBS)
 # options(scipen = 999999)
@@ -35,6 +36,11 @@ theme_set(theme_minimal())
     # https://plotly-r.com/linking-views-with-shiny.html
 # implement plot brushing
     # https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html
+# should implement weights by allowing user to select # top sites and those sites are
+    # ranked by the weighted score
+# need to implment table on final page
+# need reset button on filters and weights
+# add checkmark box for inlcuding only filtered sites in site exploration tab
 
 # notes -------------------------------------------------------------------
 
@@ -54,6 +60,7 @@ theme_set(theme_minimal())
 # load data ---------------------------------------------------------------
 
 final_table <- read_csv("jpta_cleaned.csv")
+# welcome_text <- read_file("welcome_text.txt")
 
 # custom functions --------------------------------------------------------
 
@@ -85,12 +92,6 @@ get_value <- function(distribution, probs){
 
 
 # custom variables --------------------------------------------------------
-
-# welcome page text
-
-welcome_text <- "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-<br><br>
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
 
 # custom HTML code for collapsiible
 #  see http://jsfiddle.net/thurstanh/emtAm/2/
@@ -134,13 +135,19 @@ ui <- fluidPage(
     
     navlistPanel(widths = c(2, 10),
         tabPanel("Welcome",
-                 mainPanel(
-                     h1("Welcome"),
-                     HTML(welcome_text)
-                     )
+                 mainPanel(width = 10,
+                           
+                           # Output: Tabset w/ plot, summary, and table ----
+                           tabsetPanel(
+                               type = "tabs",
+                               tabPanel("Welcome",
+                                        includeMarkdown("welcome_text.md")),
+                               tabPanel("Tool instructions", 
+                                        h1("Tool instructions"))
+                           ))
         ),
                  
-        tabPanel("Site exploration",
+        tabPanel("1. Site exploration",
                  sidebarLayout(
                      sidebarPanel(width = 4,
                           selectInput("plot_type", "Plot type:", multiple = FALSE,
@@ -168,14 +175,14 @@ ui <- fluidPage(
                      plotOutput('advanced_ggplot', 
                                 brush = brushOpts(id = "plot1_brush")),
                      br(),
-                     h4("Select data points on the above plot to their information here"),
+                     h4("Highlight data points on the above plot to view their information below"),
                      DT::dataTableOutput("brush_info"),
-                     h6("Selection is not possible when using a facet variable")
+                     h6("Highlighting is not possible when using a facet variable")
                  )
                  )
         ),
 
-        tabPanel("Selection tool",
+        tabPanel("2. Site selection",
 
     sidebarLayout(
         sidebarPanel(width = 4,
@@ -287,7 +294,7 @@ ui <- fluidPage(
                   ))
     )),
     
-    tabPanel("Summary of selected sites",
+    tabPanel("3. Summary of selected sites",
              mainPanel(width = 9,
                  htmlOutput("summary_text"),
                  plotOutput("boxplots", height = 800),
@@ -435,11 +442,11 @@ server <- function(input, output, session) {
         paste0(
             '<h4>',
             n_sites,
-            ' sites have been selected to approached. 
+            ' sites have been selected to be approached. 
             These sites have a mean probability of accepting the invitation of ',
             round(mean_acceptance, 2), 
             '. The expected final sample of sites that will accept is ',
-            floor(n_sites * mean_acceptance), ' sites, and has a total expected cost of ',
+            floor(n_sites * mean_acceptance), ' sites, and have a total expected cost of ',
             scales::label_dollar(accuracy = 1)(expected_cost), '</h4>'
         )
     })
@@ -465,9 +472,9 @@ server <- function(input, output, session) {
                    'County level \n median income ($)' = income,
                    'Site probability \n of participation' = comfort) %>%
             pivot_longer(cols = -c("group", "weight")) %>%  
-            ggplot(aes(y = value, x = group, weight = weight)) +
+            ggplot(aes(x = group, y = value, weight = weight)) +
             geom_boxplot() +
-            stat_summary(fun.y = mean, geom = "errorbar",
+            stat_summary(fun = mean, geom = "errorbar",
                          aes(ymax = ..y.., ymin = ..y..),
                          width = .75, linetype = "dashed") +
             facet_wrap(~name, scale = "free", ncol = 2) +
