@@ -1,4 +1,4 @@
-
+/* the default Shiny blue color is #337ab7 */
 
 /* color of "Quantile" text */
 summary{
@@ -6,24 +6,115 @@ summary{
     font-size: 0.9em;
 }
 
-/*
-h1, h2, h3, h4, h5, h6 {
-  display: block;
-  margin-top: 0.67em;
-  margin-bottom: 0.67em;
-  margin-left: 0;
-  margin-right: 0;
-  font-weight: 700;
-  line-height: 1.2;
-  color: #f7f7f7;
-}
-
 body {
-  background-color: #5c5980;
+  /*background-color: #5c5980;*/
   padding: 5px 20px 20px 5px;
   font-family: "Roboto", Helvetica, Arial, sans-serif;
+  color: #636363;
+  font-weight: 350;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  color: #525252;
+  font-weight: 500;
+}
+
+a {
+  color: #5c5980;
+  text-decoration: none;
+}
+
+.text-primary {
+  color: #5c5980;
+}
+
+.bg-primary {
+  color: #fff;
+  background-color: #5c5980;
+}
+
+.well {
+  /*background-color: #5c5980;*/
+  border: 0px solid #e3e3e3;
+  border-radius: 0px;
+  -webkit-box-shadow: inset 0 0 0 rgba(0, 0, 0, 0.00);
+  box-shadow: inset 0 0 0 rgba(0, 0, 0, 0.00);;
+}
+
+.nav-pills > li > a {
+    border-radius: 0 0 0 0;
+}
+
+.nav-pills > li.active > a,
+.nav-pills > li.active > a:hover,
+.nav-pills > li.active > a:focus {
+  color: #fff;
+  background-color: #5c5980;
+}
+
+.nav-tabs > li > a {
+  margin-right: 2px;
+  line-height: 1.42857143;
+  border: 1px solid transparent;
+  border-radius: 0 0 0 0;
+}
+
+.selectize-input {
+  border: 1px solid #cccccc;
+  padding: 6px 12px;
+  display: inline-block;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+}
+
+.selectize-input.dropdown-active {
+  -webkit-border-radius: 0 0 0 0;
+  -moz-border-radius: 0 0 0 0;
+  border-radius: 0 0 0 0;
+}
+
+.selectize-input.focus {
+  border-color: #5c5980;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(92, 89, 128, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(92, 89, 128, 0.6);
+}
+
+.btn, .btn:hover, .btn:active, .btn:visited {
+    background-color: #302f42 !important;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    color: #f5f5f5;
+    font-weight: 350;
+    font-family: "Roboto", Helvetica, Arial, sans-serif;
+}
+
+
+#send_invitations_button {
+  width: 100%;
+  height: 70px;
+  font-size: 1.35em;
+  font-weight: 500;
+  padding: 10px 0 10px 0;
+}
+
+hr {
+  border-top: 1px solid #fff
+}
+
+
+/*
 a {
   color: #fff;
   background-color: transparent;
