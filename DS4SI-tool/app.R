@@ -7,19 +7,42 @@ library(plotly)
 library(rlang)
 library(shinyjs)
 library(quantreg) # for weighted box
+library(viridis) # for better colors for color blind people
 # library(shinydashboard)
 # library(shinyBS)
 # options(scipen = 999999)
+set.seed(44)
 
-# ggplot theme
-theme_set(theme_minimal())
+# ggplot settings ---------------------------------------------------------
 
+# build custom theme
+theme_custom <- function()
+  theme_minimal() +
+  theme(
+    strip.background = element_rect(
+      fill = "gray95",
+      color = 'white'),
+    strip.text = element_text(
+      color = "gray30",
+      size = 11,
+      face = "bold"
+    )
+  )
+
+# set custom theme
+theme_set(theme_custom())
+
+# set default continuous colors
 options(
     ggplot2.continuous.colour = "viridis",
-    ggplot2.continuous.fill = "viridis",
-    ggplot2.discrete.colour = "viridis",
-    ggplot2.discrete.fill = "viridis"
+    ggplot2.continuous.fill = "viridis"
 )
+
+# set default discrete colors
+scale_colour_discrete <- function(...) {
+  scale_color_viridis(discrete = TRUE)
+}
+
 
 # todo --------------------------------------------------------------------
 
@@ -397,7 +420,7 @@ ui <- fluidPage(
                               #   sliderInput("strata_prob_2", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01)
                               #   )
                             ),
-                            # this should have a dynamic max
+                            # this maximum input varies based on inputs; see code inside random_sample reactive
                             sliderInput("sample_n", "Sample size: ", min = 0, max = 400, value = 50, step = 1),
                             conditionalPanel(
                               condition = "input.simple_or_stratified == 'stratified'",
@@ -424,7 +447,7 @@ ui <- fluidPage(
                               # br(),
                               # br(),
                               # 
-                              h4("Manual exclude sites"),
+                              h4("Manually exclude sites"),
                               br(),
                               # manually exclude sites
                               selectInput("sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
@@ -448,7 +471,7 @@ ui <- fluidPage(
                  )
              )),
     
-    tabPanel("3. Send invitations",
+    tabPanel(title = "3. Send invitations",
              mainPanel(width = 6,
                        selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
                                    choices = c("All sites", "Sites to approach")),
@@ -461,20 +484,41 @@ ui <- fluidPage(
                        )
     ),
     
-    tabPanel("4. Results",
-             mainPanel(width = 9,
-                 htmlOutput("summary_text"),
-                 plotOutput("final_plots", height = 400),
-                 br(),
-                 h4("How your random draw compared to 100 simulations ... give it a second to compute ..."),
-                 plotOutput("actual_vs_expected_plots", height = 400),
-                 br(),
-                 br(),
-                 downloadButton("downloadData", "Download the data"),
-                 br(),
-                 br()
-             ))
-    
+    tabPanel(title = "4. Results",
+             
+             sidebarLayout(
+               sidebarPanel(width = 4,
+                            htmlOutput("summary_text"),
+                            br(),
+                            br(),
+                            downloadButton("downloadData", "Download the data"),
+                            br(),
+                            br(),
+                            br(),
+                            actionButton(inputId = "run_simulation",
+                                         label = 'How does your random draw compare to 200 simulated draws?')
+               ),
+             
+               mainPanel(width = 6,
+                       tabsetPanel(
+                         id = "results_tabs",
+                         type = "tabs",
+                         tabPanel("Summary statistics", "table in the works"),
+                         tabPanel("Distributions of continuous variables", plotOutput("final_plots", height = 400)),
+                         tabPanel("Plots of discrete variables", "plots to come")
+                         )
+                       )
+
+                 # conditionalPanel(
+                   # condition = "input.run_simulation", # show when run_simulation button is executed
+                   # h4("... give it a second to compute ..."),
+                   # br(),
+                   # plotOutput("actual_vs_expected_plots", height = 400)
+                 # ),
+                 # br()
+               )
+             
+    )
     )
 )
 
@@ -742,7 +786,9 @@ server <- function(input, output, session) {
         geom_density(alpha = 0.3) +
         facet_wrap(~name, scales = 'free') +
         labs(x = NULL,
-             y = NULL)
+             y = NULL) +
+        theme(legend.title = element_blank(),
+              legend.position = c(0.82, 0.25))
     })
     
     # actual vs final plots
@@ -753,12 +799,18 @@ server <- function(input, output, session) {
       
       # flip a coin with prob = comfort to see which sites accepted
       list_of_accepted_dataframes <- list()
-      nsims <- 100
+      nsims <- 200
       for (i in 1:nsims){
+        # sample the data and return T/F for indices that accepted
         accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1  
         
+        # subset the data based on the indices
         accepted_data <- sent_invitations_data[accepted_boolean,]
+        
+        # add identifier for use in plotting
         accepted_data$sim <- i
+        
+        # add dataframe to list of total dataframes
         list_of_accepted_dataframes[[i]] <- accepted_data
       }
       
@@ -773,8 +825,9 @@ server <- function(input, output, session) {
         select(sim, all_of(numeric_vars)) %>% 
         pivot_longer(cols = -c("sim")) %>% 
         ggplot(aes(x = value, group = sim)) +
-        geom_line(stat = "density", alpha = 0.05, color = 'black') +
-        geom_density(data = sent_invitations_data, color = "#a9a8ba", size = 2) +
+        geom_line(stat = "density", alpha = 0.025, color = 'black') +
+        geom_density(data = sent_invitations_data, color = "white", size = 1.1) +
+        geom_density(data = sent_invitations_data, color = "#302f42", size = 1.3, linetype = "dotted") +
         facet_wrap(~name, scales = 'free') +
         labs(x = NULL,
              y = NULL)
@@ -980,7 +1033,7 @@ server <- function(input, output, session) {
     })
     
   
-    # save row selections when clicked
+    # save row selections when button is clicked
     dd = reactiveValues(select = NULL)
     observeEvent(input$save_row_selections, {
       
@@ -1095,7 +1148,7 @@ server <- function(input, output, session) {
           sampled_data %>% 
             group_by_at(vars(input$strata_variables)) %>% 
             tally() %>% 
-            rename(n_sites_per_strata = n)
+            rename(sample_n = n)
           )
 
       }
@@ -1117,6 +1170,18 @@ server <- function(input, output, session) {
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
     
+    # insert tab after running simulation
+    observeEvent(input$run_simulation, {
+      insertTab(inputId = "results_tabs",
+                # tabPanel("Dynamic", "This a dynamically-added tab"),
+                tabPanel("Actual vs. expected", 
+                         h4(".... one moment ... "),
+                         plotOutput("actual_vs_expected_plots", height = 400)),
+                target = "Plots of discrete variables",
+                position = "after",
+                select = TRUE
+      )
+    })
 
 }
 

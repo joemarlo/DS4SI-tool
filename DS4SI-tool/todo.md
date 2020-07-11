@@ -29,6 +29,7 @@
 <br>  
 ### Results page
   - Visuals need some more thought
+  - Need to include discrete values (table?)
   - Figure out why this crashed when deployed to server (memory limit?)
 
 <br>    
@@ -40,4 +41,5 @@
   - Implement variable naming conventions that references which page it's used on 
   - Separate files into UI and server side
   - Should increase the size of the original dataset
+  - Fix datatable overflow
   
