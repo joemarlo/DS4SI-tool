@@ -496,7 +496,12 @@ ui <- fluidPage(
                             br(),
                             br(),
                             actionButton(inputId = "run_simulation",
-                                         label = 'How does your random draw compare to 200 simulated draws?')
+                                         label = 'How does your random draw compare to 200 simulated draws?'),
+                            br(),
+                            br(),
+                            br(),
+                            # button to restart the application (it's just javacript to refresh the page)
+                            HTML('<button type="button" class="btn" onClick="history.go(0)">Erase this data and restart the selection process</button>'),
                ),
              
                mainPanel(width = 6,
