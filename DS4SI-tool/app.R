@@ -5,6 +5,7 @@ library(DT)
 library(gridExtra)
 library(plotly)
 library(rlang)
+library(shinyjs)
 library(quantreg) # for weighted box
 # library(shinydashboard)
 # library(shinyBS)
@@ -63,6 +64,10 @@ options(
 # add button to refresh sample
 # stratify sampling isn't yet working; need to implement dyanmic UI first
   # https://www.r-bloggers.com/dynamic-ui-elements-in-shiny/
+# allow for user to save datasets so they can move them to each panel as they wish
+# rename last selection tab as "manual adjustments" and create new tab with
+  # send invitations button
+
 
 # notes -------------------------------------------------------------------
 
@@ -150,6 +155,9 @@ min_max_df['cost',] <- round(min_max_df['cost',], 0)
 ui <- fluidPage(
     theme = "my-shiny.css",
 
+    # initlaize shiynjs
+    useShinyjs(),
+    
     # download roboto and inconsolata font
     HTML('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'),
     HTML('<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata">'),
@@ -174,7 +182,9 @@ ui <- fluidPage(
                                tabPanel("Welcome",
                                         includeMarkdown("welcome_text.md")),
                                tabPanel("Tool instructions", 
-                                        h1("Tool instructions"))
+                                        includeMarkdown("tool_instructions.md")),
+                               tabPanel("To-do", 
+                                        includeMarkdown("todo.md"))
                            ))
         ),
         
@@ -236,7 +246,7 @@ ui <- fluidPage(
                  )
         ),
 
-        HTML("<h5>2. Site selection</h5>"),
+        HTML("<div><h5>2. Site selection</h5></div>"),
         
             tabPanel(title = HTML("&nbsp &nbsp Filtering"),
 
@@ -311,7 +321,7 @@ ui <- fluidPage(
                                 max = min_max_df['cost', 'max'],
                                 value = c(min_max_df['cost', 'min'], min_max_df['cost', 'max'])),
                     HTML(HTML_for_collapsible_1),
-                    sliderInput(inputId = "cost_quantile", label = NULL, min = -0.001, max = 1,
+                    sliderInput(inputId = "cost_quantile", label = NULL, min = 0, max = 1,
                                 value = c(get_quantile(final_table$cost, min_max_df['cost', 'min']),
                                           get_quantile(final_table$cost, min_max_df['cost', 'max']))),
                     HTML(HTML_for_collapsible_2)
@@ -367,7 +377,7 @@ ui <- fluidPage(
                             
                             br(),
                             
-                            selectInput(inputId = "sample_dataset", label = "Dataset: ", multiple = FALSE,
+                            selectInput(inputId = "sample_dataset", label = "Dataset to sample from: ", multiple = FALSE,
                                         choices = c("All sites", "Sites to approach")),
                             selectInput(inputId = "simple_or_stratified", label = "Simple or stratified sample: ", multiple = FALSE,
                                         choices = c("simple", "stratified")),
@@ -377,18 +387,24 @@ ui <- fluidPage(
                                           multiple = TRUE,
                                           options = list(maxItems = 2),
                                           choices = categorical_vars,
-                                          selected = NULL),
-                              sliderInput("strata_prob_1", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01),
+                                          selected = categorical_vars[1]),
+                              # sliderInput("strata_prob_1", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01),
                               # uiOutput("strata_probs_UI_1"),
                               # uiOutput("strata_probs_UI_2"),
-                              conditionalPanel(
-                                # show only if there are two variables selected in stratefied_variables
-                                condition = "input.strata_variables.length == 2",
-                                sliderInput("strata_prob_2", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01)
-                                )
+                              # conditionalPanel(
+                              #   # show only if there are two variables selected in stratefied_variables
+                              #   condition = "input.strata_variables.length == 2",
+                              #   sliderInput("strata_prob_2", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01)
+                              #   )
                             ),
                             # this should have a dynamic max
                             sliderInput("sample_n", "Sample size: ", min = 0, max = 400, value = 50, step = 1),
+                            conditionalPanel(
+                              condition = "input.simple_or_stratified == 'stratified'",
+                              htmlOutput("n_strata"),
+                              br(),
+                              tableOutput("strata_table"),
+                            )
                             
                ),
                
@@ -398,7 +414,7 @@ ui <- fluidPage(
              )
     ),
     
-    tabPanel(title = HTML("&nbsp &nbsp Final selection"),
+    tabPanel(title = HTML("&nbsp &nbsp Manual exclusions"),
              
              sidebarLayout(
                  sidebarPanel(width = 4,
@@ -408,7 +424,7 @@ ui <- fluidPage(
                               # br(),
                               # br(),
                               # 
-                              h4("Final exclusions"),
+                              h4("Manual exclude sites"),
                               br(),
                               # manually exclude sites
                               selectInput("sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
@@ -419,16 +435,6 @@ ui <- fluidPage(
                               
                               # save row selections
                               actionButton(inputId = "save_row_selections", label = "Exclude selected rows"),
-                              br(),
-                              br(),
-                              br(),
-                              hr(),
-                              htmlOutput("summary_final_selection"),
-                              br(),
-                              actionButton(inputId = "send_invitations_button", 
-                                           label = HTML('Send invitations<br>
-                                                        <p style="font-size: 0.6em; font-weight: 10;">
-                                                        Cannot be undone</p>')),
                               br(),
                               br()
                  ),
@@ -442,10 +448,27 @@ ui <- fluidPage(
                  )
              )),
     
-    tabPanel("3. Results",
+    tabPanel("3. Send invitations",
+             mainPanel(width = 6,
+                       selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
+                                   choices = c("All sites", "Sites to approach")),
+                       htmlOutput("summary_final_selection"),
+                       br(),
+                       actionButton(inputId = "send_invitations_button", 
+                                    label = HTML('Send invitations<br>
+                                                        <p style="font-size: 0.6em; font-weight: 10;">
+                                                        Cannot be undone</p>'))
+                       )
+    ),
+    
+    tabPanel("4. Results",
              mainPanel(width = 9,
                  htmlOutput("summary_text"),
-                 plotOutput("boxplots", height = 800),
+                 plotOutput("final_plots", height = 400),
+                 br(),
+                 h4("How your random draw compared to 100 simulations ... give it a second to compute ..."),
+                 plotOutput("actual_vs_expected_plots", height = 400),
+                 br(),
                  br(),
                  downloadButton("downloadData", "Download the data"),
                  br(),
@@ -460,6 +483,8 @@ ui <- fluidPage(
 # Define server logic
 server <- function(input, output, session) {
 
+    # hide tab on start
+    hideTab(inputId = "nav", target = "4. Results", session = session)
     
     # code for sliders to react to it's respective quantile slider ------------
     
@@ -547,9 +572,14 @@ server <- function(input, output, session) {
     # text for final selection page
     output$summary_final_selection <- renderText({
       
-      n_sites <- nrow(filtered_table())
-      mean_acceptance <- mean(filtered_table()$comfort)
-      expected_cost <- sum(filtered_table()$comfort * filtered_table()$cost)
+      data <- switch(input$invitations_data,
+                     "All sites" = final_table,
+                     "Sites to approach" = filtered_table()
+      )
+      
+      n_sites <- nrow(data)
+      mean_acceptance <- mean(data$comfort)
+      expected_cost <- sum(data$comfort * data$cost)
       
       paste0(
         '<h4>',
@@ -672,79 +702,144 @@ server <- function(input, output, session) {
 
     })
     
-    # text for summary page
+    # text for Results page page
     output$summary_text <- renderText({
         
-        n_sites <- nrow(filtered_table())
-        mean_acceptance <- mean(filtered_table()$comfort)
-        expected_cost <- sum(filtered_table()$comfort * filtered_table()$cost)
+      data <- final_results[final_results$accepted,]
+      
+        n_sites <- nrow(data)
+        mean_acceptance <- mean(data$comfort)
+        expected_cost <- sum(data$comfort * data$cost)
         
         paste0(
-            '<h4>',
-            n_sites,
-            ' sites have been selected to be approached. 
-            These sites have a mean probability of accepting the invitation of ',
-            round(mean_acceptance, 2), 
-            '. The expected final sample of sites that will accept is ',
-            floor(n_sites * mean_acceptance), ' sites, and have a total expected cost of ',
+          '<h2>Congrats! ', n_sites, ' sites accepted the invitation.',
+            '<h4>These sites have a total cost of ',
             scales::label_dollar(accuracy = 1)(expected_cost), '.</h4><br>'
         )
     })
     
+    
+    # accepted sites plots
+    output$final_plots <- renderPlot({
+        
+      # stack a dataframe with groups per each population (will contain duplicates)
+      population_sites <- final_results
+      sent_sites <- final_results[final_results$sent_invitation,]
+      accepted_sites <- final_results[final_results$accepted,]
+      
+      # add identifier for each population
+      population_sites$population <- "Population"
+      sent_sites$population <- "Sent_invitation"
+      accepted_sites$population <- "Accepted_invitation"
+      
+      # bind the three datasets together
+      data_for_plot <- rbind(population_sites, sent_sites, accepted_sites)
+      
+      data_for_plot %>% 
+        select(population, all_of(numeric_vars)) %>% 
+        pivot_longer(cols = -c("population")) %>% 
+        ggplot(aes(x = value, group = population, fill = population)) +
+        geom_density(alpha = 0.3) +
+        facet_wrap(~name, scales = 'free') +
+        labs(x = NULL,
+             y = NULL)
+    })
+    
+    # actual vs final plots
+    output$actual_vs_expected_plots <- renderPlot({
+      
+      data <- final_results
+      sent_invitations_data <- data[data$sent_invitation,]
+      
+      # flip a coin with prob = comfort to see which sites accepted
+      list_of_accepted_dataframes <- list()
+      nsims <- 100
+      for (i in 1:nsims){
+        accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1  
+        
+        accepted_data <- sent_invitations_data[accepted_boolean,]
+        accepted_data$sim <- i
+        list_of_accepted_dataframes[[i]] <- accepted_data
+      }
+      
+      # convert sent_invitations_data to long format
+      sent_invitations_data <- sent_invitations_data %>% 
+        mutate(sim = "Actual") %>% 
+        select(sim, all_of(numeric_vars)) %>% 
+        pivot_longer(cols = -c("sim"))
+      
+      # combine and plot
+      bind_rows(list_of_accepted_dataframes) %>% 
+        select(sim, all_of(numeric_vars)) %>% 
+        pivot_longer(cols = -c("sim")) %>% 
+        ggplot(aes(x = value, group = sim)) +
+        geom_line(stat = "density", alpha = 0.05, color = 'black') +
+        geom_density(data = sent_invitations_data, color = "#a9a8ba", size = 2) +
+        facet_wrap(~name, scales = 'free') +
+        labs(x = NULL,
+             y = NULL)
+      
+      # accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1
+      # sites_that_accepted <- sent_invitations_data[accepted_boolean,]
+      # 
+      # # final data frame of of all sites with indicator if site was sent inviation and if accepted
+      # # assign variable to global environment so it can be used in other functions
+      # final_table$sent_invitation <- final_table$site_id %in% sent_invitations_data$site_id
+      # final_table$accepted <- final_table$site_id %in% sites_that_accepted$site_id
+      # final_results <<- final_table
+      
+      
+    })
+    
     # the summary plots
-    output$boxplots <- renderPlot({
+    # output$boxplots <- renderPlot({
+    # 
+    #     # boxplots of the population, sites to approach, and expected sample
+    #     
+    #     # create the three groups
+    #     population <- final_table %>% mutate(weight = 1, group = "Population")
+    #     sites_to_approach <- filtered_table() %>% mutate(weight = 1, group = "Sites to \n approach")
+    #     expected_sample <- filtered_table() %>% mutate(weight = comfort, group = 'Expected \n sample')
+    #     
+    #     bind_rows(population, sites_to_approach, expected_sample) %>% 
+    #         select(cost, unemp, pct_hs, income, comfort, group, weight) %>% 
+    #         mutate(group = factor(group,
+    #                              levels = c("Expected \n sample", "Sites to \n approach", "Population"),
+    #                              labels = c("Expected \n sample", "Sites to \n approach", "Population"))) %>%
+    #         rename('Site cost ($)' = cost,
+    #                'County level \n unemployment (%)' = unemp,
+    #                'County level high \n school grad rate (%)' = pct_hs,
+    #                'County level \n median income ($)' = income,
+    #                'Site probability \n of participation' = comfort) %>%
+    #         pivot_longer(cols = -c("group", "weight")) %>%  
+    #         ggplot(aes(x = group, y = value, weight = weight)) +
+    #         geom_boxplot(fill = violet_col, alpha = 0.35) +
+    #         stat_summary(fun = mean, geom = "errorbar",
+    #                      aes(ymax = ..y.., ymin = ..y..),
+    #                      width = .75, linetype = "dashed") +
+    #         facet_wrap(~name, scale = "free", ncol = 2) +
+    #         labs(x = NULL, 
+    #              y = NULL)
+    # })
+    
 
-        # boxplots of the population, sites to approach, and expected sample
-        
-        # create the three groups
-        population <- final_table %>% mutate(weight = 1, group = "Population")
-        sites_to_approach <- filtered_table() %>% mutate(weight = 1, group = "Sites to \n approach")
-        expected_sample <- filtered_table() %>% mutate(weight = comfort, group = 'Expected \n sample')
-        
-        bind_rows(population, sites_to_approach, expected_sample) %>% 
-            select(cost, unemp, pct_hs, income, comfort, group, weight) %>% 
-            mutate(group = factor(group,
-                                 levels = c("Expected \n sample", "Sites to \n approach", "Population"),
-                                 labels = c("Expected \n sample", "Sites to \n approach", "Population"))) %>%
-            rename('Site cost ($)' = cost,
-                   'County level \n unemployment (%)' = unemp,
-                   'County level high \n school grad rate (%)' = pct_hs,
-                   'County level \n median income ($)' = income,
-                   'Site probability \n of participation' = comfort) %>%
-            pivot_longer(cols = -c("group", "weight")) %>%  
-            ggplot(aes(x = group, y = value, weight = weight)) +
-            geom_boxplot(fill = violet_col, alpha = 0.35) +
-            stat_summary(fun = mean, geom = "errorbar",
-                         aes(ymax = ..y.., ymin = ..y..),
-                         width = .75, linetype = "dashed") +
-            facet_wrap(~name, scale = "free", ncol = 2) +
-            labs(x = NULL, 
-                 y = NULL)
-    })
-    
-    # create dataset with identifier indicating if site is to be approached
-    data_to_download <- reactive({
-        final_table %>%
-        mutate(site_to_approach = site_id %in% filtered_table()$site_id)
-    })
-    
     # download button for data_to_download
     output$downloadData <- downloadHandler(
         filename <- "sites.csv",
         content <- function(file) {
-            write.csv(data_to_download(), file, row.names = FALSE)
+            write.csv(final_results, file, row.names = FALSE)
         }
     )
     
     # site exploration
     output$advanced_ggplot <- renderPlot({
         
-        # set which dataset to use
-        if (input$plot_Data == "Sites to approach"){
-            plot_data <- filtered_table()
-        } else {
-            plot_data <- final_table
-        }
+      # set which dataset to use
+      plot_data <- switch(input$plot_Data,
+                          "All sites" = final_table,
+                          "Sites to approach" = filtered_table(),
+                          "Sites that accepted" = sites_that_accepted
+      )
         
         # add kmeans cluster to dataframe
         if(input$plot_type == 'Scatter' & input$fill_variable == "cluster"){
@@ -855,14 +950,35 @@ server <- function(input, output, session) {
     observeEvent(input$send_invitations_button, {
       
       # move user to the final tab
-      updateNavlistPanel(session = session, inputId = "nav", selected = "3. Results")
+      updateNavlistPanel(session = session, inputId = "nav", selected = "4. Results")
       
       # hide old tabs
+      hide(selector = "li.navbar-brand") # this hides the HTML(2. Site selection) text
       hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Filtering"), session = session)
       hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Weighting"), session = session)
       hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Sampling"), session = session)
-      hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Final selection"), session = session)
+      hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Manual exclusions"), session = session)
+      hideTab(inputId = "nav", target = "3. Send invitations", session = session)
+      showTab(inputId = "nav", target = "4. Results", session = session)
+      
+      # update Results tab
+      sent_invitations_data <- switch(input$invitations_data,
+                     "All sites" = final_table,
+                     "Sites to approach" = filtered_table()
+      )
+      
+      # flip a coin with prob = comfort to see which sites accepted
+      accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1
+      sites_that_accepted <<- sent_invitations_data[accepted_boolean,]
+      
+      # final data frame of of all sites with indicator if site was sent inviation and if accepted
+      # assign variable to global environment so it can be used in other functions
+      final_table$sent_invitation <- final_table$site_id %in% sent_invitations_data$site_id
+      final_table$accepted <- final_table$site_id %in% sites_that_accepted$site_id
+      final_results <<- final_table
+      
     })
+    
   
     # save row selections when clicked
     dd = reactiveValues(select = NULL)
@@ -920,16 +1036,73 @@ server <- function(input, output, session) {
       
       # if simple
       if (input$simple_or_stratified == "simple"){
+        # update sample_n slider max so it's not larger than the dataset
+        observeEvent(nrow(sample_data), {
+          updateSliderInput(session, "sample_n", max = nrow(sample_data))
+        })
+        
+        # sample the data  
         sampled_data <- sample_n(tbl = sample_data, size = input$sample_n, replace = FALSE) 
+        
       } else {
-        # sample_data %>% 
-        #   group_by(input$strata_variables) %>% 
-        #   sample_n()
-        sampled_data <- sample_n(tbl = sample_data, size = input$sample_n, replace = FALSE) 
+        
+        # stratified sampling
+        # find unique combinations of variables
+        unique_groups <- distinct(select(sample_data, input$strata_variables))
+        
+        # calculate the sample size per each unique group
+        sample_size_per_group <- floor(input$sample_n / nrow(unique_groups))
+
+        # split the data into the unique groups
+        split_groups <- split(x = sample_data,
+                              f = select(sample_data, input$strata_variables))
+
+        # calculate the minimum strata size
+        min_group_size <- min(sapply(split_groups, nrow))
+        
+        # update sample_n slider max so it can't produce strata samples that are greater than
+        #   the minimum strata size
+        max_n <- floor(min_group_size * nrow(unique_groups))
+        observeEvent(max_n, {
+          updateSliderInput(session, "sample_n", max = max_n)
+        })
+        
+        # make sure the sample size is not greater than any of the unique groups
+        validate(
+          need(min_group_size >= sample_size_per_group,
+                "Please decrease sample size or remove a strata variable. At least one strata is smaller than sample size per strata."
+          )
+        )
+        
+        # sample n rows per group
+        sampled_row_indices <- tapply(X = 1:nrow(sample_data),
+                                      INDEX = select(sample_data, input$strata_variables),
+                                      FUN = function(group){
+          sample(x = group, size = sample_size_per_group, replace = FALSE)
+        })
+        sampled_row_indices <- as.vector(unlist(sampled_row_indices))
+
+        # final sampled data
+        sampled_data <- sample_data[sampled_row_indices,]
+        
+        # # show text below sample size slider indicating n per strata
+        output$n_strata <- renderText({paste0("The minimum strata size is ", min_group_size,
+                                              " and the sample size per strata is ", sample_size_per_group,
+                                              ". The resulting sample size is ", nrow(sampled_data), ".")})
+        
+        # table of strata combinations with count of site per strata
+        output$strata_table <- renderTable(
+          sampled_data %>% 
+            group_by_at(vars(input$strata_variables)) %>% 
+            tally() %>% 
+            rename(n_sites_per_strata = n)
+          )
+
       }
       
       return(sampled_data)
     })
+    
     
     # display the table in the sampling tab
     output$random_sample_table <- DT::renderDataTable(DT::datatable(
