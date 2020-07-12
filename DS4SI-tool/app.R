@@ -114,6 +114,11 @@ final_table <- read_csv("jpta_cleaned.csv")
 
 # custom functions --------------------------------------------------------
 
+scale_01 <- function(x) {
+ # function scales the vector between 0 and 1
+  (x - min(x)) / (max(x) - min(x))
+}
+
 get_quantile = function(distribution, value){
     # function to return the quantile amount
     
@@ -373,17 +378,19 @@ ui <- fluidPage(
                               h4("Create a weighted score for each site by setting the importance of each continuous variable below."),
                               
                               br(),
+                              
+                              selectInput(inputId = "weight_dataset", label = "Dataset: ", multiple = FALSE,
+                                          choices = c("All sites", "Sites to approach")),
   
-                              sliderInput("slider1", "Unemployment: ", min = 0, max = 100, value = 50, step = 1),
-                              HTML(HTML_for_collapsible_Weighting_1),
-                              p("Higher employment == ..."),
-                              HTML(HTML_for_collapsible_Weighting_2),
-                              sliderInput("slider2", "High school graduation rate: ", min = 0, max = 100, value = 50, step = 1),
-                              sliderInput("slider3", "Income: ", min = 0, max = 100, value = 50, step = 1),
-                              sliderInput("slider4", "Comfort: ", min = 0, max = 100, value = 50, step = 1),
-                              sliderInput("slider4", "Site cost: ", min = 0, max = 100, value = 50, step = 1)
+                              sliderInput("weight_unemp", "Unemployment: ", min = 1, max = 100, value = 50, step = 1),
+                              sliderInput("weight_pct_hs", "High school graduation rate: ", min = 1, max = 100, value = 50, step = 1),
+                              sliderInput("weight_income", "Income: ", min = 1, max = 100, value = 50, step = 1),
+                              sliderInput("weight_comfort", "Comfort: ", min = 1, max = 100, value = 50, step = 1),
+                              sliderInput("weight_cost", "Site cost: ", min = 1, max = 100, value = 50, step = 1),
+                              # this maximum input varies based on dataset
+                              sliderInput("weight_n", "Only include top n sites: ", min = 0, max = 400, value = 400, step = 1)
                  ),
-             
+
              mainPanel(width = 6,
                        tabPanel("Table of selected sites", DT::dataTableOutput('table_2'))
                        )
@@ -652,18 +659,62 @@ server <- function(input, output, session) {
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
     
+    # select which dataset to use on weighting tab
+    weight_data <- reactive({
+      
+      switch(input$weight_dataset,
+             "All sites" = final_table,
+             "Sites to approach" = filtered_table()
+             # "Sites that accepted" = sites_that_accepted
+      )
+      
+    })
+    
+    # update sample_n slider max so it's not larger than the dataset
+    observeEvent(nrow(weight_data()), {
+      updateSliderInput(session, "weight_n", max = nrow(weight_data()))
+    })
+    
     # display the table in the 'table of selected sites' tab within the weighting page
-    output$table_2 <- DT::renderDataTable(DT::datatable(
-      filtered_table(), rownames = FALSE, options = list(
+    output$table_2 <- DT::renderDataTable(DT::datatable({
+      
+      data <- weight_data()
+      
+      # scale the variables
+      numeric_vars_scaled <- data[, numeric_vars]
+      numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
+      
+      # vector of weights
+      weights <- c(input$weight_unemp, input$weight_pct_hs, input$weight_income, 
+                   input$weight_comfort, input$weight_cost)
+      
+      # calculate score per each row
+      data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
+      
+      # filter to just the top rows selected by the user
+      data <- data %>% arrange(desc(site_score)) %>% head(n = input$weight_n)
+      
+      # make site_score as first column in dataframe
+      data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
+      
+      data
+    }
+      , rownames = FALSE, 
+    options = list(
             # sets n observations shown
             pageLength = 20,
             # removes option to change n observations shown
             lengthChange = FALSE,
             # removes the search bar
-            sDom  = '<"top">lrt<"bottom">ip')
+            sDom  = '<"top">lrt<"bottom">ip',
+            # default sort by site score
+            order = list(0, 'desc')
+            )
     ) %>%
-        formatRound(5:8, 2) %>%
-        formatRound(9, 0))
+        formatRound(6:9, 2) %>%
+        formatRound(10, 0) %>% 
+        formatRound(1, 1)
+      )
     
     # display the table in the 'table of selected sites' tab within the final selection page
     output$table_3 <- DT::renderDataTable(DT::datatable(

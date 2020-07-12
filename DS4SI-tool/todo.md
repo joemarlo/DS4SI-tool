@@ -10,7 +10,8 @@
 
 <br>
 ### Weighting page
-  - Need to implement scoring mechanism
+  - Need to verify scoring mechanism
+  - Need to include categorical variables
 
 <br>
 ### Sampling page
