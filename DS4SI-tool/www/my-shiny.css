@@ -114,6 +114,11 @@ a {
   /*padding: 10px 0 10px 0;*/
 }
 
+#restart_button {
+  background-color: #ab2c2c !important;
+}
+
+
 hr {
   border-top: 1px solid #fff
 }

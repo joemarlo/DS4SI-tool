@@ -375,7 +375,7 @@ ui <- fluidPage(
                               
                               # text output of title with number of sites selected
                               # htmlOutput("n_sites_selected_2"),
-                              h4("Create a weighted score for each site by setting the importance of each continuous variable below."),
+                              h4("Create a weighted score for each site by setting the importance of each continuous variable below"),
                               
                               br(),
                               
@@ -500,17 +500,18 @@ ui <- fluidPage(
                             htmlOutput("summary_text"),
                             br(),
                             br(),
-                            downloadButton("downloadData", "Download the data"),
-                            br(),
-                            br(),
-                            br(),
                             actionButton(inputId = "run_simulation",
                                          label = 'How does your random draw compare to 200 simulated draws?'),
                             br(),
                             br(),
                             br(),
+                            downloadButton("downloadData", "Download the data"),
+                            br(),
+                            br(),
+                            br(),
                             # button to restart the application (it's just javacript to refresh the page)
-                            HTML('<button type="button" class="btn" onClick="history.go(0)">Erase this data and restart the selection process</button>'),
+                            HTML('<button type="button" class="btn" id="restart_button" onClick="history.go(0)">
+                                  Erase this data and restart the selection process</button>'),
                ),
              
                mainPanel(width = 6,
@@ -824,9 +825,9 @@ server <- function(input, output, session) {
         expected_cost <- sum(data$comfort * data$cost)
         
         paste0(
-          '<h2>Congrats! ', n_sites, ' sites accepted the invitation.',
+          '<h2>Congrats! ', n_sites, ' sites accepted the invitation',
             '<h4>These sites have a total cost of ',
-            scales::label_dollar(accuracy = 1)(expected_cost), '.</h4><br>'
+            scales::label_dollar(accuracy = 1)(expected_cost), '</h4><br>'
         )
     })
     
@@ -1248,10 +1249,14 @@ server <- function(input, output, session) {
       # insert the tab
       appendTab(inputId = "results_tabs",
                 tabPanel("Actual vs. expected", 
-                         h4(".... one moment ... "),
                          plotOutput("actual_vs_expected_plots", height = 400)),
                 select = TRUE
       )
+      
+      # add text
+      insertUI(selector = "#run_simulation",
+               where = "afterEnd",
+               ui = h4("One moment ... Simulation results will appear on the right ..."))
       
       # remove button
       removeUI(selector = "#run_simulation")
