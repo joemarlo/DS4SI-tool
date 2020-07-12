@@ -392,7 +392,7 @@ ui <- fluidPage(
                  ),
 
              mainPanel(width = 6,
-                       tabPanel("Table of selected sites", DT::dataTableOutput('table_2'))
+                       DT::dataTableOutput('table_2')
                        )
              )
     ),
@@ -428,7 +428,7 @@ ui <- fluidPage(
                               #   )
                             ),
                             # this maximum input varies based on inputs; see code inside random_sample reactive
-                            sliderInput("sample_n", "Sample size: ", min = 0, max = 400, value = 50, step = 1),
+                            sliderInput("sample_n", "Sample size: ", min = 0, max = 400, value = 400, step = 1),
                             conditionalPanel(
                               condition = "input.simple_or_stratified == 'stratified'",
                               htmlOutput("n_strata"),
@@ -439,7 +439,7 @@ ui <- fluidPage(
                ),
                
                mainPanel(width = 6,
-                         tabPanel("Table of sampled sites", DT::dataTableOutput('random_sample_table'))
+                         DT::dataTableOutput('random_sample_table')
                )
              )
     ),
@@ -486,8 +486,10 @@ ui <- fluidPage(
                        br(),
                        actionButton(inputId = "send_invitations_button", 
                                     label = HTML('Send invitations<br>
-                                                        <p style="font-size: 0.6em; font-weight: 10;">
-                                                        Cannot be undone</p>'))
+                                                <p style="font-size: 0.6em; font-weight: 10;">
+                                                 Once sent, site selection will no longer be available</p>'
+                                                 )
+                                    )
                        )
     ),
     
@@ -522,7 +524,7 @@ ui <- fluidPage(
                        )
 
                  # conditionalPanel(
-                   # condition = "input.run_simulation", # show when run_simulation button is executed
+                   # condition = "input.", # show when  button is executed
                    # h4("... give it a second to compute ..."),
                    # br(),
                    # plotOutput("actual_vs_expected_plots", height = 400)
@@ -654,7 +656,9 @@ server <- function(input, output, session) {
             # removes option to change n observations shown
             lengthChange = FALSE,
             # removes the search bar
-            sDom  = '<"top">lrt<"bottom">ip')
+            sDom  = '<"top">lrt<"bottom">ip',
+            # enable side scroll so table doesn't overflow
+            scrollX = TRUE)
         ) %>%
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
@@ -708,7 +712,9 @@ server <- function(input, output, session) {
             # removes the search bar
             sDom  = '<"top">lrt<"bottom">ip',
             # default sort by site score
-            order = list(0, 'desc')
+            order = list(0, 'desc'),
+            # enable side scroll so table doesn't overflow
+            scrollX = TRUE
             )
     ) %>%
         formatRound(6:9, 2) %>%
@@ -724,7 +730,9 @@ server <- function(input, output, session) {
         # removes option to change n observations shown
         lengthChange = FALSE,
         # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip')
+        sDom  = '<"top">lrt<"bottom">ip',
+        # enable side scroll so table doesn't overflow
+        scrollX = TRUE)
     ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
@@ -750,7 +758,9 @@ server <- function(input, output, session) {
             # removes option to change n observations shown
             lengthChange = FALSE,
             # removes the search bar
-            sDom  = '<"top">lrt<"bottom">ip')
+            sDom  = '<"top">lrt<"bottom">ip',
+            # enable side scroll so table doesn't overflow
+            scrollX = TRUE)
     ) %>%
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
@@ -763,7 +773,9 @@ server <- function(input, output, session) {
         # removes option to change n observations shown
         lengthChange = FALSE,
         # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip')
+        sDom  = '<"top">lrt<"bottom">ip',
+        # enable side scroll so table doesn't overflow
+        scrollX = TRUE)
     ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
@@ -1048,7 +1060,9 @@ server <- function(input, output, session) {
                     # removes option to change n observations shown
                     lengthChange = FALSE,
                     # removes the search bar
-                    sDom  = '<"top">lrt<"bottom">ip'
+                    sDom  = '<"top">lrt<"bottom">ip',
+                    # enable side scroll so table doesn't overflow
+                    scrollX = TRUE
                 )
             ) %>%
                 formatRound(5:8, 2) %>%
@@ -1221,22 +1235,27 @@ server <- function(input, output, session) {
         # removes option to change n observations shown
         lengthChange = FALSE,
         # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip')
+        sDom  = '<"top">lrt<"bottom">ip',
+        # enable side scroll so table doesn't overflow
+        scrollX = TRUE)
     ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
     
     # insert tab after running simulation
     observeEvent(input$run_simulation, {
-      insertTab(inputId = "results_tabs",
-                # tabPanel("Dynamic", "This a dynamically-added tab"),
+      
+      # insert the tab
+      appendTab(inputId = "results_tabs",
                 tabPanel("Actual vs. expected", 
                          h4(".... one moment ... "),
                          plotOutput("actual_vs_expected_plots", height = 400)),
-                target = "Plots of discrete variables",
-                position = "after",
                 select = TRUE
       )
+      
+      # remove button
+      removeUI(selector = "#run_simulation")
+      
     })
 
 }
