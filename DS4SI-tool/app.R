@@ -511,7 +511,7 @@ ui <- fluidPage(
                             br(),
                             # button to restart the application (it's just javacript to refresh the page)
                             HTML('<button type="button" class="btn" id="restart_button" onClick="history.go(0)">
-                                  Erase this data and restart the selection process</button>'),
+                                  Erase these data and restart the selection process</button>'),
                ),
              
                mainPanel(width = 6,
@@ -820,15 +820,19 @@ server <- function(input, output, session) {
         
       data <- final_results[final_results$accepted,]
       
-        n_sites <- nrow(data)
-        mean_acceptance <- mean(data$comfort)
-        expected_cost <- sum(data$comfort * data$cost)
-        
-        paste0(
+      # calculate summary stats
+      n_sites <- nrow(data)
+      mean_acceptance <- mean(data$comfort)
+      expected_cost <- sum(data$comfort * data$cost)
+      
+      # paste together the sentence
+      sentence <- paste0(
           '<h2>Congrats! ', n_sites, ' sites accepted the invitation',
             '<h4>These sites have a total cost of ',
             scales::label_dollar(accuracy = 1)(expected_cost), '</h4><br>'
         )
+      
+      return(sentence)
     })
     
     
@@ -883,8 +887,8 @@ server <- function(input, output, session) {
         list_of_accepted_dataframes[[i]] <- accepted_data
       }
       
-      # convert sent_invitations_data to long format
-      sent_invitations_data <- sent_invitations_data %>% 
+      # convert sites_that_accepted to long format
+      sites_that_accepted <- sites_that_accepted %>% 
         mutate(sim = "Actual") %>% 
         select(sim, all_of(numeric_vars)) %>% 
         pivot_longer(cols = -c("sim"))
@@ -895,8 +899,8 @@ server <- function(input, output, session) {
         pivot_longer(cols = -c("sim")) %>% 
         ggplot(aes(x = value, group = sim)) +
         geom_line(stat = "density", alpha = 0.025, color = 'black') +
-        geom_density(data = sent_invitations_data, color = "white", size = 1.1) +
-        geom_density(data = sent_invitations_data, color = "#302f42", size = 1.3, linetype = "dotted") +
+        geom_density(data = sites_that_accepted, color = "white", size = 1.1) +
+        geom_density(data = sites_that_accepted, color = "#302f42", size = 1.3, linetype = "dotted") +
         facet_wrap(~name, scales = 'free') +
         labs(x = NULL,
              y = NULL)
