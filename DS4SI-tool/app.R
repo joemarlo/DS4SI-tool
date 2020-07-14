@@ -179,7 +179,7 @@ min_max_df['cost',] <- round(min_max_df['cost',], 0)
 # app ----------------------------------------------------------------------
 
 
-# Define UI for application that draws a histogram
+# Define UI for application
 ui <- fluidPage(
     theme = "my-shiny.css",
 
@@ -210,13 +210,26 @@ ui <- fluidPage(
                                tabPanel("Welcome",
                                         includeMarkdown("welcome_text.md")),
                                tabPanel("Tool instructions", 
-                                        includeMarkdown("tool_instructions.md")),
-                               tabPanel("To-do", 
-                                        includeMarkdown("todo.md"))
+                                        includeMarkdown("tool_instructions.md"))
                            ))
         ),
         
-        tabPanel(title = "1. Site exploration",
+        HTML('<div><h5>1. Site description</h5></div>'),
+        
+        tabPanel(title = HTML("&nbsp &nbsp The data"),
+                 sidebarLayout(
+                   sidebarPanel(width = 4,
+                                includeMarkdown("data_description.md")
+                                ),
+                   mainPanel(width = 6,
+                             plotOutput("intro_plots", height = 650)
+                   )
+                 )
+        ),
+                                
+                 
+        
+        tabPanel(title = HTML("&nbsp &nbsp Site exploration"),
                  sidebarLayout(
                      sidebarPanel(width = 4,
                           selectInput("plot_type", "Plot type:", multiple = FALSE,
@@ -245,6 +258,11 @@ ui <- fluidPage(
                               selectInput("regression", "Linear regression: ", multiple = FALSE,
                                           choices = c('none', 'include'),
                                           selected = 'none')
+                          ),
+                          conditionalPanel(
+                            condition = "input.plot_type == 'Histogram'",
+                            sliderInput("n_bins", "Number of bins: ", 
+                                        min = 5, max = 50, value = 20, step = 1)
                           ),
                           conditionalPanel(
                               condition = "input.plot_type == 'Boxplot'",
@@ -479,17 +497,20 @@ ui <- fluidPage(
              )),
     
     tabPanel(title = "3. Send invitations",
-             mainPanel(width = 6,
-                       selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
+             sidebarPanel(width = 8,
+                          br(),
+                          selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
                                    choices = c("All sites", "Sites to approach")),
-                       htmlOutput("summary_final_selection"),
-                       br(),
-                       actionButton(inputId = "send_invitations_button", 
-                                    label = HTML('Send invitations<br>
-                                                <p style="font-size: 0.6em; font-weight: 10;">
-                                                 Once sent, site selection will no longer be available</p>'
+                          htmlOutput("summary_final_selection"),
+                          br(),
+                          actionButton(inputId = "send_invitations_button", 
+                            label = HTML('Send invitations<br>
+                                          <p style="font-size: 0.6em; font-weight: 10;">
+                                         Once sent, site selection will no longer be available</p>'
                                                  )
-                                    )
+                                    ),
+                          br(),
+                          br()
                        )
     ),
     
@@ -498,15 +519,14 @@ ui <- fluidPage(
              sidebarLayout(
                sidebarPanel(width = 4,
                             htmlOutput("summary_text"),
+                            tableOutput("key_metrics_table"),
                             br(),
                             br(),
                             actionButton(inputId = "run_simulation",
                                          label = 'How does your random draw compare to 200 simulated draws?'),
                             br(),
                             br(),
-                            br(),
                             downloadButton("downloadData", "Download the data"),
-                            br(),
                             br(),
                             br(),
                             # button to restart the application (it's just javacript to refresh the page)
@@ -518,8 +538,10 @@ ui <- fluidPage(
                        tabsetPanel(
                          id = "results_tabs",
                          type = "tabs",
-                         tabPanel("Summary statistics", "table in the works"),
-                         tabPanel("Distributions of continuous variables", plotOutput("final_plots", height = 400)),
+                         tabPanel("Summary statistics", 
+                                  tableOutput("summary_table")),
+                         tabPanel("Distributions of continuous variables",
+                                  plotOutput("final_plots", height = 400)),
                          tabPanel("Plots of discrete variables", "plots to come")
                          )
                        )
@@ -622,6 +644,44 @@ server <- function(input, output, session) {
         nrow(filtered_table()),' 
         sites are currently selected to be approached</h4>'
     )})
+    
+    
+    # intro plots
+    
+    # the plots
+    output$intro_plots <- renderPlot({
+      
+      data <- final_table
+      
+      # bar plot of categorical variables
+      p1 <- data %>%
+        select(region, urban, other_prog) %>%
+        mutate(urban = as.character(urban),
+               other_prog = as.character(other_prog)) %>%
+        pivot_longer(cols = everything()) %>%
+        mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
+        ggplot(aes(x = value)) +
+        geom_bar(fill = violet_col, alpha = 0.9) +
+        facet_wrap(~name, scales = 'free_x', ncol = 3) +
+        labs(x = NULL,
+             y = NULL) +
+        theme(axis.text.x = element_text(angle = 40, hjust = 1))
+      
+      # histograms plot of numeric variables
+      p2 <- data %>%
+        select(unemp, pct_hs, income, comfort, cost) %>%
+        pivot_longer(cols = everything()) %>%
+        mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
+        ggplot(aes(x = value)) +
+        geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
+        facet_wrap(~name, scales = 'free_x', ncol = 3) +
+        labs(x = NULL,
+             y = NULL)
+      
+      # render both plots vertically
+      grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+      
+    })
     
     # must duplicate for each call b/c Shiny can't handle two of the same thing
     output$n_sites_selected <- renderText({n_sites_text()})
@@ -822,14 +882,11 @@ server <- function(input, output, session) {
       
       # calculate summary stats
       n_sites <- nrow(data)
-      mean_acceptance <- mean(data$comfort)
       expected_cost <- sum(data$comfort * data$cost)
       
       # paste together the sentence
       sentence <- paste0(
-          '<h2>Congrats! ', n_sites, ' sites accepted the invitation',
-            '<h4>These sites have a total cost of ',
-            scales::label_dollar(accuracy = 1)(expected_cost), '</h4><br>'
+          '<h2>Congrats! ', n_sites, ' sites accepted the invitation</h2>'
         )
       
       return(sentence)
@@ -1008,20 +1065,21 @@ server <- function(input, output, session) {
         
         # histogram
         if (input$plot_type == 'Histogram'){
-            p <- p + geom_histogram(color = 'white') +
+            p <- p + geom_histogram(color = 'white', bins = input$n_bins, 
+                                    fill = violet_col, alpha = 0.9) +
                 labs(y = NULL)
         }
         
         # density
         if (input$plot_type == 'Density'){
-            p <- p + geom_density() +
+            p <- p + geom_density(fill = violet_col, alpha = 0.5) +
                 labs(y = NULL)
         }
         
         # boxplot
         if (input$plot_type == 'Boxplot'){
             p <- p + 
-                geom_boxplot(
+                geom_boxplot(fill = violet_col, alpha = 0.5,
                 if(input$group_variable != 'none') aes_string(y = input$group_variable)
             ) +
                 coord_flip() +
@@ -1098,6 +1156,7 @@ server <- function(input, output, session) {
       # flip a coin with prob = comfort to see which sites accepted
       accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1
       sites_that_accepted <<- sent_invitations_data[accepted_boolean,]
+      sent_invitations_data <<- sent_invitations_data
       
       # final data frame of of all sites with indicator if site was sent inviation and if accepted
       # assign variable to global environment so it can be used in other functions
@@ -1106,6 +1165,86 @@ server <- function(input, output, session) {
       final_results <<- final_table
       
     })
+    
+    # table of key metrics for the Results page
+    output$key_metrics_table <- renderTable({
+      
+      # total cost
+      total_cost <- sum(sites_that_accepted$cost)
+      total_cost <- scales::dollar(total_cost)
+      
+      # generalizibility TBD
+      general_score <- as.character(0.5)
+      
+      # causality
+      causality_score <- as.character(0.5)
+      
+      # sample size
+      n_sites <- nrow(sites_that_accepted)
+      n_sites <- scales::comma(n_sites)
+      
+      # build the final table
+      metrics_table <- data.frame(Metric = c(total_cost, general_score, causality_score, n_sites))
+      rownames(metrics_table) <- c("Total cost", "Generalizability score", "Causality score", "Sample size")
+      
+      # return the table
+      metrics_table
+      
+    }, rownames = TRUE, align = 'r'
+    )
+    
+    # summary table for the Results page
+    output$summary_table <- renderTable({
+      
+      data <- final_results
+      
+      # build dataframe with identifer for the group it comes from
+        # df should nrow should be n(population) + n(sites sent invitation) + n(sites accepted)
+      data$group <- 'Population'
+      data <- data %>% select(-c('sent_invitation', 'accepted'))
+      sites_that_accepted$group <- 'Accepted'
+      sent_invitations_data$group <- 'Sent invitation'
+      data <- rbind(data, sites_that_accepted, sent_invitations_data)
+      
+      # calculate mean numeric stats per group
+      mean_unemp <- aggregate(x = data$unemp, by = list(data$group), FUN = 'mean')$x
+      mean_hs <- aggregate(x = data$pct_hs, by = list(data$group), FUN = 'mean')$x
+      mean_income <- aggregate(x = data$income, by = list(data$group), FUN = 'mean')$x
+      mean_cost <- aggregate(x = data$cost, by = list(data$group), FUN = 'mean')$x
+      mean_comfort <- aggregate(x = data$comfort, by = list(data$group), FUN = 'mean')$x
+      mean_urban <- aggregate(x = data$urban, by = list(data$group), FUN = 'mean')$x
+      mean_other_program <- aggregate(x = data$other_prog, by = list(data$group), FUN = 'mean')$x
+    
+      # calculate % of sites per region per group
+      n_sites <- tapply(data$region, list(data$region, data$group), function(tbl) length(tbl))
+      mean_sites <- apply(n_sites, 1, function(row) row / table(data$group))
+      
+      # bind the stats into one table
+      summary_table <- t(cbind(mean_unemp, mean_hs, mean_income, mean_cost, mean_comfort, mean_urban, mean_other_program, mean_sites))
+      
+      # set row names
+      rownames(summary_table) <- c(
+                "Mean unemployment",
+                "Mean HS rate",
+                "Mean income",
+                "Mean cost",
+                "Mean comfort",
+                "% urbanicity",
+                "% with other program",
+                "% Northcentral",
+                "% Northeast",
+                "% South",
+                "% West"
+      )
+      
+      # rearrange columns
+      summary_table <- summary_table[, c('Accepted', 'Sent invitation', 'Population')]
+      
+      # return the table
+      summary_table
+      
+    }, rownames = TRUE
+    )
     
   
     # save row selections when button is clicked
@@ -1260,7 +1399,7 @@ server <- function(input, output, session) {
       # add text
       insertUI(selector = "#run_simulation",
                where = "afterEnd",
-               ui = h4("One moment ... Simulation results will appear on the right ..."))
+               ui = h4("One moment ... Simulation results will appear on the 'Actual vs. expected' tab ..."))
       
       # remove button
       removeUI(selector = "#run_simulation")
