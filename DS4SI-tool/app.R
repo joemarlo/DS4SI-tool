@@ -3,7 +3,7 @@ library(shiny)
 library(shinyWidgets)
 library(DT)
 library(gridExtra)
-library(plotly)
+# library(plotly)
 library(rlang)
 library(shinyjs)
 library(quantreg) # for weighted box
@@ -40,7 +40,7 @@ options(
 
 # set default discrete colors
 scale_colour_discrete <- function(...) {
-  scale_color_viridis(discrete = TRUE)
+  scale_color_viridis(..., discrete = TRUE)
 }
 
 
@@ -214,9 +214,9 @@ ui <- fluidPage(
                            ))
         ),
         
-        HTML('<div><h5>1. Site description</h5></div>'),
+        HTML('<div><h5>1. Site attributes</h5></div>'),
         
-        tabPanel(title = HTML("&nbsp &nbsp The data"),
+        tabPanel(title = HTML("&nbsp &nbsp Data description"),
                  sidebarLayout(
                    sidebarPanel(width = 4,
                                 includeMarkdown("data_description.md")
@@ -229,7 +229,7 @@ ui <- fluidPage(
                                 
                  
         
-        tabPanel(title = HTML("&nbsp &nbsp Site exploration"),
+        tabPanel(title = HTML("&nbsp &nbsp Data exploration"),
                  sidebarLayout(
                      sidebarPanel(width = 4,
                           selectInput("plot_type", "Plot type:", multiple = FALSE,
@@ -529,9 +529,8 @@ ui <- fluidPage(
                             downloadButton("downloadData", "Download the data"),
                             br(),
                             br(),
-                            # button to restart the application (it's just javacript to refresh the page)
-                            HTML('<button type="button" class="btn" id="restart_button" onClick="history.go(0)">
-                                  Erase these data and restart the selection process</button>'),
+                            actionButton(inputId = "restart_button", 
+                                         label = 'Erase these data and restart the selection process')
                ),
              
                mainPanel(width = 6,
@@ -542,7 +541,9 @@ ui <- fluidPage(
                                   tableOutput("summary_table")),
                          tabPanel("Distributions of continuous variables",
                                   plotOutput("final_plots", height = 400)),
-                         tabPanel("Plots of discrete variables", "plots to come")
+                         tabPanel("Plots of discrete variables", "plots to come"),
+                         tabPanel("Sites that accepted",
+                                  DT::dataTableOutput('accepted_table'))
                          )
                        )
 
@@ -1014,6 +1015,11 @@ server <- function(input, output, session) {
         }
     )
     
+    # restart the session based on button click
+    observeEvent(input$restart_button, {
+      session$reload()
+    } )
+    
     # site exploration
     output$advanced_ggplot <- renderPlot({
         
@@ -1174,10 +1180,10 @@ server <- function(input, output, session) {
       total_cost <- scales::dollar(total_cost)
       
       # generalizibility TBD
-      general_score <- as.character(0.5)
+      general_score <- as.character("NA")
       
       # causality
-      causality_score <- as.character(0.5)
+      causality_score <- as.character("NA")
       
       # sample size
       n_sites <- nrow(sites_that_accepted)
@@ -1386,6 +1392,21 @@ server <- function(input, output, session) {
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
     
+    # table of sites that accepted for the Results table
+    output$accepted_table <- DT::renderDataTable(DT::datatable(
+      sites_that_accepted, rownames = FALSE, options = list(
+        # sets n observations shown
+        pageLength = 20,
+        # removes option to change n observations shown
+        lengthChange = FALSE,
+        # removes the search bar
+        sDom  = '<"top">lrt<"bottom">ip',
+        # enable side scroll so table doesn't overflow
+        scrollX = TRUE)
+    ) %>%
+      formatRound(5:8, 2) %>%
+      formatRound(9, 0))
+    
     # insert tab after running simulation
     observeEvent(input$run_simulation, {
       
@@ -1399,7 +1420,7 @@ server <- function(input, output, session) {
       # add text
       insertUI(selector = "#run_simulation",
                where = "afterEnd",
-               ui = h4("One moment ... Simulation results will appear on the 'Actual vs. expected' tab ..."))
+               ui = h4("One moment ... Simulation results will appear on the 'Actual vs. expected' tab"))
       
       # remove button
       removeUI(selector = "#run_simulation")
