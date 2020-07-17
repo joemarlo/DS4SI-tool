@@ -116,6 +116,7 @@ a {
 
 #restart_button {
   background-color: #ab2c2c !important;
+  width: 100%;
 }
 
 #downloadData {
@@ -126,6 +127,9 @@ hr {
   border-top: 1px solid #fff
 }
 
+
+/* the below code is for the datatabels
+Note that much of this CSS overrides the default datatable CSS sheet */
 /* row striping for data table */
 table.dataTable.stripe tbody tr.odd,
 table.dataTable.display tbody tr.odd {
@@ -147,10 +151,16 @@ table.dataTable.display tbody tr:hover {
  background-color: #e8e8e8 !important;
 }
 
+/* this is the nav buttons at the bottom of datatables
+border 0 fixes the buttons moving around when you hover / click */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+ border: 0;
+}
+
 /* current table nav button */
 .dataTables_wrapper .dataTables_paginate .paginate_button.current,
 .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-   border-radius: 0;
+   /*border-radius: 1px;*/
    color: white !important;
    border: 0 !important;
    background-color:#5c5980 !important;
@@ -163,7 +173,7 @@ table.dataTable.display tbody tr:hover {
 
 /* table nav button hover */
 .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-   border-radius: 0;
+   /*border-radius: 1px;*/
    color: black !important;
    border: 0 !important;
    background-color:#e8e8e8 !important;

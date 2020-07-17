@@ -143,8 +143,8 @@ get_value <- function(distribution, probs){
 }
 
 custom_datatable <- function(...){
-  # wrapper around DT::datatable so I can set common arguments
-  # as global defaults
+  # wrapper around DT::datatable so commonly used arguments
+  # can be set as global defaults
   
   DT::datatable(rownames = FALSE, 
                 options = list(
@@ -160,6 +160,82 @@ custom_datatable <- function(...){
                 ...
   )
 }
+
+draw_histograms <- function(data){
+  
+  # function takes in a dataset and then draws histograms for continuous
+    # variables and barplots for categoricals. Returns a single grid.arrange
+    # object to pass to renderPlot({})
+  
+  # bar plot of categorical variables
+  p1 <- data %>%
+    select(region, urban, other_prog) %>%
+    mutate(urban = as.character(urban),
+           other_prog = as.character(other_prog)) %>%
+    pivot_longer(cols = everything()) %>%
+    mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
+    ggplot(aes(x = value)) +
+    geom_bar(fill = violet_col, alpha = 0.9) +
+    facet_wrap(~name, scales = 'free_x', ncol = 3) +
+    labs(x = NULL,
+         y = NULL) +
+    theme(axis.text.x = element_text(angle = 40, hjust = 1))
+  
+  # histograms plot of numeric variables
+  p2 <- data %>%
+    select(unemp, pct_hs, income, comfort, cost) %>%
+    pivot_longer(cols = everything()) %>%
+    mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
+    ggplot(aes(x = value)) +
+    geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
+    facet_wrap(~name, scales = 'free_x', ncol = 3) +
+    labs(x = NULL,
+         y = NULL)
+  
+  # render both plots vertically
+  grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+  
+}
+
+
+score_attributes <- function(data){
+  
+  # function returns a table of the score attributes
+  # total cost, generalizability, causality, sample size
+  
+  # total cost
+  total_cost <- sum(data$cost)
+  total_cost <- scales::dollar(total_cost)
+  
+  # generalizability TBD
+  general_score <- as.character("NA")
+  
+  # causality
+  causality_score <- as.character("NA")
+  
+  # sample size
+  n_sites <- nrow(data)
+  n_sites <- scales::comma(n_sites)
+  
+  # build the final table
+  metrics_table <- data.frame(Metric = c(total_cost, general_score, causality_score, n_sites))
+  rownames(metrics_table) <- c("Total cost", "Generalizability score", "Causality score", "Sample size")
+  
+  # return the table
+  return(metrics_table)
+  
+}
+
+n_sites_text <- function(data){
+  # function to output HTML text indicating
+    # how many rows are a dataframe
+  
+  paste0('<h4>',
+         nrow(data),' 
+        sites are currently selected to be approached</h4>'
+  )
+}
+
 
 # custom variables --------------------------------------------------------
 
@@ -398,7 +474,7 @@ ui <- fluidPage(
                   tabsetPanel(
                       type = "tabs",
                       tabPanel("Plots",
-                               plotOutput("densities", height = 650)),
+                               plotOutput("filtered_plots", height = 650)),
                       tabPanel("Table of selected sites", DT::dataTableOutput('table')),
                       tabPanel("Table of excluded sites", DT::dataTableOutput('excluded_table'))
                       )
@@ -524,22 +600,29 @@ ui <- fluidPage(
              )),
     
     tabPanel(title = "3. Send invitations",
-             sidebarPanel(width = 8,
-                          br(),
-                          selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
-                                   choices = c("All sites", "Sites to approach")),
-                          htmlOutput("summary_final_selection"),
-                          br(),
-                          actionButton(inputId = "send_invitations_button", 
-                            label = HTML('Send invitations<br>
+             sidebarLayout(
+               sidebarPanel(width = 4,
+                            br(),
+                            selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
+                                        choices = c("All sites", "Sites to approach")),
+                            htmlOutput("summary_final_selection"),
+                            br(),
+                            tableOutput("send_scores_table"),
+                            br(),
+                            actionButton(inputId = "send_invitations_button", 
+                                         label = HTML('Send invitations<br>
                                           <p style="font-size: 0.6em; font-weight: 10;">
                                          Once sent, site selection will no longer be available</p>'
-                                                 )
-                                    ),
-                          br(),
-                          br()
-                       )
+                                         )
+                            ),
+                            br()
+               ),
+               mainPanel(width = 6,
+                         plotOutput("send_plots", height = 650)
+               )
+             )
     ),
+    
     
     tabPanel(title = "4. Results",
              
@@ -658,56 +741,10 @@ server <- function(input, output, session) {
         return(data)
     })
     
-    # number of current sites selected to use in header
-    n_sites_text <- reactive({
-        paste0('<h4>',
-        nrow(filtered_table()),' 
-        sites are currently selected to be approached</h4>'
-    )})
-    
-    
-    # intro plots
-    
-    # the plots
-    output$intro_plots <- renderPlot({
-      
-      data <- final_table
-      
-      # bar plot of categorical variables
-      p1 <- data %>%
-        select(region, urban, other_prog) %>%
-        mutate(urban = as.character(urban),
-               other_prog = as.character(other_prog)) %>%
-        pivot_longer(cols = everything()) %>%
-        mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
-        ggplot(aes(x = value)) +
-        geom_bar(fill = violet_col, alpha = 0.9) +
-        facet_wrap(~name, scales = 'free_x', ncol = 3) +
-        labs(x = NULL,
-             y = NULL) +
-        theme(axis.text.x = element_text(angle = 40, hjust = 1))
-      
-      # histograms plot of numeric variables
-      p2 <- data %>%
-        select(unemp, pct_hs, income, comfort, cost) %>%
-        pivot_longer(cols = everything()) %>%
-        mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
-        ggplot(aes(x = value)) +
-        geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
-        facet_wrap(~name, scales = 'free_x', ncol = 3) +
-        labs(x = NULL,
-             y = NULL)
-      
-      # render both plots vertically
-      grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
-      
-    })
-    
     # must duplicate for each call b/c Shiny can't handle two of the same thing
-    output$n_sites_selected <- renderText({n_sites_text()})
-    output$n_sites_selected_2 <- renderText({n_sites_text()})
-    output$n_sites_selected_3 <- renderText({n_sites_text()})
+    output$n_sites_selected <- renderText(n_sites_text(filtered_table()))
     
+  
     # text for final selection page
     output$summary_final_selection <- renderText({
       
@@ -809,39 +846,24 @@ server <- function(input, output, session) {
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
     
+ 
+    # plots on data description page
+    output$intro_plots <- renderPlot({draw_histograms(final_table)})
     
-    # the plots
-    output$densities <- renderPlot({
-
-        # bar plot of categorical variables
-        p1 <- filtered_table() %>%
-            select(region, urban, other_prog) %>%
-            mutate(urban = as.character(urban),
-                   other_prog = as.character(other_prog)) %>%
-            pivot_longer(cols = everything()) %>%
-            mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
-            ggplot(aes(x = value)) +
-            geom_bar(fill = violet_col, alpha = 0.9) +
-            facet_wrap(~name, scales = 'free_x', ncol = 3) +
-            labs(x = NULL,
-                 y = NULL) +
-            theme(axis.text.x = element_text(angle = 40, hjust = 1))
-
-        # histograms plot of numeric variables
-        p2 <- filtered_table() %>%
-            select(unemp, pct_hs, income, comfort, cost) %>%
-            pivot_longer(cols = everything()) %>%
-            mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
-            ggplot(aes(x = value)) +
-            geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
-            facet_wrap(~name, scales = 'free_x', ncol = 3) +
-            labs(x = NULL,
-                 y = NULL)
-
-        # render both plots vertically
-        grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
-
-    })
+    # plots on filtering page
+    output$filtered_plots <- renderPlot({draw_histograms(filtered_table())})
+    
+    # plots on send invitations page
+    output$send_plots <- renderPlot({
+      draw_histograms({
+        
+        switch(input$invitations_data,
+               "All sites" = final_table,
+               "Sites to approach" = filtered_table()
+        )
+        
+      })})
+    
     
     # text for Results page page
     output$summary_text <- renderText({
@@ -930,48 +952,7 @@ server <- function(input, output, session) {
         labs(x = NULL,
              y = NULL)
       
-      # accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1
-      # sites_that_accepted <- sent_invitations_data[accepted_boolean,]
-      # 
-      # # final data frame of of all sites with indicator if site was sent inviation and if accepted
-      # # assign variable to global environment so it can be used in other functions
-      # final_table$sent_invitation <- final_table$site_id %in% sent_invitations_data$site_id
-      # final_table$accepted <- final_table$site_id %in% sites_that_accepted$site_id
-      # final_results <<- final_table
-      
-      
     })
-    
-    # the summary plots
-    # output$boxplots <- renderPlot({
-    # 
-    #     # boxplots of the population, sites to approach, and expected sample
-    #     
-    #     # create the three groups
-    #     population <- final_table %>% mutate(weight = 1, group = "Population")
-    #     sites_to_approach <- filtered_table() %>% mutate(weight = 1, group = "Sites to \n approach")
-    #     expected_sample <- filtered_table() %>% mutate(weight = comfort, group = 'Expected \n sample')
-    #     
-    #     bind_rows(population, sites_to_approach, expected_sample) %>% 
-    #         select(cost, unemp, pct_hs, income, comfort, group, weight) %>% 
-    #         mutate(group = factor(group,
-    #                              levels = c("Expected \n sample", "Sites to \n approach", "Population"),
-    #                              labels = c("Expected \n sample", "Sites to \n approach", "Population"))) %>%
-    #         rename('Site cost ($)' = cost,
-    #                'County level \n unemployment (%)' = unemp,
-    #                'County level high \n school grad rate (%)' = pct_hs,
-    #                'County level \n median income ($)' = income,
-    #                'Site probability \n of participation' = comfort) %>%
-    #         pivot_longer(cols = -c("group", "weight")) %>%  
-    #         ggplot(aes(x = group, y = value, weight = weight)) +
-    #         geom_boxplot(fill = violet_col, alpha = 0.35) +
-    #         stat_summary(fun = mean, geom = "errorbar",
-    #                      aes(ymax = ..y.., ymin = ..y..),
-    #                      width = .75, linetype = "dashed") +
-    #         facet_wrap(~name, scale = "free", ncol = 2) +
-    #         labs(x = NULL, 
-    #              y = NULL)
-    # })
     
 
     # download button for data_to_download
@@ -1140,31 +1121,24 @@ server <- function(input, output, session) {
       
     })
     
+    # table of key metrics for the send invitations page
+    output$send_scores_table <- renderTable(
+      score_attributes({
+        
+        switch(input$invitations_data,
+               "All sites" = final_table,
+               "Sites to approach" = filtered_table()
+        )
+        
+      }), 
+      rownames = TRUE, align = 'r'
+    )
+    
+    
     # table of key metrics for the Results page
-    output$key_metrics_table <- renderTable({
-      
-      # total cost
-      total_cost <- sum(sites_that_accepted$cost)
-      total_cost <- scales::dollar(total_cost)
-      
-      # generalizibility TBD
-      general_score <- as.character("NA")
-      
-      # causality
-      causality_score <- as.character("NA")
-      
-      # sample size
-      n_sites <- nrow(sites_that_accepted)
-      n_sites <- scales::comma(n_sites)
-      
-      # build the final table
-      metrics_table <- data.frame(Metric = c(total_cost, general_score, causality_score, n_sites))
-      rownames(metrics_table) <- c("Total cost", "Generalizability score", "Causality score", "Sample size")
-      
-      # return the table
-      metrics_table
-      
-    }, rownames = TRUE, align = 'r'
+    output$key_metrics_table <- renderTable(
+      score_attributes(sites_that_accepted), 
+      rownames = TRUE, align = 'r'
     )
     
     # summary table for the Results page
