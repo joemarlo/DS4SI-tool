@@ -3,13 +3,10 @@ library(shiny)
 library(shinyWidgets)
 library(DT)
 library(gridExtra)
-# library(plotly)
 library(rlang)
 library(shinyjs)
-library(quantreg) # for weighted box
+library(quantreg) # for weighted box plot
 library(viridis) # for better colors for color blind people
-# library(shinydashboard)
-# library(shinyBS)
 # options(scipen = 999999)
 set.seed(44)
 
@@ -145,6 +142,24 @@ get_value <- function(distribution, probs){
     return(closest_prob_in_distribution)
 }
 
+custom_datatable <- function(...){
+  # wrapper around DT::datatable so I can set common arguments
+  # as global defaults
+  
+  DT::datatable(rownames = FALSE, 
+                options = list(
+                  # sets n observations shown
+                  pageLength = 20,
+                  # removes option to change n observations shown
+                  lengthChange = FALSE,
+                  # removes the search bar
+                  sDom  = '<"top">lrt<"bottom">ip',
+                  # enable side scroll so table doesn't overflow
+                  scrollX = TRUE
+                ),
+                ...
+  )
+}
 
 # custom variables --------------------------------------------------------
 
@@ -164,6 +179,7 @@ numeric_vars <- c("unemp", "pct_hs", "income", "comfort", "cost")
 categorical_vars <- c('region', 'urban', 'other_prog')
 
 # create df of min and maxes to use in slider calculations
+# convert this to base R
 min_max_df <- final_table %>% 
     select(unemp, pct_hs, income, comfort, cost) %>% 
     pivot_longer(cols = everything()) %>% 
@@ -181,15 +197,18 @@ min_max_df['cost',] <- round(min_max_df['cost',], 0)
 
 # Define UI for application
 ui <- fluidPage(
-    theme = "my-shiny.css",
 
-    # initlaize shiynjs
+    # initialize shinyjs
+    # can this be removed?
     useShinyjs(),
     
     # download roboto and inconsolata font
     HTML('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'),
     HTML('<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata">'),
 
+    # custom CSS file
+    includeCSS("www/my-shiny.css"),
+    
     # choose default slider skin
     chooseSliderSkin(skin = "Flat",
                      color = "#221146"), # "#112446"),
@@ -387,6 +406,61 @@ ui <- fluidPage(
     )
     ),
     
+    tabPanel(title = HTML("&nbsp &nbsp Sampling"),
+             sidebarLayout(
+               sidebarPanel(width = 4,
+                            
+                            # text output of title with number of sites selected
+                            # htmlOutput("n_sites_selected_2"),
+                            h4("Create simple and stratified random samples"),
+                            
+                            br(),
+                            
+                            selectInput(inputId = "sample_dataset", label = "Dataset to sample from: ", multiple = FALSE,
+                                        choices = c("All sites", "Sites to approach")),
+                            selectInput(inputId = "simple_or_stratified", label = "Simple or stratified sample: ", multiple = FALSE,
+                                        choices = c("simple", "stratified")),
+                            conditionalPanel(
+                              condition = "input.simple_or_stratified == 'stratified'",
+                              selectizeInput("strata_variables", "Strata variable (limited to two): ", 
+                                             multiple = TRUE,
+                                             options = list(maxItems = 2),
+                                             choices = categorical_vars,
+                                             selected = categorical_vars[1]),
+                              # sliderInput("strata_prob_1", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01),
+                              # uiOutput("strata_probs_UI_1"),
+                              # uiOutput("strata_probs_UI_2"),
+                              # conditionalPanel(
+                              #   # show only if there are two variables selected in stratefied_variables
+                              #   condition = "input.strata_variables.length == 2",
+                              #   sliderInput("strata_prob_2", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01)
+                              #   )
+                            ),
+                            # this maximum input varies based on inputs; see code inside random_sample reactive
+                            sliderInput("sample_n", "Sample size: ", min = 0, max = 400, value = 400, step = 1),
+                            conditionalPanel(
+                              condition = "input.simple_or_stratified == 'stratified'",
+                              htmlOutput("n_strata"),
+                              br(),
+                              tableOutput("strata_table"),
+                            )
+                            
+               ),
+               
+               mainPanel(width = 6,
+                         
+                         # Output: Tabset w/ plot, summary, and table ----
+                         tabsetPanel(
+                           type = "tabs",
+                           tabPanel("Plots",
+                                    plotOutput("sampling_plots", height = 650)),
+                           tabPanel("Table of selected sites", DT::dataTableOutput('random_sample_table')),
+                           tabPanel("Table of excluded sites", DT::dataTableOutput('random_sample_excluded_table'))
+                         )
+               )
+             )
+    ),
+    
     tabPanel(title = HTML("&nbsp &nbsp Weighting"),
              sidebarLayout(
                  sidebarPanel(width = 4,
@@ -412,53 +486,6 @@ ui <- fluidPage(
              mainPanel(width = 6,
                        DT::dataTableOutput('table_2')
                        )
-             )
-    ),
-    
-    tabPanel(title = HTML("&nbsp &nbsp Sampling"),
-             sidebarLayout(
-               sidebarPanel(width = 4,
-                            
-                            # text output of title with number of sites selected
-                            # htmlOutput("n_sites_selected_2"),
-                            h4("Create simple and stratified random samples"),
-                            
-                            br(),
-                            
-                            selectInput(inputId = "sample_dataset", label = "Dataset to sample from: ", multiple = FALSE,
-                                        choices = c("All sites", "Sites to approach")),
-                            selectInput(inputId = "simple_or_stratified", label = "Simple or stratified sample: ", multiple = FALSE,
-                                        choices = c("simple", "stratified")),
-                            conditionalPanel(
-                              condition = "input.simple_or_stratified == 'stratified'",
-                              selectizeInput("strata_variables", "Strata variable (limited to two): ", 
-                                          multiple = TRUE,
-                                          options = list(maxItems = 2),
-                                          choices = categorical_vars,
-                                          selected = categorical_vars[1]),
-                              # sliderInput("strata_prob_1", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01),
-                              # uiOutput("strata_probs_UI_1"),
-                              # uiOutput("strata_probs_UI_2"),
-                              # conditionalPanel(
-                              #   # show only if there are two variables selected in stratefied_variables
-                              #   condition = "input.strata_variables.length == 2",
-                              #   sliderInput("strata_prob_2", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.01)
-                              #   )
-                            ),
-                            # this maximum input varies based on inputs; see code inside random_sample reactive
-                            sliderInput("sample_n", "Sample size: ", min = 0, max = 400, value = 400, step = 1),
-                            conditionalPanel(
-                              condition = "input.simple_or_stratified == 'stratified'",
-                              htmlOutput("n_strata"),
-                              br(),
-                              tableOutput("strata_table"),
-                            )
-                            
-               ),
-               
-               mainPanel(width = 6,
-                         DT::dataTableOutput('random_sample_table')
-               )
              )
     ),
     
@@ -546,14 +573,6 @@ ui <- fluidPage(
                                   DT::dataTableOutput('accepted_table'))
                          )
                        )
-
-                 # conditionalPanel(
-                   # condition = "input.", # show when  button is executed
-                   # h4("... give it a second to compute ..."),
-                   # br(),
-                   # plotOutput("actual_vs_expected_plots", height = 400)
-                 # ),
-                 # br()
                )
              
     )
@@ -711,16 +730,10 @@ server <- function(input, output, session) {
       })
 
     # display the table in the 'table of selected sites' tab
-    output$table <- DT::renderDataTable(DT::datatable(
-        filtered_table(), rownames = FALSE, options = list(
-            # sets n observations shown
-            pageLength = 20,
-            # removes option to change n observations shown
-            lengthChange = FALSE,
-            # removes the search bar
-            sDom  = '<"top">lrt<"bottom">ip',
-            # enable side scroll so table doesn't overflow
-            scrollX = TRUE)
+    output$table <- DT::renderDataTable(
+      custom_datatable(
+          filtered_table(),
+          selection = 'none'
         ) %>%
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
@@ -742,103 +755,57 @@ server <- function(input, output, session) {
     })
     
     # display the table in the 'table of selected sites' tab within the weighting page
-    output$table_2 <- DT::renderDataTable(DT::datatable({
-      
-      data <- weight_data()
-      
-      # scale the variables
-      numeric_vars_scaled <- data[, numeric_vars]
-      numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
-      
-      # vector of weights
-      weights <- c(input$weight_unemp, input$weight_pct_hs, input$weight_income, 
-                   input$weight_comfort, input$weight_cost)
-      
-      # calculate score per each row
-      data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
-      
-      # filter to just the top rows selected by the user
-      data <- data %>% arrange(desc(site_score)) %>% head(n = input$weight_n)
-      
-      # make site_score as first column in dataframe
-      data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
-      
-      data
-    }
-      , rownames = FALSE, 
-    options = list(
-            # sets n observations shown
-            pageLength = 20,
-            # removes option to change n observations shown
-            lengthChange = FALSE,
-            # removes the search bar
-            sDom  = '<"top">lrt<"bottom">ip',
-            # default sort by site score
-            order = list(0, 'desc'),
-            # enable side scroll so table doesn't overflow
-            scrollX = TRUE
-            )
-    ) %>%
+    output$table_2 <- DT::renderDataTable(
+      custom_datatable({
+        
+        data <- weight_data()
+        
+        # scale the variables
+        numeric_vars_scaled <- data[, numeric_vars]
+        numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
+        
+        # vector of weights
+        weights <- c(input$weight_unemp, input$weight_pct_hs, input$weight_income, 
+                     input$weight_comfort, input$weight_cost)
+        
+        # calculate score per each row
+        data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
+        
+        # filter to just the top rows selected by the user
+        data <- data %>% arrange(desc(site_score)) %>% head(n = input$weight_n)
+        
+        # make site_score as first column in dataframe
+        data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
+        
+        data
+    }, selection = 'none' ) %>%
         formatRound(6:9, 2) %>%
         formatRound(10, 0) %>% 
         formatRound(1, 1)
       )
     
     # display the table in the 'table of selected sites' tab within the final selection page
-    output$table_3 <- DT::renderDataTable(DT::datatable(
-      filtered_table(), rownames = FALSE, options = list(
-        # sets n observations shown
-        pageLength = 20,
-        # removes option to change n observations shown
-        lengthChange = FALSE,
-        # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip',
-        # enable side scroll so table doesn't overflow
-        scrollX = TRUE)
-    ) %>%
+    output$table_3 <- DT::renderDataTable(
+      custom_datatable(
+        filtered_table()
+        ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
     
-    # can access the above data using input$tableId_cell_info
-    # output$selected_rows <- DT::renderDataTable(DT::datatable(
-    #   filtered_table()[input$table_2_rows_selected,], rownames = FALSE, options = list(
-    #     # sets n observations shown
-    #     pageLength = 20,
-    #     # removes option to change n observations shown
-    #     lengthChange = FALSE,
-    #     # removes the search bar
-    #     sDom  = '<"top">lrt<"bottom">ip')
-    # ) %>%
-    #   formatRound(5:8, 2) %>%
-    #   formatRound(9, 0))
-    
     # display the table in the 'table of excluded sites' tab
-    output$excluded_table <- DT::renderDataTable(DT::datatable(
-        anti_join(final_table, filtered_table()), rownames = FALSE, options = list(
-            # sets n observations shown
-            pageLength = 20,
-            # removes option to change n observations shown
-            lengthChange = FALSE,
-            # removes the search bar
-            sDom  = '<"top">lrt<"bottom">ip',
-            # enable side scroll so table doesn't overflow
-            scrollX = TRUE)
-    ) %>%
+    output$excluded_table <- DT::renderDataTable(
+      custom_datatable(
+        anti_join(final_table, filtered_table()),
+        selection = 'none'
+        ) %>%
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
 
     # display the table in the 'table of excluded sites' tab: Final selection tab
-    output$excluded_table_2 <- DT::renderDataTable(DT::datatable(
-      anti_join(final_table, filtered_table()), rownames = FALSE, options = list(
-        # sets n observations shown
-        pageLength = 20,
-        # removes option to change n observations shown
-        lengthChange = FALSE,
-        # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip',
-        # enable side scroll so table doesn't overflow
-        scrollX = TRUE)
-    ) %>%
+    output$excluded_table_2 <- DT::renderDataTable(
+      custom_datatable(
+        anti_join(final_table, filtered_table())
+      ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
     
@@ -1123,6 +1090,7 @@ server <- function(input, output, session) {
             DT::datatable(
                 brushedPoints(final_table, input$plot1_brush),
                 rownames = FALSE,
+                selection = "none",
                 options = list(
                     # sets n observations shown
                     pageLength = 10,
@@ -1376,36 +1344,71 @@ server <- function(input, output, session) {
       return(sampled_data)
     })
     
-    
-    # display the table in the sampling tab
-    output$random_sample_table <- DT::renderDataTable(DT::datatable(
-      random_sample(), rownames = FALSE, options = list(
-        # sets n observations shown
-        pageLength = 20,
-        # removes option to change n observations shown
-        lengthChange = FALSE,
-        # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip',
-        # enable side scroll so table doesn't overflow
-        scrollX = TRUE)
-    ) %>%
+
+    # display the table in the sampling tab    
+    output$random_sample_table <- DT::renderDataTable(
+      custom_datatable(
+        random_sample(),
+        selection = 'none'
+        ) %>%
       formatRound(5:8, 2) %>%
-      formatRound(9, 0))
+      formatRound(9, 0)
+    )
+    
+    # display excluded table in the sampling tab
+    output$random_sample_excluded_table <- DT::renderDataTable(
+      
+      custom_datatable(
+        anti_join(final_table, random_sample()),
+        selection = 'none'
+      ) %>%
+      formatRound(5:8, 2) %>%
+      formatRound(9, 0)
+    )
     
     # table of sites that accepted for the Results table
-    output$accepted_table <- DT::renderDataTable(DT::datatable(
-      sites_that_accepted, rownames = FALSE, options = list(
-        # sets n observations shown
-        pageLength = 20,
-        # removes option to change n observations shown
-        lengthChange = FALSE,
-        # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip',
-        # enable side scroll so table doesn't overflow
-        scrollX = TRUE)
-    ) %>%
+    output$accepted_table <- DT::renderDataTable(
+      
+      custom_datatable(
+        sites_that_accepted,
+        selection = 'none'
+        ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
+    
+    # the plots for sampling page
+    output$sampling_plots <- renderPlot({
+      
+      # bar plot of categorical variables
+      p1 <- random_sample() %>%
+        select(region, urban, other_prog) %>%
+        mutate(urban = as.character(urban),
+               other_prog = as.character(other_prog)) %>%
+        pivot_longer(cols = everything()) %>%
+        mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
+        ggplot(aes(x = value)) +
+        geom_bar(fill = violet_col, alpha = 0.9) +
+        facet_wrap(~name, scales = 'free_x', ncol = 3) +
+        labs(x = NULL,
+             y = NULL) +
+        theme(axis.text.x = element_text(angle = 40, hjust = 1))
+      
+      # histograms plot of numeric variables
+      p2 <- random_sample() %>%
+        select(unemp, pct_hs, income, comfort, cost) %>%
+        pivot_longer(cols = everything()) %>%
+        mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
+        ggplot(aes(x = value)) +
+        geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
+        facet_wrap(~name, scales = 'free_x', ncol = 3) +
+        labs(x = NULL,
+             y = NULL)
+      
+      # render both plots vertically
+      grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+      
+    })
+    
     
     # insert tab after running simulation
     observeEvent(input$run_simulation, {
