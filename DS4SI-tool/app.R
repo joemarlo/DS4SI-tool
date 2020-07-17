@@ -237,6 +237,22 @@ n_sites_text <- function(data){
 }
 
 
+determine_x_pos <- function(value){
+  # for ggplot
+  # determines x position for segments
+  # when grouping
+  
+  case_when(
+    value == FALSE ~ 1,
+    value == TRUE ~ 2,
+    value == "Northcentral" ~ 1,
+    value == "Northeast" ~ 2,
+    value == "South" ~ 3,
+    value == "West" ~ 4
+  )
+}
+
+
 # custom variables --------------------------------------------------------
 
 # custom HTML code for collapsiible
@@ -261,7 +277,8 @@ min_max_df <- final_table %>%
     pivot_longer(cols = everything()) %>% 
     group_by(name) %>% 
     summarize(min = floor(min(value) * 0.999 * 100) / 100,
-              max = ceiling(max(value) * 1.001 * 100) / 100) %>%
+              max = ceiling(max(value) * 1.001 * 100) / 100,
+              .groups = "drop") %>%
     as.data.frame() %>% 
     `rownames<-`(.[,'name']) %>% 
     select(-name)
@@ -530,7 +547,7 @@ ui <- fluidPage(
                          tabsetPanel(
                            type = "tabs",
                            tabPanel("Plots",
-                                    plotOutput("sampling_plots", height = 650)),
+                                    plotOutput("sampling_plots", height = 650)), 
                            tabPanel("Table of selected sites", DT::dataTableOutput('random_sample_table')),
                            tabPanel("Table of excluded sites", DT::dataTableOutput('random_sample_excluded_table'))
                          )
@@ -650,9 +667,10 @@ ui <- fluidPage(
                          type = "tabs",
                          tabPanel("Summary statistics", 
                                   tableOutput("summary_table")),
-                         tabPanel("Distributions of continuous variables",
-                                  plotOutput("final_plots", height = 400)),
-                         tabPanel("Plots of discrete variables", "plots to come"),
+                         tabPanel("Plots",
+                                  plotOutput("final_hist_plots", height = 650)),
+                         tabPanel("Sample vs. population",
+                                  plotOutput("samp_v_pop_plots", height = 650)),
                          tabPanel("Sites that accepted",
                                   DT::dataTableOutput('accepted_table'))
                          )
@@ -865,109 +883,7 @@ server <- function(input, output, session) {
         
       })})
     
-    
-    # text for Results page page
-    output$summary_text <- renderText({
-        
-      data <- final_results[final_results$accepted,]
-      
-      # calculate summary stats
-      n_sites <- nrow(data)
-      expected_cost <- sum(data$comfort * data$cost)
-      
-      # paste together the sentence
-      sentence <- paste0(
-          '<h2>Congrats! ', n_sites, ' sites accepted the invitation</h2>'
-        )
-      
-      return(sentence)
-    })
-    
-    
-    # accepted sites plots
-    output$final_plots <- renderPlot({
-        
-      # stack a dataframe with groups per each population (will contain duplicates)
-      population_sites <- final_results
-      sent_sites <- final_results[final_results$sent_invitation,]
-      accepted_sites <- final_results[final_results$accepted,]
-      
-      # add identifier for each population
-      population_sites$population <- "Population"
-      sent_sites$population <- "Sent_invitation"
-      accepted_sites$population <- "Accepted_invitation"
-      
-      # bind the three datasets together
-      data_for_plot <- rbind(population_sites, sent_sites, accepted_sites)
-      
-      data_for_plot %>% 
-        select(population, all_of(numeric_vars)) %>% 
-        pivot_longer(cols = -c("population")) %>% 
-        ggplot(aes(x = value, group = population, fill = population)) +
-        geom_density(alpha = 0.3) +
-        facet_wrap(~name, scales = 'free') +
-        labs(x = NULL,
-             y = NULL) +
-        theme(legend.title = element_blank(),
-              legend.position = c(0.82, 0.25))
-    })
-    
-    # actual vs final plots
-    output$actual_vs_expected_plots <- renderPlot({
-      
-      data <- final_results
-      sent_invitations_data <- data[data$sent_invitation,]
-      
-      # flip a coin with prob = comfort to see which sites accepted
-      list_of_accepted_dataframes <- list()
-      nsims <- 200
-      for (i in 1:nsims){
-        # sample the data and return T/F for indices that accepted
-        accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1  
-        
-        # subset the data based on the indices
-        accepted_data <- sent_invitations_data[accepted_boolean,]
-        
-        # add identifier for use in plotting
-        accepted_data$sim <- i
-        
-        # add dataframe to list of total dataframes
-        list_of_accepted_dataframes[[i]] <- accepted_data
-      }
-      
-      # convert sites_that_accepted to long format
-      sites_that_accepted <- sites_that_accepted %>% 
-        mutate(sim = "Actual") %>% 
-        select(sim, all_of(numeric_vars)) %>% 
-        pivot_longer(cols = -c("sim"))
-      
-      # combine and plot
-      bind_rows(list_of_accepted_dataframes) %>% 
-        select(sim, all_of(numeric_vars)) %>% 
-        pivot_longer(cols = -c("sim")) %>% 
-        ggplot(aes(x = value, group = sim)) +
-        geom_line(stat = "density", alpha = 0.025, color = 'black') +
-        geom_density(data = sites_that_accepted, color = "white", size = 1.1) +
-        geom_density(data = sites_that_accepted, color = "#302f42", size = 1.3, linetype = "dotted") +
-        facet_wrap(~name, scales = 'free') +
-        labs(x = NULL,
-             y = NULL)
-      
-    })
-    
-
-    # download button for data_to_download
-    output$downloadData <- downloadHandler(
-        filename <- "sites.csv",
-        content <- function(file) {
-            write.csv(final_results, file, row.names = FALSE)
-        }
-    )
-    
-    # restart the session based on button click
-    observeEvent(input$restart_button, {
-      session$reload()
-    } )
+  
     
     # site exploration
     output$advanced_ggplot <- renderPlot({
@@ -1208,19 +1124,9 @@ server <- function(input, output, session) {
       
     })
     
-    # table of sites that were excluded by selecting rows on the table
-    # output$x4 <- DT::renderDataTable(DT::datatable(
-    #   
-    #   tibble(`Excluded sites` = as.integer(dd$all_row_selections)),
-    #   rownames = FALSE, options = list(
-    #     pageLength = 10,
-    #     lengthChange = FALSE,
-    #     sDom  = '<"top">lrt<"bottom">ip')
-    # )
-    # )
     
-    #   tibble(`Excluded sites` = as.integer(dd$all_row_selections))
-    # })
+
+# Sampling page -----------------------------------------------------------
 
     # dynamic UI for strata probability inputs
     # FIX THIS HERE
@@ -1406,8 +1312,6 @@ server <- function(input, output, session) {
       current_sample$table <- random_sample()
     })
     
-
-
     # display the table in the sampling tab    
     output$random_sample_table <- DT::renderDataTable(
       custom_datatable(
@@ -1432,15 +1336,26 @@ server <- function(input, output, session) {
     # the plots for sampling page
     output$sampling_plots <- renderPlot({draw_histograms(current_sample$table)})
     
-    # table of sites that accepted for the Results table
-    output$accepted_table <- DT::renderDataTable(
+    
+
+# results page ------------------------------------------------------------
+
+    # text for Results page page
+    output$summary_text <- renderText({
       
-      custom_datatable(
-        sites_that_accepted,
-        selection = 'none'
-        ) %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0))
+      data <- final_results[final_results$accepted,]
+      
+      # calculate summary stats
+      n_sites <- nrow(data)
+      expected_cost <- sum(data$comfort * data$cost)
+      
+      # paste together the sentence
+      sentence <- paste0(
+        '<h2>Congrats! ', n_sites, ' sites accepted the invitation</h2>'
+      )
+      
+      return(sentence)
+    })
     
     # insert tab after running simulation
     observeEvent(input$run_simulation, {
@@ -1448,7 +1363,7 @@ server <- function(input, output, session) {
       # insert the tab
       appendTab(inputId = "results_tabs",
                 tabPanel("Actual vs. expected", 
-                         plotOutput("actual_vs_expected_plots", height = 400)),
+                         plotOutput("actual_vs_expected_plots", height = 650)),
                 select = TRUE
       )
       
@@ -1461,7 +1376,174 @@ server <- function(input, output, session) {
       removeUI(selector = "#run_simulation")
       
     })
+    
+    # the histograms
+    output$final_hist_plots <- renderPlot({draw_histograms(sites_that_accepted)})
+    
+    # sample vs population plots
+    output$samp_v_pop_plots <- renderPlot({
+      
+      # stack a dataframe with groups per each population (will contain duplicates)
+      population_sites <- final_results
+      sent_sites <- final_results[final_results$sent_invitation,]
+      accepted_sites <- final_results[final_results$accepted,]
+      
+      # add identifier for each population
+      population_sites$population <- "Population"
+      sent_sites$population <- "Sent_invitation"
+      accepted_sites$population <- "Accepted_invitation"
+      
+      # bind the three datasets together
+      data_for_plot <- rbind(population_sites, sent_sites, accepted_sites)
+      
+      # barplots
+      p1 <- data_for_plot %>% 
+        select(population, all_of(categorical_vars)) %>% 
+        mutate_all(as.character) %>% 
+        pivot_longer(cols = -c("population")) %>%
+        group_by(population, name, value) %>%
+        tally() %>%
+        group_by(population, name) %>% 
+        mutate(prop = n / sum(n)) %>%
+        mutate(name = factor(name, levels = categorical_vars)) %>% 
+        ggplot(aes(x = value, y = prop, group = population, fill = population)) +
+        geom_col(position = 'dodge', color = 'white', alpha = 0.6) +
+        scale_fill_viridis_d() +
+        facet_wrap(~name, scales = 'free_x') +
+        labs(x = NULL,
+             y = NULL) +
+        theme(legend.position = 'none',
+              axis.text.x = element_text(angle = 40, hjust = 1))
+      
+      # density plots
+      p2 <- data_for_plot %>% 
+        select(population, all_of(numeric_vars)) %>% 
+        pivot_longer(cols = -c("population")) %>% 
+        ggplot(aes(x = value, group = population, fill = population)) +
+        geom_density(alpha = 0.24) +
+        facet_wrap(~name, scales = 'free') +
+        scale_fill_viridis_d() +
+        labs(x = NULL,
+             y = NULL) +
+        theme(legend.title = element_blank(),
+              legend.position = c(0.82, 0.25))
+      
+      # render both plots vertically
+      grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+      
+    })
+    
+    # table of sites that accepted for the Results table
+    output$accepted_table <- DT::renderDataTable(
+      
+      custom_datatable(
+        sites_that_accepted,
+        selection = 'none'
+      ) %>%
+        formatRound(5:8, 2) %>%
+        formatRound(9, 0)
+      
+      )
+    
+    
+    # actual vs final plots
+    output$actual_vs_expected_plots <- renderPlot({
+      
+      data <- final_results
+      sent_invitations_data <- data[data$sent_invitation,]
+      
+      # flip a coin with prob = comfort to see which sites accepted
+      list_of_accepted_dataframes <- list()
+      nsims <- 200
+      for (i in 1:nsims){
+        # sample the data and return T/F for indices that accepted
+        accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1  
+        
+        # subset the data based on the indices
+        accepted_data <- sent_invitations_data[accepted_boolean,]
+        
+        # add identifier for use in plotting
+        accepted_data$sim <- i
+        
+        # add dataframe to list of total dataframes
+        list_of_accepted_dataframes[[i]] <- accepted_data
+      }
+      
+      # convert sites_that_accepted to long format - categoricals only
+      sites_that_accepted_categorical <- sites_that_accepted %>% 
+        mutate(sim = "Actual") %>% 
+        select(sim, all_of(categorical_vars)) %>% 
+        mutate_all(as.character) %>% 
+        pivot_longer(cols = -c("sim")) %>% 
+        group_by(sim, name, value) %>% 
+        tally() %>%
+        mutate(prop = n / sum(n),
+               x_pos = determine_x_pos(value),
+               name = factor(name, categorical_vars))
+      
+      # combine and plot - categoricals only
+      p1 <- bind_rows(list_of_accepted_dataframes) %>%
+        select(sim, all_of(categorical_vars)) %>%
+        mutate_all(as.character) %>%
+        pivot_longer(cols = -c("sim")) %>%
+        group_by(sim, name, value) %>%
+        tally() %>%
+        mutate(prop = n / sum(n),
+               x_pos = determine_x_pos(value),
+               name = factor(name, categorical_vars)) %>% 
+        ggplot(aes(x = value, y = prop, group = sim)) +
+        geom_jitter(alpha = 0) +
+        geom_segment(aes(x = x_pos - 0.25, xend = x_pos + 0.25,
+                         y = prop, yend = prop), alpha = 0.025) +
+        geom_segment(data = sites_that_accepted_categorical,
+                     aes(x = x_pos - 0.25, xend = x_pos + 0.25,
+                         y = prop, yend = prop),
+                     color = "white", size = 1.1) +
+        geom_segment(data = sites_that_accepted_categorical,
+                     aes(x = x_pos - 0.25, xend = x_pos + 0.25,
+                         y = prop, yend = prop), color = "#302f42",
+                     size = 1.2, linetype = "dotted") +
+        facet_wrap(~name, scales = 'free_x') +
+        labs(x = NULL,
+             y = NULL) +
+        theme(axis.text.x = element_text(angle = 40, hjust = 1))
+      
+      # convert sites_that_accepted to long format - numerics only
+      sites_that_accepted_numeric <- sites_that_accepted %>%
+        mutate(sim = "Actual") %>%
+        select(sim, all_of(numeric_vars)) %>%
+        pivot_longer(cols = -c("sim"))
 
+      # combine and plot - numerics only
+      p2 <- bind_rows(list_of_accepted_dataframes) %>%
+        select(sim, all_of(numeric_vars)) %>%
+        pivot_longer(cols = -c("sim")) %>%
+        ggplot(aes(x = value, group = sim)) +
+        geom_line(stat = "density", alpha = 0.025, color = 'black') +
+        geom_density(data = sites_that_accepted_numeric, color = "white", size = 1.1) +
+        geom_density(data = sites_that_accepted_numeric, color = "#302f42", size = 1.3, linetype = "dotted") +
+        facet_wrap(~name, scales = 'free') +
+        labs(x = NULL,
+             y = NULL)
+      
+      # render both plots vertically
+      grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+      
+    })
+    
+    # download button for data_to_download
+    output$downloadData <- downloadHandler(
+      filename <- "sites.csv",
+      content <- function(file) {
+        write.csv(final_results, file, row.names = FALSE)
+      }
+    )
+    
+    # restart the session based on button click
+    observeEvent(input$restart_button, {
+      session$reload()
+    } )
+    
 }
 
 # Run the application
