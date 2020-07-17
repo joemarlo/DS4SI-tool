@@ -105,6 +105,9 @@ a {
     padding: 10px;
 }
 
+#run_sampling {
+  width: 100%;
+}
 
 #send_invitations_button {
   width: 100%;

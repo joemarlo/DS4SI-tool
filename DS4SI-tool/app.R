@@ -519,7 +519,8 @@ ui <- fluidPage(
                               htmlOutput("n_strata"),
                               br(),
                               tableOutput("strata_table"),
-                            )
+                            ),
+                            actionButton(inputId = "run_sampling", label = "Update sample")
                             
                ),
                
@@ -1196,7 +1197,7 @@ server <- function(input, output, session) {
     
   
     # save row selections when button is clicked
-    dd = reactiveValues(select = NULL)
+    dd <- reactiveValues(select = NULL)
     observeEvent(input$save_row_selections, {
       
       # get current selected rows
@@ -1234,13 +1235,93 @@ server <- function(input, output, session) {
     # })
     
     # # update slider probability name based on user input
-    observeEvent(input$strata_variables, {
-      updateSliderInput(session, "strata_prob_1", label = paste0(input$strata_variables[1], " probability: "))
-      updateSliderInput(session, "strata_prob_2", label = paste0(input$strata_variables[2], " probability: "))
-    })
+    # observeEvent(input$strata_variables, {
+    #   updateSliderInput(session, "strata_prob_1", label = paste0(input$strata_variables[1], " probability: "))
+    #   updateSliderInput(session, "strata_prob_2", label = paste0(input$strata_variables[2], " probability: "))
+    # })
 
     # random sampling
-    random_sample <- reactive({
+    # random_sample <- reactive({
+    # 
+    #   # set which dataset to use
+    #   if (input$sample_dataset == "Sites to approach"){
+    #     sample_data <- filtered_table()
+    #   } else {
+    #     sample_data <- final_table
+    #   }
+    # 
+    #   # if simple
+    #   if (input$simple_or_stratified == "simple"){
+    #     # update sample_n slider max so it's not larger than the dataset
+    #     observeEvent(nrow(sample_data), {
+    #       updateSliderInput(session, "sample_n", max = nrow(sample_data))
+    #     })
+    # 
+    #     # sample the data
+    #     sampled_data <- sample_n(tbl = sample_data, size = input$sample_n, replace = FALSE)
+    # 
+    #   } else {
+    # 
+    #     # stratified sampling
+    #     # find unique combinations of variables
+    #     unique_groups <- distinct(select(sample_data, input$strata_variables))
+    # 
+    #     # calculate the sample size per each unique group
+    #     sample_size_per_group <- floor(input$sample_n / nrow(unique_groups))
+    # 
+    #     # split the data into the unique groups
+    #     split_groups <- split(x = sample_data,
+    #                           f = select(sample_data, input$strata_variables))
+    # 
+    #     # calculate the minimum strata size
+    #     min_group_size <- min(sapply(split_groups, nrow))
+    # 
+    #     # update sample_n slider max so it can't produce strata samples that are greater than
+    #     #   the minimum strata size
+    #     max_n <- floor(min_group_size * nrow(unique_groups))
+    #     observeEvent(max_n, {
+    #       updateSliderInput(session, "sample_n", max = max_n)
+    #     })
+    # 
+    #     # make sure the sample size is not greater than any of the unique groups
+    #     validate(
+    #       need(min_group_size >= sample_size_per_group,
+    #             "Please decrease sample size or remove a strata variable. At least one strata is smaller than sample size per strata."
+    #       )
+    #     )
+    # 
+    #     # sample n rows per group
+    #     sampled_row_indices <- tapply(X = 1:nrow(sample_data),
+    #                                   INDEX = select(sample_data, input$strata_variables),
+    #                                   FUN = function(group){
+    #       sample(x = group, size = sample_size_per_group, replace = FALSE)
+    #     })
+    #     sampled_row_indices <- as.vector(unlist(sampled_row_indices))
+    # 
+    #     # final sampled data
+    #     sampled_data <- sample_data[sampled_row_indices,]
+    # 
+    #     # # show text below sample size slider indicating n per strata
+    #     output$n_strata <- renderText({paste0("The minimum strata size is ", min_group_size,
+    #                                           " and the sample size per strata is ", sample_size_per_group,
+    #                                           ". The resulting sample size is ", nrow(sampled_data), ".")})
+    # 
+    #     # table of strata combinations with count of site per strata
+    #     output$strata_table <- renderTable(
+    #       sampled_data %>%
+    #         group_by_at(vars(input$strata_variables)) %>%
+    #         tally() %>%
+    #         rename(sample_n = n)
+    #       )
+    # 
+    #   }
+    # 
+    #   return(sampled_data)
+    # })
+    # 
+    
+    # random sampling
+    random_sample <- function(){
       
       # set which dataset to use
       if (input$sample_dataset == "Sites to approach"){
@@ -1256,8 +1337,8 @@ server <- function(input, output, session) {
           updateSliderInput(session, "sample_n", max = nrow(sample_data))
         })
         
-        # sample the data  
-        sampled_data <- sample_n(tbl = sample_data, size = input$sample_n, replace = FALSE) 
+        # sample the data
+        sampled_data <- sample_n(tbl = sample_data, size = input$sample_n, replace = FALSE)
         
       } else {
         
@@ -1267,11 +1348,11 @@ server <- function(input, output, session) {
         
         # calculate the sample size per each unique group
         sample_size_per_group <- floor(input$sample_n / nrow(unique_groups))
-
+        
         # split the data into the unique groups
         split_groups <- split(x = sample_data,
                               f = select(sample_data, input$strata_variables))
-
+        
         # calculate the minimum strata size
         min_group_size <- min(sapply(split_groups, nrow))
         
@@ -1285,7 +1366,7 @@ server <- function(input, output, session) {
         # make sure the sample size is not greater than any of the unique groups
         validate(
           need(min_group_size >= sample_size_per_group,
-                "Please decrease sample size or remove a strata variable. At least one strata is smaller than sample size per strata."
+               "Please decrease sample size or remove a strata variable. At least one strata is smaller than sample size per strata."
           )
         )
         
@@ -1293,10 +1374,10 @@ server <- function(input, output, session) {
         sampled_row_indices <- tapply(X = 1:nrow(sample_data),
                                       INDEX = select(sample_data, input$strata_variables),
                                       FUN = function(group){
-          sample(x = group, size = sample_size_per_group, replace = FALSE)
-        })
+                                        sample(x = group, size = sample_size_per_group, replace = FALSE)
+                                      })
         sampled_row_indices <- as.vector(unlist(sampled_row_indices))
-
+        
         # final sampled data
         sampled_data <- sample_data[sampled_row_indices,]
         
@@ -1307,22 +1388,30 @@ server <- function(input, output, session) {
         
         # table of strata combinations with count of site per strata
         output$strata_table <- renderTable(
-          sampled_data %>% 
-            group_by_at(vars(input$strata_variables)) %>% 
-            tally() %>% 
+          sampled_data %>%
+            group_by_at(vars(input$strata_variables)) %>%
+            tally() %>%
             rename(sample_n = n)
-          )
-
+        )
+        
       }
       
       return(sampled_data)
+    }
+
+    # update current random sample on click    
+    current_sample <- reactiveValues(select = NULL)
+    current_sample$table <- final_table
+    observeEvent(input$run_sampling, {
+      current_sample$table <- random_sample()
     })
     
+
 
     # display the table in the sampling tab    
     output$random_sample_table <- DT::renderDataTable(
       custom_datatable(
-        random_sample(),
+        current_sample$table,
         selection = 'none'
         ) %>%
       formatRound(5:8, 2) %>%
@@ -1333,12 +1422,15 @@ server <- function(input, output, session) {
     output$random_sample_excluded_table <- DT::renderDataTable(
       
       custom_datatable(
-        anti_join(final_table, random_sample()),
+        anti_join(final_table, current_sample$table),
         selection = 'none'
       ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0)
     )
+    
+    # the plots for sampling page
+    output$sampling_plots <- renderPlot({draw_histograms(current_sample$table)})
     
     # table of sites that accepted for the Results table
     output$accepted_table <- DT::renderDataTable(
@@ -1349,40 +1441,6 @@ server <- function(input, output, session) {
         ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
-    
-    # the plots for sampling page
-    output$sampling_plots <- renderPlot({
-      
-      # bar plot of categorical variables
-      p1 <- random_sample() %>%
-        select(region, urban, other_prog) %>%
-        mutate(urban = as.character(urban),
-               other_prog = as.character(other_prog)) %>%
-        pivot_longer(cols = everything()) %>%
-        mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
-        ggplot(aes(x = value)) +
-        geom_bar(fill = violet_col, alpha = 0.9) +
-        facet_wrap(~name, scales = 'free_x', ncol = 3) +
-        labs(x = NULL,
-             y = NULL) +
-        theme(axis.text.x = element_text(angle = 40, hjust = 1))
-      
-      # histograms plot of numeric variables
-      p2 <- random_sample() %>%
-        select(unemp, pct_hs, income, comfort, cost) %>%
-        pivot_longer(cols = everything()) %>%
-        mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
-        ggplot(aes(x = value)) +
-        geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
-        facet_wrap(~name, scales = 'free_x', ncol = 3) +
-        labs(x = NULL,
-             y = NULL)
-      
-      # render both plots vertically
-      grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
-      
-    })
-    
     
     # insert tab after running simulation
     observeEvent(input$run_simulation, {
