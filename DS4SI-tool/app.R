@@ -522,9 +522,6 @@ ui <- fluidPage(
                                              selected = categorical_vars[1]),
                               HTML("<strong>Sample size per strata:</strong>"),
                               uiOutput("sampling_strata_sliders"),
-                              # tags$div(id = "inline",
-                              #          uiOutput("sampling_strata_sliders")
-                              # ),
                               br()
                             ),
                             
@@ -532,7 +529,9 @@ ui <- fluidPage(
                               condition = "input.simple_or_stratified == 'stratified'",
                               htmlOutput("n_strata"),
                               br(),
-                              tableOutput("strata_table"),
+                              actionButton(inputId = "sample_reset_sliders", label = "Reset sliders"),
+                              br(),
+                              br()
                             ),
                             conditionalPanel(
                               condition = "input.simple_or_stratified == 'simple'",
@@ -1130,217 +1129,108 @@ server <- function(input, output, session) {
 
 # Sampling page -----------------------------------------------------------
 
-    # dynamic UI for strata probability inputs
-    # FIX THIS HERE
-    # sliderInput("strata_prob_1", label = "Probability: ", min = 0, max = 1, value = 0.5, step = 0.1),
-    # output$strata_probs_UI_1 <- renderUI({
-    #   strata_1_vars <- unique(final_table[, input$strata_variables[[1]]])
-    #   lapply(strata_1_vars, function(var){
-    #     sliderInput(inputId = paste0(var, "id"), label = paste0(var, "label"),
-    #                 min = 0, max = 1, value = 0.5, step = 0.1)
-    #     })
-    #   # checkboxGroupInput("cities", "Choose Cities", cities)
-    # })
+    # dataset for random sampling
+    sample_selected_data <- reactive({
+      
+      switch(input$sample_dataset,
+             "All sites" = final_table,
+             "Sites to approach" = filtered_table()
+             # "Sites that accepted" = sites_that_accepted
+      )
+      
+    })
     
-    # # update slider probability name based on user input
-    # observeEvent(input$strata_variables, {
-    #   updateSliderInput(session, "strata_prob_1", label = paste0(input$strata_variables[1], " probability: "))
-    #   updateSliderInput(session, "strata_prob_2", label = paste0(input$strata_variables[2], " probability: "))
-    # })
+    # update sample_n slider max so it's not larger than the dataset
+    observeEvent(nrow(sample_selected_data()), {
+      updateSliderInput(session, "sample_n", max = nrow(sample_selected_data()))
+    })
+    
+    # table of strata combinations that exist for the selected dataset
+    strata_combos <- reactive({
+      sample_selected_data() %>%
+        group_by_at(vars(input$strata_variables)) %>%
+        tally() %>%
+        unite("strata_combos", input$strata_variables, sep = "_")
+    })
+    
+    # generate sliders for each strata combinations
+    output$sampling_strata_sliders <- renderUI({
+      tagList(
+        map2(.x = strata_combos()$strata_combos,
+             .y = strata_combos()$n,
+             .f = function(combo, max_n) {
+               sliderInput(
+                 inputId = combo, 
+                 label = str_replace(combo, "_", ":"), 
+                 value = min(strata_combos()$n), 
+                 min = 0, max = max_n, step = 1) 
+             })
+      )
+    })
+    
+    # on button click, reset the sliders to the starting position
+    observeEvent(input$sample_reset_sliders, {
+      
+      # get current list of sliders
+      slider_ids <- strata_combos()$strata_combos
+      
+      # 
+      lapply(slider_ids, function(slider){
+        updateSliderInput(session = session, inputId = slider, value = min(strata_combos()$n))
+      })
 
+    })
+    
     # random sampling
-    random_sample <- reactive({
-
-      # set which dataset to use
-      if (input$sample_dataset == "Sites to approach"){
-        sample_data <- filtered_table()
-      } else {
-        sample_data <- final_table
-      }
-
-      # if simple
+    current_sample <- eventReactive(input$run_sampling, {
+      
+      sample_data <- sample_selected_data()
+      
+      # if simple sampling
       if (input$simple_or_stratified == "simple"){
-        # update sample_n slider max so it's not larger than the dataset
-        observeEvent(nrow(sample_data), {
-          updateSliderInput(session, "sample_n", max = nrow(sample_data))
-        })
 
         # sample the data
-        sampled_data <- sample_n(tbl = sample_data, size = input$sample_n, replace = FALSE)
-
+        sampled_data <- slice_sample(sample_data, n = input$sample_n, replace = FALSE)
+        
+        return(sampled_data)
+        
       } else {
-
         # stratified sampling
-        # find unique combinations of variables
-        unique_groups <- distinct(select(sample_data, input$strata_variables))
-
-        # calculate the sample size per each unique group
-        sample_size_per_group <- floor(input$sample_n / nrow(unique_groups))
-
+        
         # split the data into the unique groups
         split_groups <- split(x = sample_data,
                               f = select(sample_data, input$strata_variables))
-
-        # calculate the minimum strata size
-        min_group_size <- min(sapply(split_groups, nrow))
-
-        # update sample_n slider max so it can't produce strata samples that are greater than
-        #   the minimum strata size
-        max_n <- floor(min_group_size * nrow(unique_groups))
-        observeEvent(max_n, {
-          updateSliderInput(session, "sample_n", max = max_n)
-        })
-
-        # make sure the sample size is not greater than any of the unique groups
-        validate(
-          need(min_group_size >= sample_size_per_group,
-                "Please decrease sample size or remove a strata variable. At least one strata is smaller than sample size per strata."
-          )
-        )
-
-        # sample n rows per group
-        sampled_row_indices <- tapply(X = 1:nrow(sample_data),
-                                      INDEX = select(sample_data, input$strata_variables),
-                                      FUN = function(group){
-          sample(x = group, size = sample_size_per_group, replace = FALSE)
-        })
-        sampled_row_indices <- as.vector(unlist(sampled_row_indices))
-
-        # final sampled data
-        sampled_data <- sample_data[sampled_row_indices,]
-
-        # # show text below sample size slider indicating n per strata
-        output$n_strata <- renderText({paste0("The minimum strata size is ", min_group_size,
-                                              " and the sample size per strata is ", sample_size_per_group,
-                                              ". The resulting sample size is ", nrow(sampled_data), ".")})
-
-        # table of strata combinations with count of site per strata
-        output$strata_table <- renderTable(
-          sampled_data %>%
-            group_by_at(vars(input$strata_variables)) %>%
-            tally() %>%
-            rename(sample_n = n)
-          )
         
-        # table of variable combinations that exist
-        strata_combos <- sample_data %>% 
-          group_by_at(vars(input$strata_variables)) %>%
-          tally() %>% 
-          unite("strata_combos", input$strata_variables, sep = "_")
+        # list of current slider inputs
+        sample_size_per_group <- reactiveValuesToList(input)[strata_combos()$strata_combos]
         
-        # generate sliders for each strata combinations
-        output$sampling_strata_sliders <- renderUI({
-          tagList(
-            map2(.x = strata_combos$strata_combos,
-                 .y = strata_combos$n,
-                 .f = function(combo, max_n) {
-              sliderInput(
-                inputId = paste0(combo, "_ID"), 
-                label = str_replace(combo, "_", ":"), 
-                value = min(strata_combos$n), 
-                min = 0, max = max_n, step = 1) 
-            })
-          )
-        })
-
+        # sample n rows per strata
+        sampled_data <- map2_dfr(.x = split_groups,
+                                 .y = sample_size_per_group,
+                                 .f = function(strata, strata_size){
+                                   
+                                   slice_sample(strata, n = strata_size, replace = FALSE)
+                                   
+                                 })
+        
+        return(sampled_data)
+        
       }
-
-      return(sampled_data)
     })
 
-    
-    # # random sampling
-    # random_sample <- function(){
-    #   
-    #   # set which dataset to use
-    #   if (input$sample_dataset == "Sites to approach"){
-    #     sample_data <- filtered_table()
-    #   } else {
-    #     sample_data <- final_table
-    #   }
-    #   
-    #   # if simple
-    #   if (input$simple_or_stratified == "simple"){
-    #     # update sample_n slider max so it's not larger than the dataset
-    #     observeEvent(nrow(sample_data), {
-    #       updateSliderInput(session, "sample_n", max = nrow(sample_data))
-    #     })
-    #     
-    #     # sample the data
-    #     sampled_data <- sample_n(tbl = sample_data, size = input$sample_n, replace = FALSE)
-    #     
-    #   } else {
-    #     
-    #     # stratified sampling
-    #     # find unique combinations of variables
-    #     unique_groups <- distinct(select(sample_data, input$strata_variables))
-    #     
-    #     # calculate the sample size per each unique group
-    #     sample_size_per_group <- floor(input$sample_n / nrow(unique_groups))
-    #     
-    #     # split the data into the unique groups
-    #     split_groups <- split(x = sample_data,
-    #                           f = select(sample_data, input$strata_variables))
-    #     
-    #     # calculate the minimum strata size
-    #     min_group_size <- min(sapply(split_groups, nrow))
-    #     
-    #     # update sample_n slider max so it can't produce strata samples that are greater than
-    #     #   the minimum strata size
-    #     max_n <- floor(min_group_size * nrow(unique_groups))
-    #     observeEvent(max_n, {
-    #       updateSliderInput(session, "sample_n", max = max_n)
-    #     })
-    #     
-    #     # make sure the sample size is not greater than any of the unique groups
-    #     validate(
-    #       need(min_group_size >= sample_size_per_group,
-    #            "Please decrease sample size or remove a strata variable. At least one strata is smaller than sample size per strata."
-    #       )
-    #     )
-    #     
-    #     # sample n rows per group
-    #     sampled_row_indices <- tapply(X = 1:nrow(sample_data),
-    #                                   INDEX = select(sample_data, input$strata_variables),
-    #                                   FUN = function(group){
-    #                                     sample(x = group, size = sample_size_per_group, replace = FALSE)
-    #                                   })
-    #     sampled_row_indices <- as.vector(unlist(sampled_row_indices))
-    #     
-    #     # final sampled data
-    #     sampled_data <- sample_data[sampled_row_indices,]
-    #     
-    #     # # show text below sample size slider indicating n per strata
-    #     output$n_strata <- renderText({paste0("The minimum strata size is ", min_group_size,
-    #                                           " and the sample size per strata is ", sample_size_per_group,
-    #                                           ". The resulting sample size is ", nrow(sampled_data), ".")})
-    #     
-    #     # table of strata combinations with count of site per strata
-    #     output$strata_table <- renderTable(
-    #       sampled_data %>%
-    #         group_by_at(vars(input$strata_variables)) %>%
-    #         tally() %>%
-    #         rename(sample_n = n)
-    #     )
-    #     
-    #   }
-    #   
-    #   return(sampled_data)
-    # }
+    # show text below sample size slider indicating total sample size
+    output$n_strata <- renderText({
+      slider_sum <- sum(unlist(reactiveValuesToList(input)[strata_combos()$strata_combos]))
+      paste0("The total selected sample size is ", slider_sum)
+    })    
 
-    # update current random sample on click    
-    # current_sample <- reactiveValues(select = NULL)
-    # current_sample$table <- final_table
-    # observeEvent(input$run_sampling, {
-    #   current_sample$table <- random_sample()
-    # })
+    # the plots for sampling page
+    output$sampling_plots <- renderPlot({draw_histograms(current_sample())})
     
-
     # display the table in the sampling tab    
     output$random_sample_table <- DT::renderDataTable(
       custom_datatable(
-        # current_sample$table,
-        random_sample(),
+        current_sample(),
         selection = 'none'
         ) %>%
       formatRound(5:8, 2) %>%
@@ -1349,19 +1239,15 @@ server <- function(input, output, session) {
     
     # display excluded table in the sampling tab
     output$random_sample_excluded_table <- DT::renderDataTable(
-      
       custom_datatable(
-        anti_join(final_table, random_sample()), #current_sample$table),
+        anti_join(final_table, 
+                  current_sample()),
         selection = 'none'
       ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0)
     )
-    
-    # the plots for sampling page
-    output$sampling_plots <- renderPlot({draw_histograms(random_sample())}) #current_sample$table)})
-    
-    
+
 
 # results page ------------------------------------------------------------
 
