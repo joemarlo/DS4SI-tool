@@ -1,7 +1,7 @@
 # library(pdist)
 library(pracma)
 
-final_table <- read_csv("DS4SI-tool/jpta_cleaned.csv")
+final_table <- read_csv("jpta_cleaned.csv")
 
 
 sample_table <- sample_n(final_table, size = 100, replace = FALSE)

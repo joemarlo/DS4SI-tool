@@ -3,90 +3,20 @@ library(shiny)
 library(shinyWidgets)
 library(DT)
 library(gridExtra)
-library(rlang)
+# library(rlang)
 library(shinyjs)
 library(quantreg) # for weighted box plot
 library(viridis) # for better colors for color blind people
 # options(scipen = 999999)
 set.seed(44)
 
-# ggplot settings ---------------------------------------------------------
 
-# build custom theme
-theme_custom <- function()
-  theme_minimal() +
-  theme(
-    strip.background = element_rect(
-      fill = "gray95",
-      color = 'white'),
-    strip.text = element_text(
-      color = "gray30",
-      size = 11,
-      face = "bold"
-    )
-  )
+# load other files --------------------------------------------------------
 
-# set custom theme
-theme_set(theme_custom())
-
-# set default continuous colors
-options(
-    ggplot2.continuous.colour = "viridis",
-    ggplot2.continuous.fill = "viridis"
-)
-
-# set default discrete colors
-scale_colour_discrete <- function(...) {
-  scale_color_viridis(..., discrete = TRUE)
-}
-
-
-# todo --------------------------------------------------------------------
-
-# DONE filtering outliers (maybe by selecting points on plot?) 
-    # https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html
-    # https://shiny.rstudio.com/gallery/plot-interaction-basic.html
-# DONE how to download data and plots when finished? 
-    # https://shiny.rstudio.com/gallery/generating-reports.html
-    # https://yihui.shinyapps.io/DT-info/
-# DONE filter data table 
-    # https://shiny.rstudio.com/gallery/basic-datatable.html
-# DONE getting sliders to sum to 100
-    # https://stackoverflow.com/questions/38372906/constrain-two-sliderinput-in-shiny-to-sum-to-100
-    # although should just have weights
-# REMOVE this dashboard could be useful
-    # https://rstudio.github.io/shinydashboard/
-# DONE table should only be filtered once and then used for everything else
-# DONE should there be an advanced plotting tab? 
-# DONE fix slider finicky behavior
-    # probably should round all values in the data cleaning process
-# REMOEV plotly + shiny
-    # https://plotly-r.com/linking-views-with-shiny.html
-# DONE implement plot brushing
-    # https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html
-# should implement weights by allowing user to select # top sites and those sites are
-    # ranked by the weighted score
-# need to implement table on final page
-# need reset button on filters and weights
-# REMOVE add checkmark box for inlcuding only filtered sites in site exploration tab
-# DONE need to maintain an "excluded list" of sites that can be manually added to by
-    # various different UI elements
-# DONE how to push user to another tab
-    # https://shiny.rstudio.com/reference/shiny/1.1.0/updateTabsetPanel.html
-    # https://shiny.rstudio.com/reference/shiny/1.1.0/showTab.html
-# DONE removing tabs
-    # https://shiny.rstudio.com/reference/shiny/1.1.0/insertTab.html
-# fix data table overflow
-# DONE data table editing
-  # https://rstudio.github.io/DT/shiny.html
-# REMOVE need to "include" button for excluded sites on Final Selection page
-# should probably split this into seperate client and server files
-# add button to refresh sample
-# stratify sampling isn't yet working; need to implement dyanmic UI first
-  # https://www.r-bloggers.com/dynamic-ui-elements-in-shiny/
-# allow for user to save datasets so they can move them to each panel as they wish
-# rename last selection tab as "manual adjustments" and create new tab with
-  # send invitations button
+load("R/score_generalizability.RData")
+source("R/variables.R")
+source("R/ggplot_settings.R")
+source("R/functions.R")
 
 
 # notes -------------------------------------------------------------------
@@ -103,186 +33,6 @@ scale_colour_discrete <- function(...) {
 # x4 <- get_value(final_table$pct_hs, x3)
 # x5 <- get_quantile(final_table$pct_hs, x4)
 # x6 <- get_value(final_table$pct_hs, x5)
-
-# load data ---------------------------------------------------------------
-
-final_table <- read_csv("jpta_cleaned.csv")
-
-
-# custom functions --------------------------------------------------------
-
-scale_01 <- function(x) {
- # function scales the vector between 0 and 1
-  (x - min(x)) / (max(x) - min(x))
-}
-
-get_quantile = function(distribution, value){
-    # function to return the quantile amount
-    
-    # find the value in distribution that is closest to value
-    closest_value_in_distribution <- distribution[which.min(abs(distribution - value))]
-
-    # find the quantile of this closest value
-    closest_quantile <- ecdf(distribution)(closest_value_in_distribution)
-    return(closest_quantile)
-} 
-
-get_value <- function(distribution, probs){
-    # function to get the quantile, but make sure it matches an actual value in the distribution
-    # similar to stats::quantile() but returns the quantile to the closest value in the distribution
-    
-    # get the actual quantile
-    actual_quantile <- as.numeric(quantile(distribution, probs = probs))
-    
-    # find the value in distribution that is closest to value
-    closest_prob_in_distribution <- distribution[which.min(abs(distribution - actual_quantile))]
-    
-    # closest_value <- distribution[all_quantiles  == closest_quantile_in_distribution]
-    
-    return(closest_prob_in_distribution)
-}
-
-custom_datatable <- function(...){
-  # wrapper around DT::datatable so commonly used arguments
-  # can be set as global defaults
-  
-  DT::datatable(rownames = FALSE, 
-                options = list(
-                  # sets n observations shown
-                  pageLength = 20,
-                  # removes option to change n observations shown
-                  lengthChange = FALSE,
-                  # removes the search bar
-                  sDom  = '<"top">lrt<"bottom">ip',
-                  # enable side scroll so table doesn't overflow
-                  scrollX = TRUE
-                ),
-                ...
-  )
-}
-
-draw_histograms <- function(data){
-  
-  # function takes in a dataset and then draws histograms for continuous
-    # variables and barplots for categoricals. Returns a single grid.arrange
-    # object to pass to renderPlot({})
-  
-  # bar plot of categorical variables
-  p1 <- data %>%
-    select(region, urban, other_prog) %>%
-    mutate(urban = as.character(urban),
-           other_prog = as.character(other_prog)) %>%
-    pivot_longer(cols = everything()) %>%
-    mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
-    ggplot(aes(x = value)) +
-    geom_bar(fill = violet_col, alpha = 0.9) +
-    facet_wrap(~name, scales = 'free_x', ncol = 3) +
-    labs(x = NULL,
-         y = NULL) +
-    theme(axis.text.x = element_text(angle = 40, hjust = 1))
-  
-  # histograms plot of numeric variables
-  p2 <- data %>%
-    select(unemp, pct_hs, income, comfort, cost) %>%
-    pivot_longer(cols = everything()) %>%
-    mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
-    ggplot(aes(x = value)) +
-    geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
-    facet_wrap(~name, scales = 'free_x', ncol = 3) +
-    labs(x = NULL,
-         y = NULL)
-  
-  # render both plots vertically
-  grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
-  
-}
-
-
-score_attributes <- function(data){
-  
-  # function returns a table of the score attributes
-  # total cost, generalizability, causality, sample size
-  
-  # total cost
-  total_cost <- sum(data$cost)
-  total_cost <- scales::dollar(total_cost)
-  
-  # generalizability TBD
-  general_score <- as.character("NA")
-  
-  # causality
-  causality_score <- as.character("NA")
-  
-  # sample size
-  n_sites <- nrow(data)
-  n_sites <- scales::comma(n_sites)
-  
-  # build the final table
-  metrics_table <- data.frame(Metric = c(total_cost, general_score, causality_score, n_sites))
-  rownames(metrics_table) <- c("Total cost", "Generalizability score", "Causality score", "Sample size")
-  
-  # return the table
-  return(metrics_table)
-  
-}
-
-n_sites_text <- function(data){
-  # function to output HTML text indicating
-    # how many rows are a dataframe
-  
-  paste0('<h4>',
-         nrow(data),' 
-        sites are currently selected to be approached</h4>'
-  )
-}
-
-
-determine_x_pos <- function(value){
-  # for ggplot
-  # determines x position for segments
-  # when grouping
-  
-  case_when(
-    value == FALSE ~ 1,
-    value == TRUE ~ 2,
-    value == "Northcentral" ~ 1,
-    value == "Northeast" ~ 2,
-    value == "South" ~ 3,
-    value == "West" ~ 4
-  )
-}
-
-
-# custom variables --------------------------------------------------------
-
-# custom HTML code for collapsiible
-#  see http://jsfiddle.net/thurstanh/emtAm/2/
-HTML_for_collapsible_1 <- '<details><summary>View quantile</summary>'
-HTML_for_collapsible_2 <- '</details><br>'
-
-HTML_for_collapsible_Weighting_1 <- '<details><summary>View details</summary>'
-HTML_for_collapsible_Weighting_2 <- '</details><br>'
-
-# violet color
-violet_col <- "#5c5980"
-
-# set list of variables for plotting options
-numeric_vars <- c("unemp", "pct_hs", "income", "comfort", "cost")
-categorical_vars <- c('region', 'urban', 'other_prog')
-
-# create df of min and maxes to use in slider calculations
-# convert this to base R
-min_max_df <- final_table %>% 
-    select(unemp, pct_hs, income, comfort, cost) %>% 
-    pivot_longer(cols = everything()) %>% 
-    group_by(name) %>% 
-    summarize(min = floor(min(value) * 0.999 * 100) / 100,
-              max = ceiling(max(value) * 1.001 * 100) / 100,
-              .groups = "drop") %>%
-    as.data.frame() %>% 
-    `rownames<-`(.[,'name']) %>% 
-    select(-name)
-min_max_df['cost',] <- round(min_max_df['cost',], 0)
 
     
 # app ----------------------------------------------------------------------
@@ -813,7 +563,7 @@ server <- function(input, output, session) {
     
     # display the table in the 'table of selected sites' tab within the weighting page
     output$table_2 <- DT::renderDataTable(
-      custom_datatable({
+      DT::datatable({
         
         data <- weight_data()
         
@@ -835,7 +585,20 @@ server <- function(input, output, session) {
         data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
         
         data
-    }, selection = 'none' ) %>%
+    }, selection = 'none', rownames = FALSE, 
+    options = list(
+      # sets n observations shown
+      pageLength = 20,
+      # removes option to change n observations shown
+      lengthChange = FALSE,
+      # removes the search bar
+      sDom  = '<"top">lrt<"bottom">ip',
+      # default sort by site score
+      order = list(0, 'desc'),
+      # enable side scroll so table doesn't overflow
+      scrollX = TRUE
+    )
+    ) %>%
         formatRound(6:9, 2) %>%
         formatRound(10, 0) %>% 
         formatRound(1, 1)
