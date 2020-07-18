@@ -288,3 +288,101 @@ calc_dist_2(low_unemp_high_hs[ c(numeric_vars, 'index')],  pca = pca)
 calc_dist_2(mid_unemp_mid_hs[ c(numeric_vars, 'index')],  pca = pca)
 
 
+
+# 2020 07 18 method -------------------------------------------------------
+
+library(tidyverse)
+library(caret)
+library(parallel)
+options(mc.cores = detectCores())
+
+final_table <- read_csv("DS4SI-tool/jpta_cleaned.csv")
+numeric_vars <- c("unemp", "pct_hs", "income", "comfort", "cost")
+categorical_vars <- c('region', 'urban', 'other_prog')
+
+dummies <- dummyVars(~ urban + other_prog + region, final_table) %>% predict(., final_table)
+dummied_data <- cbind(dummies, final_table[, numeric_vars])
+
+population_pca <- princomp(scale(dummied_data))
+
+calc_generalizability <- function(sample_data, pca = population_pca, population = final_table){
+  
+  # get row indices
+  indices <- suppressMessages(
+    population %>% 
+      mutate(index = row_number()) %>% 
+      semi_join(sample_data) %>% 
+      pull(index)
+  )
+  
+  # for the sample_data, calculate euclidean distance of each row
+  # from the center of (which = 0)
+  # site_euclidean_distance <- apply(pca$scores[indices,], 1, function(row){
+  #   sqrt(sum(row^2))
+  # })
+  
+  # take the overall mean of the distances for that sample
+  # generalizability_score <- mean(site_euclidean_distance)
+  
+  # calculate mean of the absolute value of the scores for the sample
+  generalizability_score <- abs(mean(pca$scores[indices,]))
+  
+  return(generalizability_score)
+}
+
+
+# testing
+
+nsims <- 100000
+ns <- sample(2:400, size = nsims, replace = TRUE)
+raw_scores <- mclapply(1:nsims, function(i){
+  my_sample <- slice_sample(final_table, n = ns[i], replace = FALSE)
+  calc_generalizability(my_sample)
+} ) %>% unlist()
+
+1 - ecdf(raw_scores)(calc_generalizability(final_table))
+
+ecdf_scores <- ecdf(raw_scores)
+
+score_generalizability <- function(...){
+  # function is a wrapper around calc_generalizability
+  # takes the output and compares it to a pre-calculated
+  # distribution of raw scores
+  
+  raw_score <- calc_generalizability(...)
+  score <- 1 - ecdf_scores(raw_score)
+  return(score)
+}
+
+score_generalizability(final_table)
+
+save(calc_generalizability, score_generalizability, ecdf_scores, population_pca,
+     file = 'R/score_generalizability.RData')
+
+
+
+plot(density(scores))
+plot(scores, ns)
+
+high_unemp_low_hs <- final_table %>% 
+  # mutate(index = row_number()) %>% 
+  filter(unemp > 0.1,
+         pct_hs < 0.65)
+low_unemp_high_hs <- final_table %>% 
+  # mutate(index = row_number()) %>% 
+  filter(unemp < 0.1,
+         pct_hs > 0.75)
+mid_unemp_mid_hs <- final_table %>% 
+  # mutate(index = row_number()) %>% 
+  filter(unemp > 0.07,
+         unemp < 0.13,
+         pct_hs < 0.75,
+         pct_hs > 0.65)
+
+calc_generalizability(high_unemp_low_hs)
+calc_generalizability(low_unemp_high_hs)
+calc_generalizability(mid_unemp_mid_hs)
+
+
+
+

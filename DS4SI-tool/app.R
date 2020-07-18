@@ -13,7 +13,6 @@ set.seed(44)
 
 # load other files --------------------------------------------------------
 
-load("R/score_generalizability.RData")
 source("R/variables.R")
 source("R/ggplot_settings.R")
 source("R/functions.R")
@@ -42,7 +41,6 @@ source("R/functions.R")
 ui <- fluidPage(
 
     # initialize shinyjs
-    # can this be removed?
     useShinyjs(),
     
     # download roboto and inconsolata font
@@ -59,7 +57,6 @@ ui <- fluidPage(
     # top left title
     titlePanel("DS4SI Site Selection"),
     
-    # <br> for spacing
     br(),
     
     navlistPanel(id = "nav", widths = c(2, 10),
@@ -165,6 +162,9 @@ ui <- fluidPage(
             htmlOutput("n_sites_selected"),
             
             br(),
+            
+            selectInput(inputId = "filter_dataset", label = "Dataset to filter from: ", multiple = FALSE,
+                        choices = NULL),
 
                     # these should be reactive -> move to server side?
                     selectInput("region_slider", "Region:", multiple = TRUE,
@@ -232,7 +232,12 @@ ui <- fluidPage(
                     sliderInput(inputId = "cost_quantile", label = NULL, min = 0, max = 1,
                                 value = c(get_quantile(final_table$cost, min_max_df['cost', 'min']),
                                           get_quantile(final_table$cost, min_max_df['cost', 'max']))),
-                    HTML(HTML_for_collapsible_2)
+                    HTML(HTML_for_collapsible_2),
+            
+                    # save dataset
+                    br(),
+                    textInput("filtering_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
+                    actionButton("filtering_data_save_button", label = "Save my_dataset")
             ),
 
         mainPanel(width = 6,
@@ -260,7 +265,7 @@ ui <- fluidPage(
                             br(),
                             
                             selectInput(inputId = "sample_dataset", label = "Dataset to sample from: ", multiple = FALSE,
-                                        choices = c("All sites", "Sites to approach")),
+                                        choices = NULL),
                             selectInput(inputId = "simple_or_stratified", label = "Simple or stratified sample: ", multiple = FALSE,
                                         choices = c("simple", "stratified")),
                             conditionalPanel(
@@ -373,7 +378,7 @@ ui <- fluidPage(
                sidebarPanel(width = 4,
                             br(),
                             selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
-                                        choices = c("All sites", "Sites to approach")),
+                                        choices = NULL), #c("All sites", "Sites to approach")),
                             htmlOutput("summary_final_selection"),
                             br(),
                             tableOutput("send_scores_table"),
@@ -439,6 +444,10 @@ server <- function(input, output, session) {
 
     # hide tab on start
     hideTab(inputId = "nav", target = "4. Results", session = session)
+
+    # load Rdata
+    load("R/score_generalizability.RData", envir = .GlobalEnv)
+    
     
     # code for sliders to react to it's respective quantile slider ------------
     
@@ -492,7 +501,7 @@ server <- function(input, output, session) {
     filtered_table <- reactive({
         
         # filter dataframe
-        data <- final_table
+        data <- filter_selected_data() #final_table
         data <- data[data$region %in% input$region_slider,]
         data <- data[data$urban %in% input$urban_slider,]
         data <- data[data$other_prog %in% input$other_program_slider,]
@@ -544,7 +553,69 @@ server <- function(input, output, session) {
         ) %>%
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
+
+
+# filtering page ----------------------------------------------------------
+
+    # update list of dataframes to filter from
+    observeEvent(datasets_available$data, {
+      updateSelectInput(session, "filter_dataset",
+                        choices = datasets_available$data_names)
+    }
+    )   
     
+    # select which dataset to use on filtering tab
+    filter_selected_data <- reactive({
+      datasets_available$data[[which(datasets_available$data_names == input$filter_dataset)]]
+    })
+    
+
+# working section of managing user defined lists of dataframes ------------
+
+    # make save button label equal to the input'ed dataset name 
+    observeEvent(length(input$filtering_data_save_name > 0),{
+      
+      updateActionButton(session = session, 
+                         inputId = "filtering_data_save_button",
+                         label = paste0("Save ", input$filtering_data_save_name)
+      )
+    })
+    
+    # initialize list of saved datasets
+    datasets_available <- reactiveValues(data = NULL, data_names = NULL)
+    datasets_available$data <- list(final_table)
+    datasets_available$data_names <- "Population"
+
+    # save dataset on filtering page
+    observeEvent(input$filtering_data_save_button, {
+
+      # make sure input'ed dataset name is not already used
+      validate(
+        need(!(input$filtering_data_save_name %in% datasets_available$data_names),
+             "Dataset name already used")
+      )
+      
+      # TODO: implement message so user knows the dataset wasn't saved
+      
+      # add input data to list of of dataframes 
+      datasets_available$data <- c(datasets_available$data, list(filtered_table()))
+      
+      # add input string to list of dataset names
+      datasets_available$data_names <- c(datasets_available$data_names,
+                                         input$filtering_data_save_name)
+      
+      # destroy the user entered text
+      updateTextInput(session = session,
+                      inputId = "filtering_data_save_name",
+                      value = NA)
+
+    })
+    
+    
+
+
+# weighting page ----------------------------------------------------------
+
     # select which dataset to use on weighting tab
     weight_data <- reactive({
       
@@ -636,19 +707,7 @@ server <- function(input, output, session) {
     # plots on filtering page
     output$filtered_plots <- renderPlot({draw_histograms(filtered_table())})
     
-    # plots on send invitations page
-    output$send_plots <- renderPlot({
-      draw_histograms({
-        
-        switch(input$invitations_data,
-               "All sites" = final_table,
-               "Sites to approach" = filtered_table()
-        )
-        
-      })})
-    
-  
-    
+
     # site exploration
     output$advanced_ggplot <- renderPlot({
         
@@ -768,6 +827,30 @@ server <- function(input, output, session) {
                 formatRound(9, 0)
         })
 
+    
+
+# send invitations page ---------------------------------------------------
+
+    # update list of dataframes to select from
+    observeEvent(datasets_available$data, {
+      updateSelectInput(session, "invitations_data",
+                        choices = datasets_available$data_names)
+    }
+    )
+
+    # select which dataset to use on send invitations tab
+    sent_invitations_data <- reactive({
+      datasets_available$data[[which(datasets_available$data_names == input$invitations_data)]]
+    })
+    
+    # table of key metrics for the send invitations page
+    output$send_scores_table <- renderTable(
+      score_attributes({
+        sent_invitations_data()
+      }), 
+      rownames = TRUE, align = 'r'
+    )
+
     # take action when the submit invitations button is clicked
     observeEvent(input$send_invitations_button, {
       
@@ -784,10 +867,12 @@ server <- function(input, output, session) {
       showTab(inputId = "nav", target = "4. Results", session = session)
       
       # update Results tab
-      sent_invitations_data <- switch(input$invitations_data,
-                     "All sites" = final_table,
-                     "Sites to approach" = filtered_table()
-      )
+      # sent_invitations_data <- switch(input$invitations_data,
+      #                "All sites" = final_table,
+      #                "Sites to approach" = filtered_table()
+      # )
+      
+      sent_invitations_data <- sent_invitations_data()
       
       # flip a coin with prob = comfort to see which sites accepted
       accepted_boolean <- rbinom(n = nrow(sent_invitations_data), size = 1, prob = sent_invitations_data$comfort) == 1
@@ -802,80 +887,13 @@ server <- function(input, output, session) {
       
     })
     
-    # table of key metrics for the send invitations page
-    output$send_scores_table <- renderTable(
-      score_attributes({
-        
-        switch(input$invitations_data,
-               "All sites" = final_table,
-               "Sites to approach" = filtered_table()
-        )
-        
-      }), 
-      rownames = TRUE, align = 'r'
-    )
+    # plots on send invitations page
+    output$send_plots <- renderPlot({draw_histograms({sent_invitations_data()})})
     
     
-    # table of key metrics for the Results page
-    output$key_metrics_table <- renderTable(
-      score_attributes(sites_that_accepted), 
-      rownames = TRUE, align = 'r'
-    )
-    
-    # summary table for the Results page
-    output$summary_table <- renderTable({
-      
-      data <- final_results
-      
-      # build dataframe with identifer for the group it comes from
-        # df should nrow should be n(population) + n(sites sent invitation) + n(sites accepted)
-      data$group <- 'Population'
-      data <- data %>% select(-c('sent_invitation', 'accepted'))
-      sites_that_accepted$group <- 'Accepted'
-      sent_invitations_data$group <- 'Sent invitation'
-      data <- rbind(data, sites_that_accepted, sent_invitations_data)
-      
-      # calculate mean numeric stats per group
-      mean_unemp <- aggregate(x = data$unemp, by = list(data$group), FUN = 'mean')$x
-      mean_hs <- aggregate(x = data$pct_hs, by = list(data$group), FUN = 'mean')$x
-      mean_income <- aggregate(x = data$income, by = list(data$group), FUN = 'mean')$x
-      mean_cost <- aggregate(x = data$cost, by = list(data$group), FUN = 'mean')$x
-      mean_comfort <- aggregate(x = data$comfort, by = list(data$group), FUN = 'mean')$x
-      mean_urban <- aggregate(x = data$urban, by = list(data$group), FUN = 'mean')$x
-      mean_other_program <- aggregate(x = data$other_prog, by = list(data$group), FUN = 'mean')$x
-    
-      # calculate % of sites per region per group
-      n_sites <- tapply(data$region, list(data$region, data$group), function(tbl) length(tbl))
-      mean_sites <- apply(n_sites, 1, function(row) row / table(data$group))
-      
-      # bind the stats into one table
-      summary_table <- t(cbind(mean_unemp, mean_hs, mean_income, mean_cost, mean_comfort, mean_urban, mean_other_program, mean_sites))
-      
-      # set row names
-      rownames(summary_table) <- c(
-                "Mean unemployment",
-                "Mean HS rate",
-                "Mean income",
-                "Mean cost",
-                "Mean comfort",
-                "% urbanicity",
-                "% with other program",
-                "% Northcentral",
-                "% Northeast",
-                "% South",
-                "% West"
-      )
-      
-      # rearrange columns
-      summary_table <- summary_table[, c('Accepted', 'Sent invitation', 'Population')]
-      
-      # return the table
-      summary_table
-      
-    }, rownames = TRUE
-    )
-    
-  
+
+# Manual exclusions page --------------------------------------------------
+
     # save row selections when button is clicked
     dd <- reactiveValues(select = NULL)
     observeEvent(input$save_row_selections, {
@@ -892,21 +910,23 @@ server <- function(input, output, session) {
 
 # Sampling page -----------------------------------------------------------
 
-    # dataset for random sampling
-    sample_selected_data <- reactive({
-      
-      switch(input$sample_dataset,
-             "All sites" = final_table,
-             "Sites to approach" = filtered_table()
-             # "Sites that accepted" = sites_that_accepted
-      )
-      
-    })
+    # update list of dataframes to sample from
+    observeEvent(datasets_available$data, {
+      updateSelectInput(session, "sample_dataset",
+                        choices = datasets_available$data_names)
+    }
+    )   
     
-    # update sample_n slider max so it's not larger than the dataset
-    observeEvent(nrow(sample_selected_data()), {
-      updateSliderInput(session, "sample_n", max = nrow(sample_selected_data()))
+    # select which dataset to use on sampling tab
+    sample_selected_data <- reactive({
+      datasets_available$data[[which(datasets_available$data_names == input$sample_dataset)]]
     })
+
+    # TODO unsure why this isn't working after implemented dataset save mechanism
+    # update sample_n slider max so it's not larger than the dataset
+    # observeEvent(nrow(sample_selected_data()), {
+    #   updateSliderInput(session, inputId = "sample_n", max = nrow(sample_selected_data()))
+    # })
     
     # table of strata combinations that exist for the selected dataset
     strata_combos <- reactive({
@@ -1031,6 +1051,12 @@ server <- function(input, output, session) {
       return(sentence)
     })
     
+    # table of key metrics for the Results page
+    output$key_metrics_table <- renderTable(
+      score_attributes(sites_that_accepted), 
+      rownames = TRUE, align = 'r'
+    )
+    
     # insert tab after running simulation
     observeEvent(input$run_simulation, {
       
@@ -1050,6 +1076,59 @@ server <- function(input, output, session) {
       removeUI(selector = "#run_simulation")
       
     })
+    
+    # summary table for the Results page
+    output$summary_table <- renderTable({
+      
+      data <- final_results
+      
+      # build dataframe with identifer for the group it comes from
+      # df should nrow should be n(population) + n(sites sent invitation) + n(sites accepted)
+      data$group <- 'Population'
+      data <- data %>% select(-c('sent_invitation', 'accepted'))
+      sites_that_accepted$group <- 'Accepted'
+      sent_invitations_data$group <- 'Sent invitation'
+      data <- rbind(data, sites_that_accepted, sent_invitations_data)
+      
+      # calculate mean numeric stats per group
+      mean_unemp <- aggregate(x = data$unemp, by = list(data$group), FUN = 'mean')$x
+      mean_hs <- aggregate(x = data$pct_hs, by = list(data$group), FUN = 'mean')$x
+      mean_income <- aggregate(x = data$income, by = list(data$group), FUN = 'mean')$x
+      mean_cost <- aggregate(x = data$cost, by = list(data$group), FUN = 'mean')$x
+      mean_comfort <- aggregate(x = data$comfort, by = list(data$group), FUN = 'mean')$x
+      mean_urban <- aggregate(x = data$urban, by = list(data$group), FUN = 'mean')$x
+      mean_other_program <- aggregate(x = data$other_prog, by = list(data$group), FUN = 'mean')$x
+      
+      # calculate % of sites per region per group
+      n_sites <- tapply(data$region, list(data$region, data$group), function(tbl) length(tbl))
+      mean_sites <- apply(n_sites, 1, function(row) row / table(data$group))
+      
+      # bind the stats into one table
+      summary_table <- t(cbind(mean_unemp, mean_hs, mean_income, mean_cost, mean_comfort, mean_urban, mean_other_program, mean_sites))
+      
+      # set row names
+      rownames(summary_table) <- c(
+        "Mean unemployment",
+        "Mean HS rate",
+        "Mean income",
+        "Mean cost",
+        "Mean comfort",
+        "% urbanicity",
+        "% with other program",
+        "% Northcentral",
+        "% Northeast",
+        "% South",
+        "% West"
+      )
+      
+      # rearrange columns
+      summary_table <- summary_table[, c('Accepted', 'Sent invitation', 'Population')]
+      
+      # return the table
+      summary_table
+      
+    }, rownames = TRUE
+    )
     
     # the histograms
     output$final_hist_plots <- renderPlot({draw_histograms(sites_that_accepted)})
