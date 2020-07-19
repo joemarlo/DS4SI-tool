@@ -36,7 +36,6 @@ source("R/functions.R")
     
 # app ----------------------------------------------------------------------
 
-
 # Define UI for application
 ui <- fluidPage(
 
@@ -63,7 +62,6 @@ ui <- fluidPage(
         tabPanel("Welcome",
                  mainPanel(width = 10,
                            
-                           # Output: Tabset w/ plot, summary, and table ----
                            tabsetPanel(
                                type = "tabs",
                                tabPanel("Welcome",
@@ -215,7 +213,7 @@ ui <- fluidPage(
                                              multiple = TRUE,
                                              options = list(maxItems = 2),
                                              choices = categorical_vars,
-                                             selected = categorical_vars[1]),
+                                             selected = categorical_vars[2]),
                               HTML("<strong>Sample size per strata:</strong>"),
                               uiOutput("sampling_strata_sliders"),
                               br()
@@ -240,7 +238,6 @@ ui <- fluidPage(
                
                mainPanel(width = 6,
                          
-                         # Output: Tabset w/ plot, summary, and table ----
                          tabsetPanel(
                            type = "tabs",
                            tabPanel("Plots",
@@ -380,6 +377,8 @@ ui <- fluidPage(
 
 
 
+# server ------------------------------------------------------------------
+
 # Define server logic
 server <- function(input, output, session) {
 
@@ -404,7 +403,7 @@ server <- function(input, output, session) {
     
     # select which dataset to use on filtering tab
     filter_selected_data <- reactive({
-      datasets_available$data[[which(datasets_available$data_names == input$filter_dataset)]]
+      datasets_available$data[[match(input$filter_dataset, datasets_available$data_names)]]
     })
 
     # generate sliders for each categorical variable
@@ -497,7 +496,7 @@ server <- function(input, output, session) {
     # initialize list of saved datasets
     datasets_available <- reactiveValues(data = NULL, data_names = NULL)
     datasets_available$data <- list(final_table)
-    datasets_available$data_names <- "Population"
+    datasets_available$data_names <- c("Population")
 
     # save dataset on filtering page
     observeEvent(input$filtering_data_save_button, {
@@ -540,7 +539,7 @@ server <- function(input, output, session) {
       
     })
     
-    # update sample_n slider max so it's not larger than the dataset
+    # update weight_n slider max so it's not larger than the dataset
     observeEvent(nrow(weight_data()), {
       updateSliderInput(session, "weight_n", max = nrow(weight_data()))
     })
@@ -744,7 +743,8 @@ server <- function(input, output, session) {
 
     # select which dataset to use on send invitations tab
     sent_invitations_data <- reactive({
-      datasets_available$data[[which(datasets_available$data_names == input$invitations_data)]]
+      # datasets_available$data[[which(datasets_available$data_names == input$invitations_data)]]
+      datasets_available$data[[match(input$invitations_data, datasets_available$data_names)]]
     })
     
     # text for final selection page
@@ -815,7 +815,7 @@ server <- function(input, output, session) {
     
     
 
-# Manual exclusions page --------------------------------------------------
+# manual exclusions page --------------------------------------------------
 
     # save row selections when button is clicked
     dd <- reactiveValues(select = NULL)
@@ -829,9 +829,8 @@ server <- function(input, output, session) {
       
     })
     
-    
 
-# Sampling page -----------------------------------------------------------
+# sampling page -----------------------------------------------------------
 
     # update list of dataframes to sample from
     observeEvent(datasets_available$data, {
@@ -842,14 +841,13 @@ server <- function(input, output, session) {
     
     # select which dataset to use on sampling tab
     sample_selected_data <- reactive({
-      datasets_available$data[[which(datasets_available$data_names == input$sample_dataset)]]
+      datasets_available$data[[match(input$sample_dataset, datasets_available$data_names)]]
     })
 
-    # TODO unsure why this isn't working after implemented dataset save mechanism
     # update sample_n slider max so it's not larger than the dataset
-    # observeEvent(nrow(sample_selected_data()), {
-    #   updateSliderInput(session, inputId = "sample_n", max = nrow(sample_selected_data()))
-    # })
+    observeEvent(nrow(sample_selected_data()), {
+      updateSliderInput(session = session, inputId = 'sample_n', max = nrow(sample_selected_data()))
+    })
     
     # table of strata combinations that exist for the selected dataset
     strata_combos <- reactive({
@@ -880,7 +878,8 @@ server <- function(input, output, session) {
       # get current list of sliders
       slider_ids <- strata_combos()$strata_combos
       
-      # 
+      # update the position of the sliders to the maximum amount that allows
+        # equality across the sliders
       lapply(slider_ids, function(slider){
         updateSliderInput(session = session, inputId = slider, value = min(strata_combos()$n))
       })
