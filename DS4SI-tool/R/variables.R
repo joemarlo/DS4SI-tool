@@ -19,8 +19,16 @@ HTML_for_collapsible_Weighting_2 <- '</details><br>'
 violet_col <- "#5c5980"
 
 # set list of variables for plotting options
-numeric_vars <- c("unemp", "pct_hs", "income", "comfort", "cost")
-categorical_vars <- c('region', 'urban', 'other_prog')
+categorical_vars <- sort(c('region', 'urban', 'other_prog'))
+numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
+
+# choices for categorical selectInput
+# order must match order of categorical_vars
+categorical_choices <- list(
+  rev(unique(as.character(final_table$other_prog))),
+  unique(as.character(final_table$region)),
+  rev(unique(as.character(final_table$urban)))
+)
 
 # create df of min and maxes to use in slider calculations
 # convert this to base R
@@ -35,3 +43,7 @@ min_max_df <- final_table %>%
   `rownames<-`(.[,'name']) %>% 
   select(-name)
 min_max_df['cost',] <- round(min_max_df['cost',], 0)
+
+# sort the rows so its the same order as the numeric_vars
+  # this is important because some of the renderUI elements are order-dependent
+min_max_df <- min_max_df[numeric_vars,]

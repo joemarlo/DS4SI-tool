@@ -153,107 +153,48 @@ ui <- fluidPage(
 
         HTML("<div><h5>2. Site selection</h5></div>"),
         
-            tabPanel(title = HTML("&nbsp &nbsp Filtering"),
+        
 
-    sidebarLayout(
-        sidebarPanel(width = 4,
+    tabPanel(title = HTML("&nbsp &nbsp Filtering"),
 
-            # text output of title with number of sites selected
-            htmlOutput("n_sites_selected"),
-            
-            br(),
-            
-            selectInput(inputId = "filter_dataset", label = "Dataset to filter from: ", multiple = FALSE,
-                        choices = NULL),
-
-                    # these should be reactive -> move to server side?
-                    selectInput("region_slider", "Region:", multiple = TRUE,
-                                choices = unique(as.character(final_table$region)),
-                                selected = unique(as.character(final_table$region))),
-                    selectInput("urban_slider", "Urban:", multiple = TRUE,
-                                choices = rev(unique(as.character(final_table$urban))),
-                                selected = rev(unique(as.character(final_table$urban)))),
-                    selectInput("other_program_slider", "Other program available:", multiple = TRUE,
-                                choices = rev(unique(as.character(final_table$other_prog))),
-                                selected = rev(unique(as.character(final_table$other_prog)))),
+      sidebarLayout(
+          sidebarPanel(width = 4,
+  
+              # text output of title with number of sites selected
+              htmlOutput("filtering_html_n_sites_selected"),
+              
+              br(),
+              
+              selectInput(inputId = "filter_dataset", label = "Dataset to filter: ", multiple = FALSE,
+                          choices = NULL),
+  
+              br(),
+              
+              # numeric sliders generated on the server side
+              uiOutput("filtering_select_categorical"),
+              
+              # numeric sliders generated on the server side
+              uiOutput("filtering_sliders_numeric"),
+              
+              # save dataset
+              br(),
+              textInput("filtering_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
+              actionButton("filtering_data_save_button", label = "Save my_dataset")
+              ),
+  
+          mainPanel(width = 6,
                     
-                    br(),
-                    
-                    # unemployment rate sliders
-                    sliderInput("unemp_slider", "Unemployment: ",
-                                min = min_max_df['unemp', 'min'],
-                                max = min_max_df['unemp', 'max'],
-                                value = c(min_max_df['unemp', 'min'], 
-                                          min_max_df['unemp', 'max'])),
-                    HTML(HTML_for_collapsible_1),
-                    sliderInput(inputId = "unemp_quantile", label = NULL, min = 0, max = 1,
-                                value = c(0, 1)),
-                    HTML(HTML_for_collapsible_2),
-                    
-                    # high school graduation rate sliders
-                    sliderInput("hs_slider", "High school graduation rate: ",
-                                min = min_max_df['pct_hs', 'min'],
-                                max = min_max_df['pct_hs', 'max'],
-                                value = c(min_max_df['pct_hs', 'min'], min_max_df['pct_hs', 'max'])),
-                    HTML(HTML_for_collapsible_1),
-                    sliderInput(inputId = "hs_quantile", label = NULL, min = 0, max = 1,
-                                value = c(get_quantile(final_table$pct_hs, min_max_df['pct_hs', 'min']),
-                                          get_quantile(final_table$pct_hs, min_max_df['pct_hs', 'max']))),
-                    HTML(HTML_for_collapsible_2),
-
-                    # income sliders
-                    sliderInput("income_slider", "Income: ", #round = -0.2,
-                                min = min_max_df['income', 'min'],
-                                max = min_max_df['income', 'max'],
-                                value = c(min_max_df['income', 'min'], min_max_df['income', 'max'])),
-                    HTML(HTML_for_collapsible_1),
-                    sliderInput(inputId = "income_quantile", label = NULL, min = 0, max = 1,
-                                value = c(get_quantile(final_table$income, min_max_df['income', 'min']),
-                                          get_quantile(final_table$income, min_max_df['income', 'max']))),
-                    HTML(HTML_for_collapsible_2),
-
-                    # comfort sliders
-                    sliderInput("comfort_slider", "Comfort: ", #round = -0.2,
-                                min = min_max_df['comfort', 'min'],
-                                max = min_max_df['comfort', 'max'],
-                                value = c(min_max_df['comfort', 'min'], min_max_df['comfort', 'max'])),
-                    HTML(HTML_for_collapsible_1),
-                    sliderInput(inputId = "comfort_quantile", label = NULL, min = 0, max = 1,
-                                value = c(get_quantile(final_table$comfort, min_max_df['comfort', 'min']),
-                                          get_quantile(final_table$comfort, min_max_df['comfort', 'max']))),
-                    HTML(HTML_for_collapsible_2),
-
-                    # cost sliders
-                    sliderInput("cost_slider", "Cost: ", #round = -0.2,
-                                min = min_max_df['cost', 'min'],
-                                max = min_max_df['cost', 'max'],
-                                value = c(min_max_df['cost', 'min'], min_max_df['cost', 'max'])),
-                    HTML(HTML_for_collapsible_1),
-                    sliderInput(inputId = "cost_quantile", label = NULL, min = 0, max = 1,
-                                value = c(get_quantile(final_table$cost, min_max_df['cost', 'min']),
-                                          get_quantile(final_table$cost, min_max_df['cost', 'max']))),
-                    HTML(HTML_for_collapsible_2),
-            
-                    # save dataset
-                    br(),
-                    textInput("filtering_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
-                    actionButton("filtering_data_save_button", label = "Save my_dataset")
-            ),
-
-        mainPanel(width = 6,
-                  
-                  # Output: Tabset w/ plot, summary, and table ----
-                  tabsetPanel(
-                      type = "tabs",
-                      tabPanel("Plots",
-                               plotOutput("filtered_plots", height = 650)),
-                      tabPanel("Table of selected sites", DT::dataTableOutput('table')),
-                      tabPanel("Table of excluded sites", DT::dataTableOutput('excluded_table'))
-                      )
-                  )
-    )
-    ),
-    
+                    tabsetPanel(
+                        type = "tabs",
+                        tabPanel("Plots",
+                                 plotOutput("filtered_plots", height = 650)),
+                        tabPanel("Table of selected sites", DT::dataTableOutput('filtering_selected_table')),
+                        tabPanel("Table of excluded sites", DT::dataTableOutput('filtering_excluded_table'))
+                        )
+                    )
+      )
+      ),
+      
     tabPanel(title = HTML("&nbsp &nbsp Sampling"),
              sidebarLayout(
                sidebarPanel(width = 4,
@@ -264,7 +205,7 @@ ui <- fluidPage(
                             
                             br(),
                             
-                            selectInput(inputId = "sample_dataset", label = "Dataset to sample from: ", multiple = FALSE,
+                            selectInput(inputId = "sample_dataset", label = "Dataset to sample: ", multiple = FALSE,
                                         choices = NULL),
                             selectInput(inputId = "simple_or_stratified", label = "Simple or stratified sample: ", multiple = FALSE,
                                         choices = c("simple", "stratified")),
@@ -321,7 +262,7 @@ ui <- fluidPage(
                               
                               br(),
                               
-                              selectInput(inputId = "weight_dataset", label = "Dataset: ", multiple = FALSE,
+                              selectInput(inputId = "weight_dataset", label = "Dataset to apply weights to: ", multiple = FALSE,
                                           choices = c("All sites", "Sites to approach")),
   
                               sliderInput("weight_unemp", "Unemployment: ", min = 1, max = 100, value = 50, step = 1),
@@ -445,131 +386,103 @@ server <- function(input, output, session) {
     # hide tab on start
     hideTab(inputId = "nav", target = "4. Results", session = session)
 
-    # load Rdata
+    # load Rdata that contains score_generalizability() function
     load("R/score_generalizability.RData", envir = .GlobalEnv)
     
-    
-    # code for sliders to react to it's respective quantile slider ------------
-    
-    # closure to define server side absolute <-> quantile slider behavior
-    absolute_quantile_observeEvent <- function(slider_name, quantile_name, variable_name) {
-        
-        # when quantile slider changes, update the original slider
-        # observeEvent(input[[quantile_name]], {
-        #     updateSliderInput(session = session, inputId = slider_name,
-        #                       value = c(get_value(distribution = final_table[[variable_name]],
-        #                                           probs = input[[quantile_name]][1]),
-        #                                 get_value(distribution = final_table[[variable_name]],
-        #                                           probs = input[[quantile_name]][2]))
-        #     )
-        # })
-        
-        # when original slider changes, update the quantile slider
-        observeEvent(input[[slider_name]],  {
-            updateSliderInput(session = session, inputId = quantile_name,
-                              value = c(get_quantile(value = input[[slider_name]][1], 
-                                                     distribution = final_table[[variable_name]]),
-                                        get_quantile(value = input[[slider_name]][2], 
-                                                     distribution = final_table[[variable_name]])))
-        })
-    }
-    
-    # the non-closure version of this code is:
-        # #unemployment
-        # observeEvent(input$unemp_quantile,  {
-        #     updateSliderInput(session = session, inputId = "unemp_slider",
-        #                       value = c(as.numeric(quantile(final_table$unemp, probs = input$unemp_quantile[1])),
-        #                                 as.numeric(quantile(final_table$unemp, probs = input$unemp_quantile[2])))
-        #     )
-        # })
-        
-        # observeEvent(input$unemp_slider,  {
-        #     updateSliderInput(session = session, inputId = "unemp_quantile",
-        #                       value = c(get_quantile(input$unemp_slider[1], final_table$unemp),
-        #                                 get_quantile(input$unemp_slider[2], final_table$unemp)))
-        # })
-    
-    # make the quantile slider dependent on the input slider
-    absolute_quantile_observeEvent("unemp_slider", "unemp_quantile", "unemp")
-    absolute_quantile_observeEvent("hs_slider", "hs_quantile", "pct_hs")
-    absolute_quantile_observeEvent("income_slider", "income_quantile", "income")
-    absolute_quantile_observeEvent("comfort_slider", "comfort_quantile", "comfort")
-    absolute_quantile_observeEvent("cost_slider", "cost_quantile", "cost")
-    
-
-    # reactive function to return the current table filtered based on user inputs
-    filtered_table <- reactive({
-        
-        # filter dataframe
-        data <- filter_selected_data() #final_table
-        data <- data[data$region %in% input$region_slider,]
-        data <- data[data$urban %in% input$urban_slider,]
-        data <- data[data$other_prog %in% input$other_program_slider,]
-        data <- data[data$unemp >= input$unemp_slider[1] & data$unemp <= input$unemp_slider[2],]
-        data <- data[data$pct_hs >= input$hs_slider[1] & data$pct_hs <= input$hs_slider[2],]
-        data <- data[data$income >= input$income_slider[1] & data$income <= input$income_slider[2],]
-        data <- data[data$comfort >= input$comfort_slider[1] & data$comfort <= input$comfort_slider[2],]
-        data <- data[data$cost >= input$cost_slider[1] & data$cost <= input$cost_slider[2],]
-        
-        # exclude rows from manual input
-        data <- data[!data$site_id %in% input$sites_excl,]
-        
-        # exclude rows from row selection
-        data <- data[!data$site_id %in% dd$all_row_selections,]
-        
-        return(data)
-    })
-    
-    # must duplicate for each call b/c Shiny can't handle two of the same thing
-    output$n_sites_selected <- renderText(n_sites_text(filtered_table()))
-    
   
-    # text for final selection page
-    output$summary_final_selection <- renderText({
-      
-      data <- switch(input$invitations_data,
-                     "All sites" = final_table,
-                     "Sites to approach" = filtered_table()
-      )
-      
-      n_sites <- nrow(data)
-      mean_acceptance <- mean(data$comfort)
-      expected_cost <- sum(data$comfort * data$cost)
-      
-      paste0(
-        '<h4>',
-        n_sites,
-        ' sites are currently selected to be approached. Of these, ',
-        floor(n_sites * mean_acceptance), ' sites are expected to accept the invitation, and have a total expected cost of ',
-        scales::label_dollar(accuracy = 1)(expected_cost), '.</h4>'
-      )
-      })
-
-    # display the table in the 'table of selected sites' tab
-    output$table <- DT::renderDataTable(
-      custom_datatable(
-          filtered_table(),
-          selection = 'none'
-        ) %>%
-        formatRound(5:8, 2) %>%
-        formatRound(9, 0))
-
 
 # filtering page ----------------------------------------------------------
 
+    # text at top of page
+    output$filtering_html_n_sites_selected <- renderText(n_sites_text(filtered_table()))
+    
     # update list of dataframes to filter from
     observeEvent(datasets_available$data, {
       updateSelectInput(session, "filter_dataset",
                         choices = datasets_available$data_names)
-    }
-    )   
+    })   
     
     # select which dataset to use on filtering tab
     filter_selected_data <- reactive({
       datasets_available$data[[which(datasets_available$data_names == input$filter_dataset)]]
     })
-    
 
+    # generate sliders for each categorical variable
+    output$filtering_select_categorical <- renderUI({
+      tagList(
+        pmap(
+          .l = list(categorical_vars, categorical_choices),
+          .f = function(variable, var_choices) {
+            selectInput(
+              inputId = paste0("filtering_select_", variable),
+              label = paste0(variable, ": "),
+              multiple = TRUE,
+              choices = var_choices,
+              selected = var_choices
+            )
+          }
+        ))
+    })    
+    
+    # generate sliders for each numeric variable
+    output$filtering_sliders_numeric <- renderUI({
+      tagList(
+        pmap(
+        .l = list(numeric_vars, min_max_df$min, min_max_df$max),
+        .f = function(variable, var_min, var_max) {
+          sliderInput(
+            inputId = paste0("filtering_slider_", variable),
+            label = paste0(variable, ": "),
+            min = var_min,
+            max = var_max,
+            value = c(var_min, var_max)
+          )
+        }
+      ))
+    })
+
+    # reactive function to return the current table filtered based on user inputs
+    filtered_table <- reactive({
+      
+      # filter dataframe
+      data <- filter_selected_data() #final_table
+      data <- data[data$region %in% input$filtering_select_region,]
+      data <- data[data$urban %in% input$filtering_select_urban,]
+      data <- data[data$other_prog %in% input$filtering_select_other_prog,]
+      data <- data[data$unemp >= input$filtering_slider_unemp[1] & data$unemp <= input$filtering_slider_unemp[2],]
+      data <- data[data$pct_hs >= input$filtering_slider_pct_hs[1] & data$pct_hs <= input$filtering_slider_pct_hs[2],]
+      data <- data[data$income >= input$filtering_slider_income[1] & data$income <= input$filtering_slider_income[2],]
+      data <- data[data$comfort >= input$filtering_slider_comfort[1] & data$comfort <= input$filtering_slider_comfort[2],]
+      data <- data[data$cost >= input$filtering_slider_cost[1] & data$cost <= input$filtering_slider_cost[2],]
+      
+      # exclude rows from manual input
+      data <- data[!data$site_id %in% input$sites_excl,]
+      
+      # exclude rows from row selection
+      data <- data[!data$site_id %in% dd$all_row_selections,]
+      
+      return(data)
+    })
+    
+    # display the table in the 'table of selected sites' tab
+    output$filtering_selected_table <- DT::renderDataTable(
+      custom_datatable(
+        filtered_table(),
+        selection = 'none'
+      ) %>%
+        formatRound(5:8, 2) %>%
+        formatRound(9, 0))
+    
+    # display the table in the 'table of excluded sites' tab
+    output$filtering_excluded_table <- DT::renderDataTable(
+      custom_datatable(
+        anti_join(final_table, filtered_table()),
+        selection = 'none'
+      ) %>%
+        formatRound(5:8, 2) %>%
+        formatRound(9, 0))
+    
+    
 # working section of managing user defined lists of dataframes ------------
 
     # make save button label equal to the input'ed dataset name 
@@ -683,15 +596,6 @@ server <- function(input, output, session) {
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
     
-    # display the table in the 'table of excluded sites' tab
-    output$excluded_table <- DT::renderDataTable(
-      custom_datatable(
-        anti_join(final_table, filtered_table()),
-        selection = 'none'
-        ) %>%
-        formatRound(5:8, 2) %>%
-        formatRound(9, 0))
-
     # display the table in the 'table of excluded sites' tab: Final selection tab
     output$excluded_table_2 <- DT::renderDataTable(
       custom_datatable(
@@ -842,6 +746,25 @@ server <- function(input, output, session) {
     sent_invitations_data <- reactive({
       datasets_available$data[[which(datasets_available$data_names == input$invitations_data)]]
     })
+    
+    # text for final selection page
+    output$summary_final_selection <- renderText({
+      
+      data <- sent_invitations_data()
+      
+      n_sites <- nrow(data)
+      mean_acceptance <- mean(data$comfort)
+      expected_cost <- sum(data$comfort * data$cost)
+      
+      paste0(
+        '<h4>',
+        n_sites,
+        ' sites are currently selected to be approached. Of these, ',
+        floor(n_sites * mean_acceptance), ' sites are expected to accept the invitation, and have a total expected cost of ',
+        scales::label_dollar(accuracy = 1)(expected_cost), '.</h4>'
+      )
+    })
+    
     
     # table of key metrics for the send invitations page
     output$send_scores_table <- renderTable(
