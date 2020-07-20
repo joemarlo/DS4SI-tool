@@ -756,8 +756,8 @@ server <- function(input, output, session) {
       # get current list of sliders
       slider_ids <- strata_combos()$strata_combos
       
-      # update the position of the sliders to the maximum amount that allows
-      # equality across the sliders
+      # update the position of the sliders to the maximum amount that still
+        # allows equality across the sliders
       lapply(slider_ids, function(slider){
         updateSliderInput(session = session, inputId = slider, value = min(strata_combos()$n))
       })
@@ -767,13 +767,13 @@ server <- function(input, output, session) {
     # random sampling
     current_sample <- eventReactive(input$run_sampling, {
       
-      sample_data <- sample_selected_data()
+      data <- sample_selected_data()
       
       # if simple sampling
       if (input$simple_or_stratified == "simple"){
         
         # sample the data
-        sampled_data <- slice_sample(sample_data, n = input$sample_n, replace = FALSE)
+        sampled_data <- slice_sample(data, n = input$sample_n, replace = FALSE)
         
         return(sampled_data)
         
@@ -781,10 +781,14 @@ server <- function(input, output, session) {
         # stratified sampling
         
         # split the data into the unique groups
-        split_groups <- split(x = sample_data,
-                              f = select(sample_data, input$strata_variables))
+        split_groups <- split(x = data,
+                              f = select(data, input$strata_variables),
+                              sep = "_")
         
-        # list of current slider inputs
+        # reorder list so it matches strata_combos() order
+        split_groups <- split_groups[strata_combos()$strata_combos]
+        
+        # list of current slider input values
         sample_size_per_group <- reactiveValuesToList(input)[strata_combos()$strata_combos]
         
         # sample n rows per strata
