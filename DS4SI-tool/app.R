@@ -353,7 +353,7 @@ ui <- fluidPage(
                               selectInput(inputId = "manual_dataset", label = "Dataset to apply exclusions to: ", 
                                           multiple = FALSE, choices = NULL),
                               selectInput("sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
-                                          choices = sort(unique(as.character(final_table$site_id)))),
+                                          choices = sort(unique(as.character(population_dataset$site_id)))),
                               br(),
                               HTML("<strong>Exclude sites by selecting rows on the table: </strong><br>"),
                               br(),
@@ -417,7 +417,7 @@ server <- function(input, output, session) {
 
     # initialize list of saved datasets
     datasets_available <- reactiveValues(data = NULL, data_names = NULL)
-    datasets_available$data <- list(final_table)
+    datasets_available$data <- list(population_dataset)
     datasets_available$data_names <- c("Population")
     
     # update list of dataframes in the dataset dropdowns
@@ -535,7 +535,7 @@ server <- function(input, output, session) {
     # description page --------------------------------------------------------
     
     # plots on data description page
-    output$intro_plots <- renderPlot({draw_histograms(final_table)})
+    output$intro_plots <- renderPlot({draw_histograms(population_dataset)})
     
     
     # exploration page --------------------------------------------------------
@@ -652,7 +652,7 @@ server <- function(input, output, session) {
       if (input$facet_variable == "none" & input$plot_type == 'Scatter') {
 
         custom_datatable(
-          brushedPoints(final_table, input$plot1_brush),
+          brushedPoints(population_dataset, input$plot1_brush),
           selection = "none"
           ) %>%
           formatRound(5:8, 2) %>%
@@ -715,7 +715,7 @@ server <- function(input, output, session) {
     filtered_table <- reactive({
       
       # filter dataframe
-      data <- filter_selected_data() #final_table
+      data <- filter_selected_data()
       data <- data[data$region %in% input$filtering_select_region,]
       data <- data[data$urban %in% input$filtering_select_urban,]
       data <- data[data$other_prog %in% input$filtering_select_other_prog,]
@@ -743,7 +743,7 @@ server <- function(input, output, session) {
     # display the table in the 'table of excluded sites' tab
     output$filtering_excluded_table <- DT::renderDataTable(
       custom_datatable(
-        anti_join(final_table, filtered_table()),
+        anti_join(population_dataset, filtered_table()),
         selection = 'none'
       ) %>%
         formatRound(5:8, 2) %>%
@@ -865,7 +865,7 @@ server <- function(input, output, session) {
     # display excluded table in the sampling tab
     output$random_sample_excluded_table <- DT::renderDataTable(
       custom_datatable(
-        anti_join(final_table, 
+        anti_join(population_dataset, 
                   current_sample()),
         selection = 'none'
       ) %>%
@@ -889,7 +889,6 @@ server <- function(input, output, session) {
                         )
     })
     
-
     # generate sliders for each variable
     output$weighting_sliders <- renderUI({
       tagList(
@@ -936,24 +935,25 @@ server <- function(input, output, session) {
     # display the table in the 'table of selected sites' tab within the weighting page
     output$weighting_selected_table <- DT::renderDataTable(
       DT::datatable(
-        weighting_current_data(), 
-        selection = 'none', rownames = FALSE, 
-    options = list(
-      # sets n observations shown
-      pageLength = 20,
-      # removes option to change n observations shown
-      lengthChange = FALSE,
-      # removes the search bar
-      sDom  = '<"top">lrt<"bottom">ip',
-      # default sort by site score
-      order = list(0, 'desc'),
-      # enable side scroll so table doesn't overflow
-      scrollX = TRUE
-    )
-    ) %>%
+        weighting_current_data(),
+        selection = 'none',
+        rownames = FALSE,
+        options = list(
+          # sets n observations shown
+          pageLength = 20,
+          # removes option to change n observations shown
+          lengthChange = FALSE,
+          # removes the search bar
+          sDom  = '<"top">lrt<"bottom">ip',
+          # default sort by site score
+          order = list(0, 'desc'),
+          # enable side scroll so table doesn't overflow
+          scrollX = TRUE
+        )
+      ) %>%
         formatRound(6:9, 2) %>%
         formatRound(10, 0)
-      )
+    )
     
 
 # manual exclusions page --------------------------------------------------
@@ -997,7 +997,7 @@ server <- function(input, output, session) {
     # display the table in the 'table of excluded sites' tab: Final selection tab
     output$manual_table_excluded <- DT::renderDataTable(
       custom_datatable(
-        anti_join(final_table, manual_selected_data())
+        anti_join(population_dataset, manual_selected_data())
       ) %>%
         formatRound(5:8, 2) %>%
         formatRound(9, 0))
@@ -1068,9 +1068,9 @@ server <- function(input, output, session) {
       
       # final data frame of of all sites with indicator if site was sent inviation and if accepted
       # assign variable to global environment so it can be used in other functions
-      final_table$sent_invitation <- final_table$site_id %in% sent_invitations_data$site_id
-      final_table$accepted <- final_table$site_id %in% sites_that_accepted$site_id
-      final_results <<- final_table
+      population_dataset$sent_invitation <- population_dataset$site_id %in% sent_invitations_data$site_id
+      population_dataset$accepted <- population_dataset$site_id %in% sites_that_accepted$site_id
+      final_results <<- population_dataset
       
       # on the data exploration page, move dataset selection to top of the page
       removeUI(selector = "#plot_Data_div")
@@ -1168,7 +1168,7 @@ server <- function(input, output, session) {
       })
       
       # add row names
-      rownames(categorical_proportions) <- c("other_prog", "urban", sort(unique(final_table$region)))
+      rownames(categorical_proportions) <- c("other_prog", "urban", sort(unique(population_dataset$region)))
       
       # bind into one table and round the figures
       summary_table <- rbind(numeric_means, categorical_proportions)

@@ -1,7 +1,7 @@
 
 # load data ---------------------------------------------------------------
 
-final_table <- read_csv("jpta_cleaned.csv")
+population_dataset <- read_csv("jpta_cleaned.csv")
 
 
 # custom variables --------------------------------------------------------
@@ -24,14 +24,14 @@ numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
 # choices for categorical selectInput
 # order must match order of categorical_vars
 categorical_choices <- list(
-  rev(unique(as.character(final_table$other_prog))),
-  unique(as.character(final_table$region)),
-  rev(unique(as.character(final_table$urban)))
+  rev(unique(as.character(population_dataset$other_prog))),
+  unique(as.character(population_dataset$region)),
+  rev(unique(as.character(population_dataset$urban)))
 )
 
 # create df of min and maxes to use in slider calculations
 # convert this to base R
-min_max_df <- final_table %>% 
+min_max_df <- population_dataset %>% 
   select(unemp, pct_hs, income, comfort, cost) %>% 
   pivot_longer(cols = everything()) %>% 
   group_by(name) %>% 

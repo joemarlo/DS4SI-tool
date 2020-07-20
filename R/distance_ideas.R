@@ -296,16 +296,16 @@ library(caret)
 library(parallel)
 options(mc.cores = detectCores())
 
-final_table <- read_csv("DS4SI-tool/jpta_cleaned.csv")
-numeric_vars <- c("unemp", "pct_hs", "income", "comfort", "cost")
-categorical_vars <- c('region', 'urban', 'other_prog')
+population_dataset <- read_csv("jpta_cleaned.csv")
+numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
+categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 
-dummies <- dummyVars(~ urban + other_prog + region, final_table) %>% predict(., final_table)
-dummied_data <- cbind(dummies, final_table[, numeric_vars])
+dummies <- dummyVars(~ urban + other_prog + region, population_dataset) %>% predict(., population_dataset)
+dummied_data <- cbind(dummies, population_dataset[, numeric_vars])
 
 population_pca <- princomp(scale(dummied_data))
 
-calc_generalizability <- function(sample_data, pca = population_pca, population = final_table){
+calc_generalizability <- function(sample_data, pca = population_pca, population = population_dataset){
   
   # get row indices
   indices <- suppressMessages(
@@ -336,11 +336,11 @@ calc_generalizability <- function(sample_data, pca = population_pca, population 
 nsims <- 100000
 ns <- sample(2:400, size = nsims, replace = TRUE)
 raw_scores <- mclapply(1:nsims, function(i){
-  my_sample <- slice_sample(final_table, n = ns[i], replace = FALSE)
+  my_sample <- slice_sample(population_dataset, n = ns[i], replace = FALSE)
   calc_generalizability(my_sample)
 } ) %>% unlist()
 
-1 - ecdf(raw_scores)(calc_generalizability(final_table))
+1 - ecdf(raw_scores)(calc_generalizability(population_dataset))
 
 ecdf_scores <- ecdf(raw_scores)
 
@@ -354,10 +354,11 @@ score_generalizability <- function(...){
   return(score)
 }
 
-score_generalizability(final_table)
+score_generalizability(population_dataset)
 
+setwd("..")
 save(calc_generalizability, score_generalizability, ecdf_scores, population_pca,
-     file = 'R/score_generalizability.RData')
+     file = 'DS4SI-tool/R/score_generalizability.RData')
 
 
 
