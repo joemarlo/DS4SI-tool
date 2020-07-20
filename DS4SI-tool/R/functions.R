@@ -61,7 +61,7 @@ draw_histograms <- function(data){
     mutate(urban = as.character(urban),
            other_prog = as.character(other_prog)) %>%
     pivot_longer(cols = everything()) %>%
-    mutate(name = factor(name, levels = c("region", 'urban', 'other_prog'))) %>%
+    mutate(name = factor(name, levels = categorical_vars)) %>%
     ggplot(aes(x = value)) +
     geom_bar(fill = violet_col, alpha = 0.9) +
     facet_wrap(~name, scales = 'free_x', ncol = 3) +
@@ -73,7 +73,7 @@ draw_histograms <- function(data){
   p2 <- data %>%
     select(unemp, pct_hs, income, comfort, cost) %>%
     pivot_longer(cols = everything()) %>%
-    mutate(name = factor(name, levels = c("unemp", 'pct_hs', 'income', 'comfort', 'cost'))) %>%
+    mutate(name = factor(name, levels = numeric_vars)) %>%
     ggplot(aes(x = value)) +
     geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
     facet_wrap(~name, scales = 'free_x', ncol = 3) +
