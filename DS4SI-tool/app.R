@@ -31,7 +31,7 @@ ui <- fluidPage(
     HTML('<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata">'),
 
     # custom CSS file
-    includeCSS("www/my-shiny.css"),
+    includeCSS("www/custom_css.css"),
 
     # choose default slider skin
     chooseSliderSkin(skin = "Flat",
@@ -49,9 +49,9 @@ ui <- fluidPage(
                            tabsetPanel(
                                type = "tabs",
                                tabPanel("Welcome",
-                                        includeMarkdown("welcome_text.md")),
+                                        includeMarkdown("markdowns/welcome_text.md")),
                                tabPanel("Tool instructions", 
-                                        includeMarkdown("tool_instructions.md"))
+                                        includeMarkdown("markdowns/tool_instructions.md"))
                            ))
         ),
         
@@ -95,7 +95,7 @@ ui <- fluidPage(
         
         tabPanel(title = HTML("&nbsp &nbsp Data description"),
                  sidebarLayout(
-                   sidebarPanel(width = 4, includeMarkdown("data_description.md")),
+                   sidebarPanel(width = 4, includeMarkdown("markdowns/data_description.md")),
                    mainPanel(width = 6, plotOutput("intro_plots", height = 650))
                  )), 
                  
@@ -105,15 +105,15 @@ ui <- fluidPage(
                      width = 4,
                      uiOutput("exploration_selection_data_spawn"),
                      selectInput(
-                       "plot_type",
-                       "Plot type:",
+                       inputId ="plot_type",
+                       label = "Plot type:",
                        multiple = FALSE,
                        choices = c("Scatter", "Histogram", "Density", "Boxplot"),
                        selected = "Scatter"
                      ),
                      selectInput(
-                       "x_variable",
-                       "X: ",
+                       inputId ="x_variable",
+                       label = "X: ",
                        multiple = FALSE,
                        choices = numeric_vars,
                        selected = "unemp"
@@ -121,15 +121,15 @@ ui <- fluidPage(
                      conditionalPanel(
                        condition = "input.plot_type == 'Scatter'",
                        selectInput(
-                         "y_variable",
-                         "Y: ",
+                         inputId = "y_variable",
+                         label = "Y: ",
                          multiple = FALSE,
                          choices = numeric_vars,
                          selected = "cost"
                        ),
                        selectInput(
-                         "fill_variable",
-                         "Fill color: ",
+                         inputId = "fill_variable",
+                         label = "Fill color: ",
                          multiple = FALSE,
                          choices = c(numeric_vars, categorical_vars, "cluster"),
                          selected = "cost"
@@ -137,8 +137,8 @@ ui <- fluidPage(
                        conditionalPanel(
                          condition = "input.fill_variable == 'cluster'",
                          sliderInput(
-                           "n_clusters",
-                           "Number of clusters: ",
+                           inputId = "n_clusters",
+                           label = "Number of clusters: ",
                            min = 2,
                            max = 10,
                            value = 4,
@@ -149,15 +149,15 @@ ui <- fluidPage(
                          )
                        ),
                        selectInput(
-                         "size_variable",
-                         "Size: ",
+                         inputId = "size_variable",
+                         label = "Size: ",
                          multiple = FALSE,
                          choices = c(numeric_vars, categorical_vars),
                          selected = "comfort"
                        ),
                        selectInput(
-                         "regression",
-                         "Linear regression: ",
+                         inputId = "regression",
+                         label = "Linear regression: ",
                          multiple = FALSE,
                          choices = c('none', 'include'),
                          selected = 'none'
@@ -166,8 +166,8 @@ ui <- fluidPage(
                      conditionalPanel(
                        condition = "input.plot_type == 'Histogram'",
                        sliderInput(
-                         "n_bins",
-                         "Number of bins: ",
+                         inputId = "n_bins",
+                         label = "Number of bins: ",
                          min = 5,
                          max = 50,
                          value = 20,
@@ -177,15 +177,15 @@ ui <- fluidPage(
                      conditionalPanel(
                        condition = "input.plot_type == 'Boxplot'",
                        selectInput(
-                         "group_variable",
-                         "Grouping: ",
+                         inputId = "group_variable",
+                         label = "Grouping: ",
                          multiple = FALSE,
                          choices = c("none", categorical_vars)
                        )
                      ),
                      selectInput(
-                       "facet_variable",
-                       "Facet variable: ",
+                       inputId = "facet_variable",
+                       label = "Facet variable: ",
                        multiple = FALSE,
                        choices = c("none", categorical_vars),
                        selected = "none"
@@ -193,8 +193,8 @@ ui <- fluidPage(
                      conditionalPanel(
                        condition = "input.plot_type == 'Scatter'",
                        sliderInput(
-                         "alpha_variable",
-                         "Opacity: ",
+                         inputId = "alpha_variable",
+                         label = "Opacity: ",
                          min = 0.1,
                          max = 1,
                          value = 0.6,
@@ -210,7 +210,7 @@ ui <- fluidPage(
                          multiple = FALSE,
                          choices = NULL
                        ),
-                       br(),br(),br(),br(),br(),br(),
+                       br(),br(),br(),br(),
                        HTML(HTML_for_collapsible_2)
                      )
                    ),
@@ -324,21 +324,11 @@ ui <- fluidPage(
     tabPanel(title = HTML("&nbsp &nbsp Weighting"),
              sidebarLayout(
                  sidebarPanel(width = 4,
-                              
-                              # text output of title with number of sites selected
-                              # htmlOutput("n_sites_selected_2"),
                               h4("Create a weighted score for each site by setting the importance of each continuous variable below"),
-                              
                               br(),
-                              
                               selectInput(inputId = "weight_dataset", label = "Dataset to apply weights to: ", multiple = FALSE,
                                           choices = NULL),
-  
-                              sliderInput("weight_unemp", "Unemployment: ", min = 1, max = 100, value = 50, step = 1),
-                              sliderInput("weight_pct_hs", "High school graduation rate: ", min = 1, max = 100, value = 50, step = 1),
-                              sliderInput("weight_income", "Income: ", min = 1, max = 100, value = 50, step = 1),
-                              sliderInput("weight_comfort", "Comfort: ", min = 1, max = 100, value = 50, step = 1),
-                              sliderInput("weight_cost", "Site cost: ", min = 1, max = 100, value = 50, step = 1),
+                              uiOutput("weighting_sliders"),
                               # this maximum input varies based on dataset
                               sliderInput("weight_n", "Only include top n sites: ", min = 0, max = 400, value = 400, step = 1),
                               # save dataset
@@ -423,7 +413,7 @@ server <- function(input, output, session) {
     load("R/score_generalizability.RData", envir = .GlobalEnv)
     
 
-    # non-page specific code --------------------------------------------------
+    # saving datasets code ----------------------------------------------------
 
     # initialize list of saved datasets
     datasets_available <- reactiveValues(data = NULL, data_names = NULL)
@@ -450,8 +440,6 @@ server <- function(input, output, session) {
       
     }
     )
-    
-    # working section of managing user defined lists of dataframes ------------
     
     # list of the prefixes for saving datasets on each page
     # prefix_name = id of the inputText of the dataset name
@@ -901,6 +889,22 @@ server <- function(input, output, session) {
                         )
     })
     
+
+    # generate sliders for each variable
+    output$weighting_sliders <- renderUI({
+      tagList(
+        lapply(numeric_vars, function(variable) {
+            sliderInput(
+              inputId = paste0("weighting_slider_", variable),
+              label = paste0(variable, ": "),
+              min = 1,
+              max = 100,
+              value = 50
+            )
+          }
+        ))
+    })
+    
     # current weighted dataset based on inputs
     weighting_current_data <- reactive({
       
@@ -911,8 +915,8 @@ server <- function(input, output, session) {
       numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
       
       # vector of weights
-      weights <- c(input$weight_unemp, input$weight_pct_hs, input$weight_income, 
-                   input$weight_comfort, input$weight_cost)
+      weights <- c(input$weighting_slider_unemp, input$weighting_slider_pct_hs, input$weighting_slider_income, 
+                   input$weighting_slider_comfort, input$weighting_slider_cost)
       
       # calculate score per each row
       data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
@@ -922,6 +926,9 @@ server <- function(input, output, session) {
       
       # make site_score as first column in dataframe
       data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
+      
+      # round the score
+      data$site_score <- round(data$site_score, 1)
       
       return(data)
     })
@@ -945,8 +952,7 @@ server <- function(input, output, session) {
     )
     ) %>%
         formatRound(6:9, 2) %>%
-        formatRound(10, 0) %>% 
-        formatRound(1, 1)
+        formatRound(10, 0)
       )
     
 
