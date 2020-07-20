@@ -4,7 +4,6 @@
 final_table <- read_csv("jpta_cleaned.csv")
 
 
-
 # custom variables --------------------------------------------------------
 
 # custom HTML code for collapsiible

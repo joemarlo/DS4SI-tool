@@ -300,7 +300,11 @@ ui <- fluidPage(
                               # this maximum input varies based on inputs; see code inside random_sample reactive
                               sliderInput("sample_n", "Sample size: ", min = 0, max = 400, value = 400, step = 1)
                             ),
-                            actionButton(inputId = "run_sampling", label = "Sample the data")
+                            actionButton(inputId = "run_sampling", label = "Sample the data"),
+                            # save dataset
+                            br(), br(),
+                            textInput("sampling_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
+                            actionButton("sampling_data_save_button", label = "Save my_dataset")
                             
                ),
                
@@ -336,11 +340,15 @@ ui <- fluidPage(
                               sliderInput("weight_comfort", "Comfort: ", min = 1, max = 100, value = 50, step = 1),
                               sliderInput("weight_cost", "Site cost: ", min = 1, max = 100, value = 50, step = 1),
                               # this maximum input varies based on dataset
-                              sliderInput("weight_n", "Only include top n sites: ", min = 0, max = 400, value = 400, step = 1)
+                              sliderInput("weight_n", "Only include top n sites: ", min = 0, max = 400, value = 400, step = 1),
+                              # save dataset
+                              br(),
+                              textInput("weighting_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
+                              actionButton("weighting_data_save_button", label = "Save my_dataset")
                  ),
 
              mainPanel(width = 6,
-                       DT::dataTableOutput('table_2')
+                       DT::dataTableOutput('weighting_selected_table')
                        )
              )
     ),
@@ -350,28 +358,20 @@ ui <- fluidPage(
              sidebarLayout(
                  sidebarPanel(width = 4,
                               
-                              # text output of title with number of sites selected
-                              # htmlOutput("n_sites_selected_3"),
-                              # br(),
-                              # br(),
-                              # 
                               h4("Manually exclude sites"),
                               br(),
-                              
                               selectInput(inputId = "manual_dataset", label = "Dataset to apply exclusions to: ", 
                                           multiple = FALSE, choices = NULL),
-                              
-                              # manually exclude sites
                               selectInput("sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
                                           choices = sort(unique(as.character(final_table$site_id)))),
                               br(),
                               HTML("<strong>Exclude sites by selecting rows on the table: </strong><br>"),
                               br(),
-                              
-                              # save row selections
                               actionButton(inputId = "save_row_selections", label = "Exclude selected rows"),
-                              br(),
-                              br()
+                              br(),br(),
+                              # save dataset
+                              textInput("manual_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
+                              actionButton("manual_data_save_button", label = "Save my_dataset")
                  ),
                  
                  mainPanel(width = 6,
@@ -422,6 +422,127 @@ server <- function(input, output, session) {
     # load Rdata that contains score_generalizability() function
     load("R/score_generalizability.RData", envir = .GlobalEnv)
     
+
+    # non-page specific code --------------------------------------------------
+
+    # initialize list of saved datasets
+    datasets_available <- reactiveValues(data = NULL, data_names = NULL)
+    datasets_available$data <- list(final_table)
+    datasets_available$data_names <- c("Population")
+    
+    # update list of dataframes in the dataset dropdowns
+      # this applies to every page that has a dataset dropdown
+    observeEvent(datasets_available$data, {
+      
+      dataset_selector_ids <- c(
+        "filter_dataset", 
+        "sample_dataset", 
+        "weight_dataset",
+        "manual_dataset",
+        "invitations_data",
+        "plot_Data"
+      )
+      
+      lapply(dataset_selector_ids, function(id){
+        updateSelectInput(session = session, inputId = id,
+                          choices = datasets_available$data_names)  
+      })
+      
+    }
+    )
+    
+    # working section of managing user defined lists of dataframes ------------
+    
+    # list of the prefixes for saving datasets on each page
+    # prefix_name = id of the inputText of the dataset name
+    # prefix_button = id of the actionButton to save the dataset
+    data_save_name_prefixes <- c(
+      "filtering_data_save",
+      "sampling_data_save",
+      "weighting_data_save",
+      "manual_data_save"
+    )
+
+    # loop through each of the prefixes and take action
+    # this code chunk controls most of the saving of datasets
+    lapply(data_save_name_prefixes, function(id, dataset_to_save){
+      
+      save_name <- paste0(id, "_name")
+      save_button <- paste0(id, "_button")
+      
+      # make save button label equal to the input'ed dataset name 
+      observeEvent(input[[save_name]], {
+        
+        updateActionButton(session = session, 
+                           inputId = save_button,
+                           label = paste0("Save ", str_trim(input[[save_name]]))
+        )
+      })
+      
+      # save dataset on button click
+      observeEvent(input[[save_button]], {
+        
+        # clean up name for logic checks
+        clean_save_name <- str_to_lower(str_trim(input[[save_name]]))
+        
+        # make sure input'ed dataset name is not already used
+        # this prevents the saving of datasets if the name already exists in
+          # datasets_available$data_names
+        validate(
+          need(!(clean_save_name %in% str_to_lower(datasets_available$data_names)),
+               "Dataset name already used")
+        )
+        
+        # add input data to list of of dataframes 
+        dataset_to_save <- switch(id,
+                                  "filtering_data_save" = filtered_table(),
+                                  "sampling_data_save" = current_sample(),
+                                  "weighting_data_save"= weighting_current_data(),
+                                  "manual_data_save" = manual_selected_data())
+        datasets_available$data <- c(datasets_available$data, list(dataset_to_save))
+        
+        # add input string to list of dataset names
+        datasets_available$data_names <- c(datasets_available$data_names,
+                                           str_trim(input[[save_name]]))
+        
+        # destroy the user entered text
+        updateTextInput(session = session,
+                        inputId = save_name,
+                        value = NA)
+        
+      })
+      
+      # make save_name text red if its a duplicate of a name
+        # already in datasets_available$data_names
+      observe({
+
+        # make names lower case and remove white space so 
+          # save_name is 1:1 with data_names
+        clean_save_name <- str_to_lower(str_trim(input[[save_name]]))
+        dataset_names <- str_to_lower(datasets_available$data_names)
+
+        # make text red
+        if(clean_save_name %in% dataset_names) {
+          runjs(
+            paste0('document.getElementById("',
+                   save_name,
+                   '").style.color = "red"')
+            )
+        }
+
+        # javascript permanently changes text color so it needs to change it back
+        # to black when the input text is valid
+        if(!clean_save_name %in% dataset_names) {
+          runjs(
+            paste0('document.getElementById("',
+                   save_name,
+                   '").style.color = "#363636"')
+            )
+        }
+      })
+      
+    })
+    
     
     # description page --------------------------------------------------------
     
@@ -431,12 +552,6 @@ server <- function(input, output, session) {
     
     # exploration page --------------------------------------------------------
     
-    # update list of dataframes to plot from
-    observeEvent(datasets_available$data, {
-      updateSelectInput(session, "plot_Data",
-                        choices = datasets_available$data_names)
-    })
-
     # select which dataset to use on data exploration tab
     exploration_selected_data <- reactive({
       
@@ -547,21 +662,11 @@ server <- function(input, output, session) {
       
       # show only if there isn't faceting
       if (input$facet_variable == "none" & input$plot_type == 'Scatter') {
-        DT::datatable(
+
+        custom_datatable(
           brushedPoints(final_table, input$plot1_brush),
-          rownames = FALSE,
-          selection = "none",
-          options = list(
-            # sets n observations shown
-            pageLength = 10,
-            # removes option to change n observations shown
-            lengthChange = FALSE,
-            # removes the search bar
-            sDom  = '<"top">lrt<"bottom">ip',
-            # enable side scroll so table doesn't overflow
-            scrollX = TRUE
-          )
-        ) %>%
+          selection = "none"
+          ) %>%
           formatRound(5:8, 2) %>%
           formatRound(9, 0)
       })
@@ -578,13 +683,7 @@ server <- function(input, output, session) {
              sites are currently selected to be approached</h4>'
       )
     )
-    
-    # update list of dataframes to filter from
-    observeEvent(datasets_available$data, {
-      updateSelectInput(session, "filter_dataset",
-                        choices = datasets_available$data_names)
-    })   
-    
+
     # select which dataset to use on filtering tab
     filter_selected_data <- reactive({
       datasets_available$data[[match(input$filter_dataset, datasets_available$data_names)]]
@@ -663,56 +762,7 @@ server <- function(input, output, session) {
         formatRound(9, 0))
     
     
-# working section of managing user defined lists of dataframes ------------
-
-    # make save button label equal to the input'ed dataset name 
-    observeEvent(length(input$filtering_data_save_name > 0),{
-      
-      updateActionButton(session = session, 
-                         inputId = "filtering_data_save_button",
-                         label = paste0("Save ", input$filtering_data_save_name)
-      )
-    })
-    
-    # initialize list of saved datasets
-    datasets_available <- reactiveValues(data = NULL, data_names = NULL)
-    datasets_available$data <- list(final_table)
-    datasets_available$data_names <- c("Population")
-
-    # save dataset on filtering page
-    observeEvent(input$filtering_data_save_button, {
-
-      # make sure input'ed dataset name is not already used
-      validate(
-        need(!(input$filtering_data_save_name %in% datasets_available$data_names),
-             "Dataset name already used")
-      )
-      
-      # TODO: implement message so user knows the dataset wasn't saved
-      
-      # add input data to list of of dataframes 
-      datasets_available$data <- c(datasets_available$data, list(filtered_table()))
-      
-      # add input string to list of dataset names
-      datasets_available$data_names <- c(datasets_available$data_names,
-                                         input$filtering_data_save_name)
-      
-      # destroy the user entered text
-      updateTextInput(session = session,
-                      inputId = "filtering_data_save_name",
-                      value = NA)
-
-    })
-    
-    
 # sampling page -----------------------------------------------------------
-    
-    # update list of dataframes to sample from
-    observeEvent(datasets_available$data, {
-      updateSelectInput(session, "sample_dataset",
-                        choices = datasets_available$data_names)
-    }
-    )   
     
     # select which dataset to use on sampling tab
     sample_selected_data <- reactive({
@@ -838,12 +888,6 @@ server <- function(input, output, session) {
 
 # weighting page ----------------------------------------------------------
 
-    # update list of dataframes to apply weights to
-    observeEvent(datasets_available$data, {
-      updateSelectInput(session, "weight_dataset",
-                        choices = datasets_available$data_names)
-    })   
-    
     # select which dataset to use on weighting page
     weight_selected_data <- reactive({
       datasets_available$data[[match(input$weight_dataset, datasets_available$data_names)]]
@@ -857,31 +901,36 @@ server <- function(input, output, session) {
                         )
     })
     
+    # current weighted dataset based on inputs
+    weighting_current_data <- reactive({
+      
+      data <- weight_selected_data()
+      
+      # scale the variables
+      numeric_vars_scaled <- data[, numeric_vars]
+      numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
+      
+      # vector of weights
+      weights <- c(input$weight_unemp, input$weight_pct_hs, input$weight_income, 
+                   input$weight_comfort, input$weight_cost)
+      
+      # calculate score per each row
+      data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
+      
+      # filter to just the top rows selected by the user
+      data <- data %>% arrange(desc(site_score)) %>% head(n = input$weight_n)
+      
+      # make site_score as first column in dataframe
+      data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
+      
+      return(data)
+    })
+    
     # display the table in the 'table of selected sites' tab within the weighting page
-    output$table_2 <- DT::renderDataTable(
-      DT::datatable({
-        
-        data <- weight_selected_data()
-        
-        # scale the variables
-        numeric_vars_scaled <- data[, numeric_vars]
-        numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
-        
-        # vector of weights
-        weights <- c(input$weight_unemp, input$weight_pct_hs, input$weight_income, 
-                     input$weight_comfort, input$weight_cost)
-        
-        # calculate score per each row
-        data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
-        
-        # filter to just the top rows selected by the user
-        data <- data %>% arrange(desc(site_score)) %>% head(n = input$weight_n)
-        
-        # make site_score as first column in dataframe
-        data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
-        
-        data
-    }, selection = 'none', rownames = FALSE, 
+    output$weighting_selected_table <- DT::renderDataTable(
+      DT::datatable(
+        weighting_current_data(), 
+        selection = 'none', rownames = FALSE, 
     options = list(
       # sets n observations shown
       pageLength = 20,
@@ -901,17 +950,8 @@ server <- function(input, output, session) {
       )
     
 
-
-    
-
 # manual exclusions page --------------------------------------------------
 
-    # update list of dataframes to apply exclusions to
-    observeEvent(datasets_available$data, {
-      updateSelectInput(session, "manual_dataset",
-                        choices = datasets_available$data_names)
-    })   
-    
     # select which dataset to use on manual exclusison page
     manual_selected_data <- reactive({
       selected_data <- datasets_available$data[[match(input$manual_dataset, datasets_available$data_names)]]
@@ -957,16 +997,7 @@ server <- function(input, output, session) {
         formatRound(9, 0))
     
 
-
-    
 # send invitations page ---------------------------------------------------
-    
-    # update list of dataframes to select from
-    observeEvent(datasets_available$data, {
-      updateSelectInput(session, "invitations_data",
-                        choices = datasets_available$data_names)
-    }
-    )
     
     # select which dataset to use on send invitations tab
     sent_invitations_data <- reactive({
@@ -1103,50 +1134,57 @@ server <- function(input, output, session) {
       
       data <- final_results
       
-      # build dataframe with identifer for the group it comes from
-      # df should nrow should be n(population) + n(sites sent invitation) + n(sites accepted)
-      data$group <- 'Population'
-      data <- data %>% select(-c('sent_invitation', 'accepted'))
-      sites_that_accepted$group <- 'Accepted'
-      sent_invitations_data$group <- 'Sent invitation'
-      data <- rbind(data, sites_that_accepted, sent_invitations_data)
+      # create list of dataframes representing the three groups
+      list_of_tables <- list(sites_that_accepted, sent_invitations_data, data)
       
       # calculate mean numeric stats per group
-      mean_unemp <- aggregate(x = data$unemp, by = list(data$group), FUN = 'mean')$x
-      mean_hs <- aggregate(x = data$pct_hs, by = list(data$group), FUN = 'mean')$x
-      mean_income <- aggregate(x = data$income, by = list(data$group), FUN = 'mean')$x
-      mean_cost <- aggregate(x = data$cost, by = list(data$group), FUN = 'mean')$x
-      mean_comfort <- aggregate(x = data$comfort, by = list(data$group), FUN = 'mean')$x
-      mean_urban <- aggregate(x = data$urban, by = list(data$group), FUN = 'mean')$x
-      mean_other_program <- aggregate(x = data$other_prog, by = list(data$group), FUN = 'mean')$x
+      numeric_means <- sapply(list_of_tables, function(df){
+        apply(df[, numeric_vars], MARGIN = 2, FUN = mean)
+      })
       
-      # calculate % of sites per region per group
-      n_sites <- tapply(data$region, list(data$region, data$group), function(tbl) length(tbl))
-      mean_sites <- apply(n_sites, 1, function(row) row / table(data$group))
+      # calculate proportions for categorgical per group
+      categorical_proportions <- sapply(list_of_tables, function(df) {
+        
+        # calculate percent other prog / urbancity
+        prog_urban <- apply(df[, c("other_prog", "urban")], MARGIN = 2, function(col) {
+          table(col)["TRUE"] / length(col)
+        })
+        
+        # calculate proportion per region
+        regions <- apply(df[, "region"], MARGIN = 2, function(col) {
+          table(col) / length(col)
+        })
+        
+        # bind data into a matrix
+        all_categoricals <- rbind(as.matrix(prog_urban), regions)
+        
+        return(all_categoricals)
+      })
       
-      # bind the stats into one table
-      summary_table <- t(cbind(mean_unemp, mean_hs, mean_income, mean_cost, mean_comfort, mean_urban, mean_other_program, mean_sites))
+      # add row names
+      rownames(categorical_proportions) <- c("other_prog", "urban", sort(unique(final_table$region)))
       
-      # set row names
+      # bind into one table and round the figures
+      summary_table <- rbind(numeric_means, categorical_proportions)
+      summary_table <- round(summary_table, 2)
+      
+      # set column and row names
+      colnames(summary_table) <- c('Accepted', 'Sent invitation', 'Population')
       rownames(summary_table) <- c(
-        "Mean unemployment",
-        "Mean HS rate",
-        "Mean income",
-        "Mean cost",
         "Mean comfort",
-        "% urbanicity",
+        "Mean cost",
+        "Mean income",
+        "Mean HS rate",
+        "Mean unemployment",
         "% with other program",
+        "% urbanicity",
         "% Northcentral",
         "% Northeast",
         "% South",
         "% West"
       )
       
-      # rearrange columns
-      summary_table <- summary_table[, c('Accepted', 'Sent invitation', 'Population')]
-      
-      # return the table
-      summary_table
+      return(summary_table)
       
     }, rownames = TRUE
     )
