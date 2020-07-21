@@ -116,7 +116,7 @@ ui <- fluidPage(
                        label = "X: ",
                        multiple = FALSE,
                        choices = numeric_vars,
-                       selected = "unemp"
+                       selected = numeric_vars[5]
                      ),
                      conditionalPanel(
                        condition = "input.plot_type == 'Scatter'",
@@ -125,14 +125,14 @@ ui <- fluidPage(
                          label = "Y: ",
                          multiple = FALSE,
                          choices = numeric_vars,
-                         selected = "cost"
+                         selected = numeric_vars[2]
                        ),
                        selectInput(
                          inputId = "fill_variable",
                          label = "Fill color: ",
                          multiple = FALSE,
                          choices = c(numeric_vars, categorical_vars, "cluster"),
-                         selected = "cost"
+                         selected = numeric_vars[3]
                        ),
                        conditionalPanel(
                          condition = "input.fill_variable == 'cluster'",
@@ -153,7 +153,7 @@ ui <- fluidPage(
                          label = "Size: ",
                          multiple = FALSE,
                          choices = c(numeric_vars, categorical_vars),
-                         selected = "comfort"
+                         selected = numeric_vars[1]
                        ),
                        selectInput(
                          inputId = "regression",
@@ -268,12 +268,14 @@ ui <- fluidPage(
                sidebarPanel(width = 4,
                             
                             h4("Create simple and stratified random samples"),
-                            
                             br(),
-                            
-                            selectInput(inputId = "sample_dataset", label = "Dataset to sample: ", multiple = FALSE,
+                            selectInput(inputId = "sample_dataset", 
+                                        label = "Dataset to sample: ", 
+                                        multiple = FALSE,
                                         choices = NULL),
-                            selectInput(inputId = "simple_or_stratified", label = "Simple or stratified sample: ", multiple = FALSE,
+                            selectInput(inputId = "simple_or_stratified", 
+                                        label = "Simple or stratified sample: ", 
+                                        multiple = FALSE,
                                         choices = c("simple", "stratified")),
                             conditionalPanel(
                               condition = "input.simple_or_stratified == 'stratified'",
@@ -286,14 +288,12 @@ ui <- fluidPage(
                               uiOutput("sampling_strata_sliders"),
                               br()
                             ),
-                            
                             conditionalPanel(
                               condition = "input.simple_or_stratified == 'stratified'",
                               htmlOutput("n_strata"),
                               br(),
                               actionButton(inputId = "sample_reset_sliders", label = "Reset sliders"),
-                              br(),
-                              br()
+                              br(), br()
                             ),
                             conditionalPanel(
                               condition = "input.simple_or_stratified == 'simple'",
@@ -413,7 +413,7 @@ server <- function(input, output, session) {
     load("R/score_generalizability.RData", envir = .GlobalEnv)
     
 
-    # saving datasets code ----------------------------------------------------
+    # saving datasets ---------------------------------------------------------
 
     # initialize list of saved datasets
     datasets_available <- reactiveValues(data = NULL, data_names = NULL)
@@ -437,9 +437,7 @@ server <- function(input, output, session) {
         updateSelectInput(session = session, inputId = id,
                           choices = datasets_available$data_names)  
       })
-      
-    }
-    )
+    })
     
     # list of the prefixes for saving datasets on each page
     # prefix_name = id of the inputText of the dataset name
@@ -453,7 +451,7 @@ server <- function(input, output, session) {
 
     # loop through each of the prefixes and take action
     # this code chunk controls most of the saving of datasets
-    lapply(data_save_name_prefixes, function(id, dataset_to_save){
+    lapply(data_save_name_prefixes, function(id){
       
       save_name <- paste0(id, "_name")
       save_button <- paste0(id, "_button")
@@ -913,15 +911,16 @@ server <- function(input, output, session) {
       numeric_vars_scaled <- data[, numeric_vars]
       numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
       
-      # vector of weights
-      weights <- c(input$weighting_slider_unemp, input$weighting_slider_pct_hs, input$weighting_slider_income, 
-                   input$weighting_slider_comfort, input$weighting_slider_cost)
+      # vector of weights (ordering must match the numeric_vars_scaled column order)
+      weights <- c(input$weighting_slider_comfort, input$weighting_slider_cost, 
+                   input$weighting_slider_income, input$weighting_slider_pct_hs,
+                   input$weighting_slider_unemp)
       
       # calculate score per each row
       data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
       
-      # filter to just the top rows selected by the user
-      data <- data %>% arrange(desc(site_score)) %>% head(n = input$weight_n)
+      # filter to just the top rows selected by the user based on site_score
+      data <- data[order(-data$site_score), ][1:input$weight_n,]
       
       # make site_score as first column in dataframe
       data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
@@ -1213,6 +1212,12 @@ server <- function(input, output, session) {
       
       # bind the three datasets together
       data_for_plot <- rbind(population_sites, sent_sites, accepted_sites)
+      
+      # reorder population variables
+      data_for_plot$population <- factor(data_for_plot$population,
+                                         levels = c("Accepted_invitation",
+                                                    "Sent_invitation",
+                                                    "Population"))
       
       # barplots
       p1 <- data_for_plot %>% 
