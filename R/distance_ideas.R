@@ -155,7 +155,7 @@ pca$scores %>%
   geom_point(data = tibble(x = pca$scores[sample_indices,1],
                            y = pca$scores[sample_indices,2]),
              aes(x=x, y=y), color = 'blue', alpha = 0.3)
-             
+
 
 sample_means <- map_dfr(1:n_sim, function(i){
   
@@ -163,7 +163,7 @@ sample_means <- map_dfr(1:n_sim, function(i){
   
   tibble(Comp.1 = mean(pca$scores[ind, 1]),
          Comp.2 = mean(pca$scores[ind, 2]),
-       sim = i)
+         sim = i)
 })
 
 
@@ -225,7 +225,7 @@ pca$scores %>%
 
 # calclate eucl distance of the entire pca matrix
 # issue here is that the sample size will correlate with the distance b/c
-  # fewer datapoints = less sum distance
+# fewer datapoints = less sum distance
 
 sqrt(sum(pca$scores^2))
 
@@ -258,7 +258,7 @@ idea_2_results <- sapply(samples, function(samp){
   
   # euclidean distance of means of each PC comp
   sqrt(sum(means^2))
-  })
+})
 
 idea_3_results <- sapply(samples, function(samp){
   sqrt(sum(pca$scores[samp$index,]^2))
@@ -296,7 +296,7 @@ library(caret)
 library(parallel)
 options(mc.cores = detectCores())
 
-population_dataset <- read_csv("jpta_cleaned.csv")
+population_dataset <- read_csv("data/jpta.csv")
 numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
 categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 
@@ -333,8 +333,8 @@ calc_generalizability <- function(sample_data, pca = population_pca, population 
 
 # testing
 
-nsims <- 100000
-ns <- sample(2:400, size = nsims, replace = TRUE)
+nsims <- 50000
+ns <- sample(2:nrow(population_dataset), size = nsims, replace = TRUE)
 raw_scores <- mclapply(1:nsims, function(i){
   my_sample <- slice_sample(population_dataset, n = ns[i], replace = FALSE)
   calc_generalizability(my_sample)

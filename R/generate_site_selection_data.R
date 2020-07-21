@@ -14,15 +14,15 @@
 
 # The datasets available to you has the following information on 
 # N potential sites (local AFDC offices)
-N = 400
+N = 1000
 set.seed(1234)
 
 # site ID
-site_id = sample(seq(1000,9999,1),400,replace=FALSE)
+site_id = sample(seq(1000,9999,1), N, replace=FALSE)
 
 # region of country and urban/rural
 region = sample(c(1,2,3,4), N, replace=TRUE, prob=c(.3,.2,.3,.3))
-  # 1 = n. east, 2 = n. central, 3= south, 4= west
+# 1 = n. east, 2 = n. central, 3= south, 4= west
 urban = rbinom(N,1,.2)
 
 # travel time in hours between the site and the nearest MDRC office
@@ -57,5 +57,38 @@ data = data.frame(site_id=site_id, region=region,urban=urban,
                   distance=distance,other_prog=other_prog,unemp=unemp,
                   pct_hs=pct_hs,income=income,comfort=comfort)
 
-write.table(data, file="jpta.csv",col.names=TRUE,sep=",")
+
+# # 2020 cleaning ---------------------------------------------------------
+
+# label regions
+data$region <- case_when(
+  data$region == 1 ~ "Northeast",
+  data$region == 2 ~ "Northcentral",
+  data$region == 3 ~ "South",
+  data$region == 4 ~ "West"
+)
+
+# convert booleans to logicals
+data$urban <- as.logical(data$urban)
+data$other_prog <- as.logical(data$other_prog)
+
+# convert distance to cost
+data$cost <- round(1000 + (data$distance * 500), 0)
+data <- data[, setdiff(colnames(data), "distance")]
+
+# round the numerics to three digits
+data[, c("unemp", "pct_hs", "income", "comfort")] <-
+  round(data[, c("unemp", "pct_hs", "income", "comfort")] , 3)
+
+
+# save the data -----------------------------------------------------------
+
+# save the data
+write.table(
+  data,
+  file = "DS4SI-tool/data/jpta.csv",
+  col.names = TRUE,
+  row.names = FALSE,
+  sep = ","
+)
 #write.table(data, file="jpta.csv",col.names=TRUE,sep=",")

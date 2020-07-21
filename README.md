@@ -5,4 +5,4 @@ Current draft can be found here: [jmarlo.shinyapps.io/DS4SI-tool/](https://jmarl
 
 <br>
 
-![](Data/screenshot.png)
+![](screenshot.png)

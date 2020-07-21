@@ -1,6 +1,6 @@
 # The data
 
-The data consists of 400 sites measured across eight variables:
+The data consists of 1,000 sites measured across eight variables:
 - `other_prog`: are there other training programs available in the same county
 - `region`: the region the site is located in
 - `urban`: is the site located in an urban area

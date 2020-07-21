@@ -1,10 +1,25 @@
 
 # load data ---------------------------------------------------------------
 
-population_dataset <- read_csv("jpta_cleaned.csv")
+population_dataset <- read_csv(
+  file = "data/jpta.csv",
+  col_types = cols(
+    site_id = col_double(),
+    region = col_character(),
+    urban = col_logical(),
+    other_prog = col_logical(),
+    unemp = col_double(),
+    pct_hs = col_double(),
+    income = col_double(),
+    comfort = col_double(),
+    cost = col_double()
+  )
+)
 
 
 # custom variables --------------------------------------------------------
+
+population_n <- nrow(population_dataset)
 
 # custom HTML code for collapsiible
 #  see http://jsfiddle.net/thurstanh/emtAm/2/
