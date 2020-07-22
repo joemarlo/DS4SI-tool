@@ -35,7 +35,7 @@ ui <- fluidPage(
 
     # choose default slider skin
     chooseSliderSkin(skin = "Flat",
-                     color = "#221146"), # "#112446"),
+                     color = "#221146"),
     
     # top left title
     titlePanel("DS4SI Site Selection"),
@@ -492,11 +492,14 @@ server <- function(input, output, session) {
       )
       
       # add input data to list of of dataframes 
-      dataset_to_save <- switch(id,
-                                "filtering_data_save" = filtered_table(),
-                                "sampling_data_save" = current_sample(),
-                                "weighting_data_save"= weighting_current_data(),
-                                "manual_data_save" = manual_selected_data())
+      dataset_to_save <- switch(
+        id,
+        "filtering_data_save" = filtered_table(),
+        "sampling_data_save" = current_sample(),
+        # remove site_score column before saving
+        "weighting_data_save" = weighting_current_data()[, setdiff(colnames(weighting_current_data()), 'site_score')],
+        "manual_data_save" = manual_selected_data()
+      )
       datasets_available$data <- c(datasets_available$data, list(dataset_to_save))
       
       # add input string to list of dataset names
@@ -987,26 +990,21 @@ server <- function(input, output, session) {
     
     # exclude rows from manual input
     selected_data <- selected_data[!selected_data$site_id %in% input$sites_excl,]
-    
-    # exclude rows based on row selection
-    selected_data <- selected_data[!selected_data$site_id %in% dd$all_row_selections,]
-    
+  
     return(selected_data)
   })
   
   # save row selections when button is clicked
-  # TODO i think there is an issue here as the row selections are a global variable
-  # when there should be specific to each table. Fix could be to reset the row selections where
-  # input$manual_dataset changes?
   dd <- reactiveValues(select = NULL)
   observeEvent(input$save_row_selections, {
     
     # get current selected rows
     dd$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
-    
-    # maintain list of all rows that have been selected
-    dd$all_row_selections <- sort(unique(append(dd$all_row_selections, dd$current_row_selections)))
-    
+
+    # update selected list in the user input field
+    updateSelectInput(session = session, inputId = "sites_excl",
+                      selected = unique(append(input$sites_excl, dd$current_row_selections)))
+      
   })
   
   # display the table in the 'table of selected sites' tab within the final selection page
@@ -1134,6 +1132,9 @@ server <- function(input, output, session) {
                                           "Accepted invitation" = "Accepted_invitation"),
                            selected = c("Population", "Sent_invitation", "Accepted_invitation")
                            ),
+        HTML('<details><summary>Information</summary>'),
+        "These datasets are nested within each other. Including all three without faceting or grouping will cause duplicates to appear on the plot.",
+        HTML('</details><br>'),
         br()
       )
     })
