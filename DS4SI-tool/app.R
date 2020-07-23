@@ -63,12 +63,12 @@ ui <- fluidPage(
                      htmlOutput("summary_text"),
                      tableOutput("key_metrics_table"),
                      br(),br(),
-                     actionButton(inputId = "run_simulation",
+                     actionButton(inputId = "results_button_run_simulation",
                                   label = 'How does your random draw compare to 250 simulated draws?'),
                      br(),br(),
                      downloadButton("downloadData", "Download the data"),
                      br(),br(),
-                     actionButton(inputId = "restart_button",
+                     actionButton(inputId = "results_button_restart",
                                   label = 'Erase these data and restart the selection process')
                    ),
                    
@@ -204,10 +204,10 @@ ui <- fluidPage(
                        )
                      ),
                      div(
-                       id = "plot_Data_div",
+                       id = "exploration_dataset_div",
                        HTML('<details><summary>Advanced filters</summary>'),
                        selectInput(
-                         inputId = "plot_Data",
+                         inputId = "exploration_dataset",
                          label = "Dataset: ",
                          multiple = FALSE,
                          choices = NULL
@@ -219,7 +219,7 @@ ui <- fluidPage(
                    
                    mainPanel(
                      width = 6,
-                     plotOutput('advanced_ggplot',
+                     plotOutput('advanced_ggplot',  height = 600,
                                 brush = brushOpts(id = "plot1_brush")),
                      br(),
                      htmlOutput("brush_text"),
@@ -229,8 +229,6 @@ ui <- fluidPage(
         
         HTML("<div><h5>2. Site selection</h5></div>"),
         
-        
-        
         tabPanel(title = HTML("&nbsp &nbsp Filtering"),
                  
                  sidebarLayout(
@@ -239,7 +237,7 @@ ui <- fluidPage(
                                 # text output of title with number of sites selected
                                 htmlOutput("filtering_html_n_sites_selected"),
                                 br(),
-                                selectInput(inputId = "filter_dataset", 
+                                selectInput(inputId = "filtering_dataset", 
                                             label = "Dataset to filter: ", 
                                             multiple = FALSE, 
                                             choices = NULL),
@@ -276,7 +274,7 @@ ui <- fluidPage(
                                 
                                 h4("Create simple and stratified random samples"),
                                 br(),
-                                selectInput(inputId = "sample_dataset", 
+                                selectInput(inputId = "sampling_dataset", 
                                             label = "Dataset to sample: ", 
                                             multiple = FALSE,
                                             choices = NULL),
@@ -305,9 +303,9 @@ ui <- fluidPage(
                                 conditionalPanel(
                                   condition = "input.simple_or_stratified == 'simple'",
                                   # this maximum input varies based on inputs; see code inside random_sample reactive
-                                  sliderInput("sample_n", "Sample size: ", min = 0, max = population_n, value = population_n, step = 1)
+                                  sliderInput("sampling_slider_simple_n", "Sample size: ", min = 0, max = population_n, value = population_n, step = 1)
                                 ),
-                                actionButton(inputId = "run_sampling", label = "Sample the data"),
+                                actionButton(inputId = "sampling_button_run_sampling", label = "Sample the data"),
                                 # save dataset
                                 br(), br(),
                                 textInput("sampling_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
@@ -321,8 +319,8 @@ ui <- fluidPage(
                                type = "tabs",
                                tabPanel("Plots",
                                         plotOutput("sampling_plots", height = 650)), 
-                               tabPanel("Table of selected sites", DT::dataTableOutput('random_sample_table')),
-                               tabPanel("Table of excluded sites", DT::dataTableOutput('random_sample_excluded_table'))
+                               tabPanel("Table of selected sites", DT::dataTableOutput('sampling_table_selected')),
+                               tabPanel("Table of excluded sites", DT::dataTableOutput('sampling_table_excluded'))
                              )
                    )
                  )
@@ -333,10 +331,9 @@ ui <- fluidPage(
                    sidebarPanel(width = 4,
                                 h4("Create a weighted score for each site by setting the importance of each continuous variable below"),
                                 br(),
-                                selectInput(inputId = "weight_dataset", label = "Dataset to apply weights to: ", multiple = FALSE,
+                                selectInput(inputId = "weighting_dataset", label = "Dataset to apply weights to: ", multiple = FALSE,
                                             choices = NULL),
                                 uiOutput("weighting_sliders"),
-                                # this maximum input varies based on dataset
                                 sliderInput(inputId = "weight_n", 
                                             label = "Only include top n sites: ", 
                                             min = 0, 
@@ -389,7 +386,7 @@ ui <- fluidPage(
                  sidebarLayout(
                    sidebarPanel(width = 4,
                                 br(),
-                                selectInput(inputId = "invitations_data", label = "Dataset: ", multiple = FALSE,
+                                selectInput(inputId = "invitations_dataset", label = "Dataset: ", multiple = FALSE,
                                             choices = NULL), #c("All sites", "Sites to approach")),
                                 htmlOutput("summary_final_selection"),
                                 br(),
@@ -437,12 +434,12 @@ server <- function(input, output, session) {
   observeEvent(datasets_available$data, {
     
     dataset_selector_ids <- c(
-      "filter_dataset", 
-      "sample_dataset", 
-      "weight_dataset",
+      "filtering_dataset", 
+      "sampling_dataset", 
+      "weighting_dataset",
       "manual_dataset",
-      "invitations_data",
-      "plot_Data"
+      "invitations_dataset",
+      "exploration_dataset"
     )
     
     lapply(dataset_selector_ids, function(id){
@@ -568,7 +565,7 @@ server <- function(input, output, session) {
       
     } else {
       # otherwise use the user selected dataframe on the dropdown
-      datasets_available$data[[match(input$plot_Data, datasets_available$data_names)]]
+      datasets_available$data[[match(input$exploration_dataset, datasets_available$data_names)]]
       }
   })
   
@@ -644,7 +641,7 @@ server <- function(input, output, session) {
     
     # add faceting
     if(input$facet_variable != "none"){
-      p <- p + facet_wrap(input$facet_variable, labeller = label_both)
+      p <- p + facet_wrap(input$facet_variable, ncol = 1, labeller = label_both)
     } 
     
     # show plot
@@ -694,7 +691,7 @@ server <- function(input, output, session) {
   
   # select which dataset to use on filtering tab
   filter_selected_data <- reactive({
-    datasets_available$data[[match(input$filter_dataset, datasets_available$data_names)]]
+    datasets_available$data[[match(input$filtering_dataset, datasets_available$data_names)]]
   })
   
   # generate sliders for each categorical variable
@@ -779,13 +776,13 @@ server <- function(input, output, session) {
   
   # select which dataset to use on sampling tab
   sample_selected_data <- reactive({
-    datasets_available$data[[match(input$sample_dataset, datasets_available$data_names)]]
+    datasets_available$data[[match(input$sampling_dataset, datasets_available$data_names)]]
   })
   
-  # update sample_n slider max so it's not larger than the dataset
+  # update sampling_slider_simple_n slider max so it's not larger than the dataset
   observeEvent(nrow(sample_selected_data()), {
     updateSliderInput(session = session, 
-                      inputId = 'sample_n', 
+                      inputId = 'sampling_slider_simple_n', 
                       value = nrow(sample_selected_data()),
                       max = nrow(sample_selected_data()))
   })
@@ -828,7 +825,7 @@ server <- function(input, output, session) {
   })
   
   # random sampling
-  current_sample <- eventReactive(input$run_sampling, {
+  current_sample <- eventReactive(input$sampling_button_run_sampling, {
     
     data <- sample_selected_data()
     
@@ -836,7 +833,7 @@ server <- function(input, output, session) {
     if (input$simple_or_stratified == "simple"){
       
       # sample the data
-      sampled_data <- slice_sample(data, n = input$sample_n, replace = FALSE)
+      sampled_data <- slice_sample(data, n = input$sampling_slider_simple_n, replace = FALSE)
       
       return(sampled_data)
       
@@ -878,7 +875,7 @@ server <- function(input, output, session) {
   output$sampling_plots <- renderPlot({draw_histograms(current_sample())})
   
   # display the table in the sampling tab    
-  output$random_sample_table <- DT::renderDataTable(
+  output$sampling_table_selected <- DT::renderDataTable(
     custom_datatable(
       current_sample(),
       selection = 'none'
@@ -888,7 +885,7 @@ server <- function(input, output, session) {
   )
   
   # display excluded table in the sampling tab
-  output$random_sample_excluded_table <- DT::renderDataTable(
+  output$sampling_table_excluded <- DT::renderDataTable(
     custom_datatable(
       anti_join(population_dataset, 
                 current_sample()),
@@ -903,7 +900,7 @@ server <- function(input, output, session) {
   
   # select which dataset to use on weighting page
   weight_selected_data <- reactive({
-    datasets_available$data[[match(input$weight_dataset, datasets_available$data_names)]]
+    datasets_available$data[[match(input$weighting_dataset, datasets_available$data_names)]]
   })
   
   # update weight_n slider max so it's not larger than the dataset
@@ -998,10 +995,10 @@ server <- function(input, output, session) {
   dd <- reactiveValues(select = NULL)
   observeEvent(input$save_row_selections, {
     
-    # get current selected rows
+    # get the site ids from the current selected rows
     dd$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
 
-    # update selected list in the user input field
+    # append selected list in the values in the user input field
     updateSelectInput(session = session, inputId = "sites_excl",
                       selected = unique(append(input$sites_excl, dd$current_row_selections)))
       
@@ -1028,7 +1025,7 @@ server <- function(input, output, session) {
   
   # select which dataset to use on send invitations tab
   sent_invitations_data <- reactive({
-    datasets_available$data[[match(input$invitations_data, datasets_available$data_names)]]
+    datasets_available$data[[match(input$invitations_dataset, datasets_available$data_names)]]
   })
   
   # text for final selection page
@@ -1114,7 +1111,7 @@ server <- function(input, output, session) {
     
     # on the data exploration page, added a grouping variable that represents 
       # population, sent invitations, and accepted invitations sites
-    updateSelectInput(session = session, inputId = "plot_Data",
+    updateSelectInput(session = session, inputId = "exploration_dataset",
                       selected = "stacked_results")
     updateSelectInput(session = session, inputId = "facet_variable",
                       choices = c("none", "site_group", categorical_vars),
@@ -1140,7 +1137,7 @@ server <- function(input, output, session) {
     })
     
     # remove dataset selector element from the data exploration page
-    removeUI(selector = "#plot_Data_div")
+    removeUI(selector = "#exploration_dataset_div")
     
   })
   
@@ -1174,7 +1171,7 @@ server <- function(input, output, session) {
   )
   
   # insert tab after running simulation
-  observeEvent(input$run_simulation, {
+  observeEvent(input$results_button_run_simulation, {
     
     # insert the tab
     appendTab(inputId = "results_tabs",
@@ -1184,12 +1181,12 @@ server <- function(input, output, session) {
     )
     
     # add text
-    insertUI(selector = "#run_simulation",
+    insertUI(selector = "#results_button_run_simulation",
              where = "afterEnd",
              ui = h4("One moment ... Simulation results will appear on the 'Actual vs. expected' tab"))
     
     # remove button
-    removeUI(selector = "#run_simulation")
+    removeUI(selector = "#results_button_run_simulation")
     
   })
   
@@ -1427,7 +1424,7 @@ server <- function(input, output, session) {
   )
   
   # restart the session based on button click
-  observeEvent(input$restart_button, {
+  observeEvent(input$results_button_restart, {
     session$reload()
   } )
   
