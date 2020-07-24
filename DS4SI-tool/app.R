@@ -243,7 +243,6 @@ ui <- fluidPage(
                  sidebarLayout(
                    sidebarPanel(width = 4,
                                 
-                                # text output of title with number of sites selected
                                 htmlOutput("filtering_html_n_sites_selected"),
                                 br(),
                                 selectInput(inputId = "filtering_dataset", 
@@ -251,11 +250,8 @@ ui <- fluidPage(
                                             multiple = FALSE, 
                                             choices = NULL),
                                 br(),
-                                # numeric sliders generated on the server side
                                 uiOutput(outputId = "filtering_select_categorical"),
-                                # numeric sliders generated on the server side
                                 uiOutput(outputId = "filtering_sliders_numeric"),
-                                # save dataset
                                 br(),
                                 textInput(inputId = "filtering_data_save_name", 
                                           value = "my_dataset", 
@@ -293,7 +289,8 @@ ui <- fluidPage(
                                             choices = c("simple", "stratified")),
                                 conditionalPanel(
                                   condition = "input.sampling_select_simple_or_stratified == 'stratified'",
-                                  selectizeInput("strata_variables", "Strata variable (limited to two): ", 
+                                  selectizeInput(inputId = "strata_variables", 
+                                                 label = "Strata variable (limited to two): ", 
                                                  multiple = TRUE,
                                                  options = list(maxItems = 2),
                                                  choices = categorical_vars,
@@ -311,8 +308,12 @@ ui <- fluidPage(
                                 ),
                                 conditionalPanel(
                                   condition = "input.sampling_select_simple_or_stratified == 'simple'",
-                                  # this maximum input varies based on inputs; see code inside random_sample reactive
-                                  sliderInput("sampling_slider_simple_n", "Sample size: ", min = 0, max = population_n, value = population_n, step = 1)
+                                  sliderInput(inputId = "sampling_slider_simple_n", 
+                                              label = "Sample size: ", 
+                                              min = 0, 
+                                              max = population_n, 
+                                              value = population_n, 
+                                              step = 1)
                                 ),
                                 actionButton(inputId = "sampling_button_run_sampling", label = "Sample the data"),
                                 # save dataset
@@ -340,7 +341,9 @@ ui <- fluidPage(
                    sidebarPanel(width = 4,
                                 h4("Create a weighted score for each site by setting the importance of each continuous variable below"),
                                 br(),
-                                selectInput(inputId = "weighting_dataset", label = "Dataset to apply weights to: ", multiple = FALSE,
+                                selectInput(inputId = "weighting_dataset", 
+                                            label = "Dataset to apply weights to: ", 
+                                            multiple = FALSE,
                                             choices = NULL),
                                 uiOutput("weighting_sliders"),
                                 sliderInput(inputId = "weighting_slider_n", 
@@ -368,18 +371,26 @@ ui <- fluidPage(
                                 
                                 h4("Manually exclude sites"),
                                 br(),
-                                selectInput(inputId = "manual_dataset", label = "Dataset to apply exclusions to: ", 
-                                            multiple = FALSE, choices = NULL),
-                                selectInput("manual_select_sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
+                                selectInput(inputId = "manual_dataset", 
+                                            label = "Dataset to apply exclusions to: ", 
+                                            multiple = FALSE, 
+                                            choices = NULL),
+                                selectInput(inputId = "manual_select_sites_excl", 
+                                            label = "Exclude sites manually by site ID:", 
+                                            multiple = TRUE,
                                             choices = sort(unique(as.character(population_dataset$site_id)))),
                                 br(),
                                 HTML("<strong>Exclude sites by selecting rows on the table: </strong><br>"),
                                 br(),
-                                actionButton(inputId = "manual_button_save_row_selections", label = "Exclude selected rows"),
+                                actionButton(inputId = "manual_button_save_row_selections", 
+                                             label = "Exclude selected rows"),
                                 br(),br(),
                                 # save dataset
-                                textInput("manual_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
-                                actionButton("manual_data_save_button", label = "Save my_dataset")
+                                textInput(inputId = "manual_data_save_name", 
+                                          label = "Name and save your dataset", 
+                                          value = "my_dataset", ),
+                                actionButton(inputId = "manual_data_save_button", 
+                                             label = "Save my_dataset")
                    ),
                    
                    mainPanel(width = 6,
@@ -395,17 +406,16 @@ ui <- fluidPage(
                  sidebarLayout(
                    sidebarPanel(width = 4,
                                 br(),
-                                selectInput(inputId = "invitations_dataset", label = "Dataset: ", multiple = FALSE,
-                                            choices = NULL), #c("All sites", "Sites to approach")),
+                                selectInput(inputId = "invitations_dataset", 
+                                            label = "Dataset: ", 
+                                            multiple = FALSE,
+                                            choices = NULL), 
                                 htmlOutput("invitations_table_summary"),
                                 br(),
                                 tableOutput("invitations_table_scores"),
                                 br(),
                                 actionButton(inputId = "invitations_button_send", 
-                                             label = HTML('Send invitations<br>
-                                          <p style="font-size: 0.6em; font-weight: 10;">
-                                         Once sent, site selection will no longer be available</p>'
-                                             )
+                                             label = HTML(HTML_send_button)
                                 ),
                                 br()
                    ),
@@ -667,7 +677,7 @@ server <- function(input, output, session) {
     } 
     
     # show plot
-    p
+    return(p)
   })
   
   
@@ -1058,13 +1068,15 @@ server <- function(input, output, session) {
     mean_acceptance <- mean(data$comfort)
     expected_cost <- sum(data$comfort * data$cost)
     
-    paste0(
+    final_HTML <- paste0(
       '<h4>',
       scales::comma_format()(n_sites),
       ' sites are currently selected to be approached. Of these, ',
       floor(n_sites * mean_acceptance), ' sites are expected to accept the invitation, and have a total expected cost of ',
       scales::label_dollar(accuracy = 1)(expected_cost), '.</h4>'
     )
+    
+    return(final_HTML)
   })
   
   

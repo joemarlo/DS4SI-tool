@@ -29,6 +29,13 @@ HTML_for_collapsible_2 <- '</details><br>'
 HTML_for_collapsible_Weighting_1 <- '<details><summary>View details</summary>'
 HTML_for_collapsible_Weighting_2 <- '</details><br>'
 
+# label for invitations_button_send
+HTML_send_button <- paste0(
+  'Send invitations<br>
+  <p style="font-size: 0.6em; font-weight: 10;">
+  Once sent, site selection will no longer be available</p>'
+)
+
 # violet color
 violet_col <- "#5c5980"
 

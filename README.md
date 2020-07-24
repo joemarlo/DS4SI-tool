@@ -13,9 +13,9 @@ Live version of the current draft can be found here: [jmarlo.shinyapps.io/DS4SI-
 
 - /DS4SI-Tool:
   - /R:
-    - functions.R: various functions that are used mulitple times by app.R
+    - functions.R: various functions that are used multiple times by app.R
     - ggplot_settings.R: color and theme settings for ggplot to be loaded by app.R
-    - score_generalizability.RData: pre-defined score_generalizability() function to be loaded by app.R. This is an .RData file becuase it contains an underlying empirical distribution
+    - score_generalizability.RData: pre-defined score_generalizability() function to be loaded by app.R. This is an .RData file because it contains an underlying empirical distribution
     - variables.R: pre-defined variables to be loaded by app.R
   - /data/jpta.csv: dataset of the population of sites
   - /Markdowns:
