@@ -716,7 +716,7 @@ server <- function(input, output, session) {
     paste0('<h4>',
            'Apply filters to the data using the inputs below. ',
            scales::comma_format()(nrow(filtering_data())),' 
-             sites are currently selected to be approached</h4>'
+             sites are currently selected</h4>'
     )
   )
   
@@ -1032,7 +1032,14 @@ server <- function(input, output, session) {
     # append selected list in the values in the user input field
     updateSelectInput(session = session, inputId = "manual_select_sites_excl",
                       selected = unique(append(input$manual_select_sites_excl, dd$current_row_selections)))
-      
+
+  })
+  
+  # destroy the user input saved IDs after the dataset is saved 
+  observeEvent(input$manual_data_save_button, {
+    updateSelectInput(session = session,
+                      inputId = "manual_select_sites_excl",
+                      selected = NA)
   })
   
   # display the table in the 'table of selected sites' tab within the final selection page
