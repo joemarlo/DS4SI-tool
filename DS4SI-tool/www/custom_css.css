@@ -111,14 +111,14 @@ a {
   background-color: #1e1d29 !important;
 }
 
-#send_invitations_button {
+#invitations_button_send {
   height: 70px;
   font-size: 1.35em;
   font-weight: 500;
   /*padding: 10px 0 10px 0;*/
 }
 
-#restart_button {
+#results_button_restart {
   background-color: #ab2c2c !important;
 }
 

@@ -26,18 +26,17 @@ ui <- fluidPage(
     # initialize shinyjs
     useShinyjs(),
     
-    # download roboto and inconsolata font
+    # download roboto font
     HTML('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'),
-    HTML('<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata">'),
 
-    # custom CSS file
+    # load custom CSS file
     includeCSS("www/custom_css.css"),
 
     # choose default slider skin
     chooseSliderSkin(skin = "Flat",
                      color = "#221146"),
     
-    # top left title
+    # set top left title
     titlePanel("DS4SI Site Selection"),
     
     br(),
@@ -60,13 +59,13 @@ ui <- fluidPage(
                  sidebarLayout(
                    sidebarPanel(
                      width = 4,
-                     htmlOutput("summary_text"),
-                     tableOutput("key_metrics_table"),
+                     htmlOutput("results_text_summary"),
+                     tableOutput("results_table_scores"),
                      br(),br(),
                      actionButton(inputId = "results_button_run_simulation",
                                   label = 'How does your random draw compare to 250 simulated draws?'),
                      br(),br(),
-                     downloadButton("downloadData", "Download the data"),
+                     downloadButton("results_button_download_data", "Download the data"),
                      br(),br(),
                      actionButton(inputId = "results_button_restart",
                                   label = 'Erase these data and restart the selection process')
@@ -78,15 +77,15 @@ ui <- fluidPage(
                        id = "results_tabs",
                        type = "tabs",
                        tabPanel("Summary statistics",
-                                tableOutput("summary_table")),
+                                tableOutput("results_table_summary")),
                        tabPanel("Plots",
                                 plotOutput("results_plot_hist", height = 650)),
                        tabPanel(
                          "Sample vs. population",
-                         plotOutput("samp_v_pop_plots", height = 650)
+                         plotOutput("results_plot_samp_v_pop_", height = 650)
                        ),
                        tabPanel("Sites that accepted",
-                                DT::dataTableOutput('accepted_table'))
+                                DT::dataTableOutput('results_table_accepted'))
                      )
                    )
                  )), 
@@ -107,37 +106,37 @@ ui <- fluidPage(
                      br(),
                      uiOutput("exploration_selection_data_spawn"),
                      selectInput(
-                       inputId ="plot_type",
+                       inputId ="exploration_select_plot_type",
                        label = "Plot type:",
                        multiple = FALSE,
                        choices = c("Scatter", "Histogram", "Density", "Boxplot"),
                        selected = "Scatter"
                      ),
                      selectInput(
-                       inputId ="x_variable",
+                       inputId ="exploration_variable_x",
                        label = "X: ",
                        multiple = FALSE,
                        choices = numeric_vars,
                        selected = numeric_vars[5]
                      ),
                      conditionalPanel(
-                       condition = "input.plot_type == 'Scatter'",
+                       condition = "input.exploration_select_plot_type == 'Scatter'",
                        selectInput(
-                         inputId = "y_variable",
+                         inputId = "exploration_variable_y",
                          label = "Y: ",
                          multiple = FALSE,
                          choices = numeric_vars,
                          selected = numeric_vars[3]
                        ),
                        selectInput(
-                         inputId = "fill_variable",
+                         inputId = "exploration_variable_fill",
                          label = "Fill color: ",
                          multiple = FALSE,
                          choices = c(numeric_vars, categorical_vars, "cluster"),
                          selected = numeric_vars[2]
                        ),
                        conditionalPanel(
-                         condition = "input.fill_variable == 'cluster'",
+                         condition = "input.exploration_variable_fill == 'cluster'",
                          sliderInput(
                            inputId = "n_clusters",
                            label = "Number of clusters: ",
@@ -151,22 +150,22 @@ ui <- fluidPage(
                          )
                        ),
                        selectInput(
-                         inputId = "size_variable",
+                         inputId = "exploration_variable_size",
                          label = "Size: ",
                          multiple = FALSE,
                          choices = c(numeric_vars, categorical_vars),
                          selected = numeric_vars[1]
                        ),
                        selectInput(
-                         inputId = "regression",
+                         inputId = "exploration_variable_regression",
                          label = "Linear regression: ",
                          multiple = FALSE,
                          choices = c('none', 'include'),
                          selected = 'none'
                        )
-                     ),
+                     ), 
                      conditionalPanel(
-                       condition = "input.plot_type == 'Histogram'",
+                       condition = "input.exploration_select_plot_type == 'Histogram'",
                        sliderInput(
                          inputId = "n_bins",
                          label = "Number of bins: ",
@@ -177,7 +176,7 @@ ui <- fluidPage(
                        )
                      ),
                      conditionalPanel(
-                       condition = "input.plot_type == 'Boxplot'",
+                       condition = "input.exploration_select_plot_type == 'Boxplot'",
                        selectInput(
                          inputId = "group_variable",
                          label = "Grouping: ",
@@ -186,14 +185,24 @@ ui <- fluidPage(
                        )
                      ),
                      selectInput(
-                       inputId = "facet_variable",
+                       inputId = "exploration_variable_facet",
                        label = "Facet variable: ",
                        multiple = FALSE,
                        choices = c("none", categorical_vars),
                        selected = "none"
                      ),
                      conditionalPanel(
-                       condition = "input.plot_type == 'Scatter'",
+                       condition = "input.exploration_variable_facet != 'none'",
+                       selectInput(
+                         inputId = "exploration_variable_facet_second",
+                         label = "Second facet variable: ",
+                         multiple = FALSE,
+                         choices = c("none", categorical_vars),
+                         selected = "none"
+                       )
+                     ),
+                     conditionalPanel(
+                       condition = "input.exploration_select_plot_type == 'Scatter'",
                        sliderInput(
                          inputId = "alpha_variable",
                          label = "Opacity: ",
@@ -219,7 +228,7 @@ ui <- fluidPage(
                    
                    mainPanel(
                      width = 6,
-                     plotOutput('advanced_ggplot',  height = 600,
+                     plotOutput('exploration_plot',  height = 600,
                                 brush = brushOpts(id = "plot1_brush")),
                      br(),
                      htmlOutput("brush_text"),
@@ -278,12 +287,12 @@ ui <- fluidPage(
                                             label = "Dataset to sample: ", 
                                             multiple = FALSE,
                                             choices = NULL),
-                                selectInput(inputId = "simple_or_stratified", 
+                                selectInput(inputId = "sampling_select_simple_or_stratified", 
                                             label = "Simple or stratified sample: ", 
                                             multiple = FALSE,
                                             choices = c("simple", "stratified")),
                                 conditionalPanel(
-                                  condition = "input.simple_or_stratified == 'stratified'",
+                                  condition = "input.sampling_select_simple_or_stratified == 'stratified'",
                                   selectizeInput("strata_variables", "Strata variable (limited to two): ", 
                                                  multiple = TRUE,
                                                  options = list(maxItems = 2),
@@ -294,14 +303,14 @@ ui <- fluidPage(
                                   br()
                                 ),
                                 conditionalPanel(
-                                  condition = "input.simple_or_stratified == 'stratified'",
+                                  condition = "input.sampling_select_simple_or_stratified == 'stratified'",
                                   htmlOutput("n_strata"),
                                   br(),
                                   actionButton(inputId = "sample_reset_sliders", label = "Reset sliders"),
                                   br(), br()
                                 ),
                                 conditionalPanel(
-                                  condition = "input.simple_or_stratified == 'simple'",
+                                  condition = "input.sampling_select_simple_or_stratified == 'simple'",
                                   # this maximum input varies based on inputs; see code inside random_sample reactive
                                   sliderInput("sampling_slider_simple_n", "Sample size: ", min = 0, max = population_n, value = population_n, step = 1)
                                 ),
@@ -334,7 +343,7 @@ ui <- fluidPage(
                                 selectInput(inputId = "weighting_dataset", label = "Dataset to apply weights to: ", multiple = FALSE,
                                             choices = NULL),
                                 uiOutput("weighting_sliders"),
-                                sliderInput(inputId = "weight_n", 
+                                sliderInput(inputId = "weighting_slider_n", 
                                             label = "Only include top n sites: ", 
                                             min = 0, 
                                             max = population_n, 
@@ -361,12 +370,12 @@ ui <- fluidPage(
                                 br(),
                                 selectInput(inputId = "manual_dataset", label = "Dataset to apply exclusions to: ", 
                                             multiple = FALSE, choices = NULL),
-                                selectInput("sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
+                                selectInput("manual_select_sites_excl", "Exclude sites manually by site ID:", multiple = TRUE,
                                             choices = sort(unique(as.character(population_dataset$site_id)))),
                                 br(),
                                 HTML("<strong>Exclude sites by selecting rows on the table: </strong><br>"),
                                 br(),
-                                actionButton(inputId = "save_row_selections", label = "Exclude selected rows"),
+                                actionButton(inputId = "manual_button_save_row_selections", label = "Exclude selected rows"),
                                 br(),br(),
                                 # save dataset
                                 textInput("manual_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
@@ -388,11 +397,11 @@ ui <- fluidPage(
                                 br(),
                                 selectInput(inputId = "invitations_dataset", label = "Dataset: ", multiple = FALSE,
                                             choices = NULL), #c("All sites", "Sites to approach")),
-                                htmlOutput("summary_final_selection"),
+                                htmlOutput("invitations_table_summary"),
                                 br(),
-                                tableOutput("send_scores_table"),
+                                tableOutput("invitations_table_scores"),
                                 br(),
-                                actionButton(inputId = "send_invitations_button", 
+                                actionButton(inputId = "invitations_button_send", 
                                              label = HTML('Send invitations<br>
                                           <p style="font-size: 0.6em; font-weight: 10;">
                                          Once sent, site selection will no longer be available</p>'
@@ -401,7 +410,7 @@ ui <- fluidPage(
                                 br()
                    ),
                    mainPanel(width = 6,
-                             plotOutput("send_plots", height = 650)
+                             plotOutput("invitations_plots", height = 650)
                    )
                  )
         )
@@ -465,7 +474,7 @@ server <- function(input, output, session) {
     save_name <- paste0(id, "_name")
     save_button <- paste0(id, "_button")
     
-    # make save button label equal to the input'ed dataset name 
+    # make save button label equal to the inputted dataset name 
     observeEvent(input[[save_name]], {
       
       updateActionButton(session = session, 
@@ -480,21 +489,22 @@ server <- function(input, output, session) {
       # clean up name for logic checks
       clean_save_name <- str_to_lower(str_trim(input[[save_name]]))
       
-      # make sure input'ed dataset name is not already used
+      # make sure inputted dataset name is not already used and is not length 0
       # this prevents the saving of datasets if the name already exists in
       # datasets_available$data_names
       validate(
-        need(!(clean_save_name %in% str_to_lower(datasets_available$data_names)),
+        need(!(clean_save_name %in% str_to_lower(datasets_available$data_names)) &
+               length(clean_save_name) > 0,
              "Dataset name already used")
       )
       
       # add input data to list of of dataframes 
       dataset_to_save <- switch(
         id,
-        "filtering_data_save" = filtered_table(),
-        "sampling_data_save" = current_sample(),
+        "filtering_data_save" = filtering_data(),
+        "sampling_data_save" = sampling_data(),
         # remove site_score column before saving
-        "weighting_data_save" = weighting_current_data()[, setdiff(colnames(weighting_current_data()), 'site_score')],
+        "weighting_data_save" = weighting_data()[, setdiff(colnames(weighting_data()), 'site_score')],
         "manual_data_save" = manual_selected_data()
       )
       datasets_available$data <- c(datasets_available$data, list(dataset_to_save))
@@ -571,41 +581,47 @@ server <- function(input, output, session) {
   
   
   # site exploration plots
-  output$advanced_ggplot <- renderPlot({
+  output$exploration_plot <- renderPlot({
     
     # set which dataset to use
     plot_data <- exploration_selected_data()
     
     # add kmeans cluster to dataframe
-    if(input$plot_type == 'Scatter' & input$fill_variable == "cluster"){
-      km <- plot_data %>% 
-        select(input$x_variable, input$y_variable) %>% 
-        kmeans(centers = input$n_clusters, iter.max = 50, nstart = 5)
+    if(input$exploration_select_plot_type == 'Scatter' & input$exploration_variable_fill == "cluster"){
+      
+      # run kmeans algo
+      km <- kmeans(x = plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)],
+                   centers = input$n_clusters, iter.max = 50, nstart = 5)
+      
+      # add cluster assignment to the dataframe
       plot_data$cluster <- as.factor(km$cluster)
     }
     
     # create base ggplot object
     p <- plot_data %>% 
-      ggplot(aes_string(x = input$x_variable))
+      ggplot(aes_string(x = input$exploration_variable_x))
     
     # scatter
-    if (input$plot_type == 'Scatter'){
+    if (input$exploration_select_plot_type == 'Scatter'){
       p <- p +
-        geom_point(aes_string(y = input$y_variable,
-                              fill = input$fill_variable,
-                              size = input$size_variable,
-                              color = input$fill_variable),
+        geom_point(aes_string(y = input$exploration_variable_y,
+                              fill = input$exploration_variable_fill,
+                              size = input$exploration_variable_size,
+                              color = input$exploration_variable_fill),
                    alpha = input$alpha_variable)
       
-      # add regression line
-      if(input$regression == 'include'){
-        p <- p + geom_smooth(aes(y = get(input$y_variable)), 
-                             method = "lm",
-                             formula = 'y ~ x')
+      # regression line
+      if(input$exploration_variable_regression == 'include'){
+        p <- p + geom_smooth(
+          aes(y = get(input$exploration_variable_y)),
+          method = "lm",
+          formula = 'y ~ x',
+          color = "grey20"
+        )
       } 
       
-      # add cluster centers
-      if(input$fill_variable == "cluster"){
+      # cluster centers
+      if(input$exploration_variable_fill == "cluster"){
         p <- p +
           geom_point(data = as_tibble(km$centers),
                      aes_string(x = colnames(km$centers)[1],
@@ -617,31 +633,37 @@ server <- function(input, output, session) {
     }
     
     # histogram
-    if (input$plot_type == 'Histogram'){
+    if (input$exploration_select_plot_type == 'Histogram'){
       p <- p + geom_histogram(color = 'white', bins = input$n_bins, 
                               fill = violet_col, alpha = 0.9) +
         labs(y = NULL)
     }
     
     # density
-    if (input$plot_type == 'Density'){
+    if (input$exploration_select_plot_type == 'Density'){
       p <- p + geom_density(fill = violet_col, alpha = 0.5) +
         labs(y = NULL)
     }
     
     # boxplot
-    if (input$plot_type == 'Boxplot'){
+    if (input$exploration_select_plot_type == 'Boxplot'){
       p <- p + 
         geom_boxplot(fill = violet_col, alpha = 0.5,
                      if(input$group_variable != 'none') aes_string(y = input$group_variable)
         ) +
         coord_flip() +
-        labs(y = NULL)
+        scale_y_discrete()
     }
     
     # add faceting
-    if(input$facet_variable != "none"){
-      p <- p + facet_wrap(input$facet_variable, ncol = 1, labeller = label_both)
+    if (input$exploration_variable_facet != "none"){
+      
+      if (input$exploration_variable_facet_second == "none"){
+      p <- p + facet_grid(input$exploration_variable_facet, labeller = label_both)
+      } else{
+        p <- p + facet_grid(list(input$exploration_variable_facet, input$exploration_variable_facet_second),
+                            labeller = label_both)
+      }
     } 
     
     # show plot
@@ -652,7 +674,7 @@ server <- function(input, output, session) {
   # text above the brush table
   output$brush_text <- renderText({
     
-    if (input$facet_variable == "none" & input$plot_type == 'Scatter') {
+    if (input$exploration_variable_facet == "none" & input$exploration_select_plot_type == 'Scatter') {
       txt <- "<h4>Highlight data points on the above plot to view their information below</h4>"
     } else {
       txt <- NULL
@@ -666,7 +688,7 @@ server <- function(input, output, session) {
   output$brush_info <- DT::renderDataTable(
     
     # show only if there isn't faceting
-    if (input$facet_variable == "none" & input$plot_type == 'Scatter') {
+    if (input$exploration_variable_facet == "none" & input$exploration_select_plot_type == 'Scatter') {
       
       custom_datatable(
         brushedPoints(population_dataset, input$plot1_brush),
@@ -680,11 +702,10 @@ server <- function(input, output, session) {
   # filtering page ----------------------------------------------------------
   
   # text at top of page
-  # output$filtering_html_n_sites_selected <- renderText(n_sites_text(filtered_table()))
   output$filtering_html_n_sites_selected <- renderText(
     paste0('<h4>',
            'Apply filters to the data using the inputs below. ',
-           scales::comma_format()(nrow(filtered_table())),' 
+           scales::comma_format()(nrow(filtering_data())),' 
              sites are currently selected to be approached</h4>'
     )
   )
@@ -729,9 +750,9 @@ server <- function(input, output, session) {
   })
   
   # reactive function to return the current table filtered based on user inputs
-  filtered_table <- reactive({
+  filtering_data <- reactive({
     
-    # filter dataframe
+    # apply user's inputted filters
     data <- filter_selected_data()
     data <- data[data$region %in% input$filtering_select_region,]
     data <- data[data$urban %in% input$filtering_select_urban,]
@@ -751,12 +772,12 @@ server <- function(input, output, session) {
   })
   
   # histograms and bar plots on 'plots' tab
-  output$filtering_plot_hist <- renderPlot({draw_histograms(filtered_table())})
+  output$filtering_plot_hist <- renderPlot({draw_histograms(filtering_data())})
   
   # display the table in the 'table of selected sites' tab
   output$filtering_table_selected <- DT::renderDataTable(
     custom_datatable(
-      filtered_table(),
+      filtering_data(),
       selection = 'none'
     ) %>%
       formatRound(5:8, 2) %>%
@@ -765,7 +786,7 @@ server <- function(input, output, session) {
   # display the table in the 'table of excluded sites' tab
   output$filtering_table_excluded <- DT::renderDataTable(
     custom_datatable(
-      anti_join(population_dataset, filtered_table()),
+      anti_join(population_dataset, filtering_data()),
       selection = 'none'
     ) %>%
       formatRound(5:8, 2) %>%
@@ -775,21 +796,21 @@ server <- function(input, output, session) {
   # sampling page -----------------------------------------------------------
   
   # select which dataset to use on sampling tab
-  sample_selected_data <- reactive({
+  sampling_selected_data <- reactive({
     datasets_available$data[[match(input$sampling_dataset, datasets_available$data_names)]]
   })
   
   # update sampling_slider_simple_n slider max so it's not larger than the dataset
-  observeEvent(nrow(sample_selected_data()), {
+  observeEvent(nrow(sampling_selected_data()), {
     updateSliderInput(session = session, 
                       inputId = 'sampling_slider_simple_n', 
-                      value = nrow(sample_selected_data()),
-                      max = nrow(sample_selected_data()))
+                      value = ceiling(nrow(sampling_selected_data()) / 2),
+                      max = nrow(sampling_selected_data()))
   })
   
   # table of strata combinations that exist for the selected dataset
   strata_combos <- reactive({
-    sample_selected_data() %>%
+    sampling_selected_data() %>%
       group_by_at(vars(input$strata_variables)) %>%
       tally() %>%
       unite("strata_combos", input$strata_variables, sep = "_")
@@ -825,12 +846,12 @@ server <- function(input, output, session) {
   })
   
   # random sampling
-  current_sample <- eventReactive(input$sampling_button_run_sampling, {
+  sampling_data <- eventReactive(input$sampling_button_run_sampling, {
     
-    data <- sample_selected_data()
+    data <- sampling_selected_data()
     
     # if simple sampling
-    if (input$simple_or_stratified == "simple"){
+    if (input$sampling_select_simple_or_stratified == "simple"){
       
       # sample the data
       sampled_data <- slice_sample(data, n = input$sampling_slider_simple_n, replace = FALSE)
@@ -872,12 +893,12 @@ server <- function(input, output, session) {
   })    
   
   # the plots for sampling page
-  output$sampling_plots <- renderPlot({draw_histograms(current_sample())})
+  output$sampling_plots <- renderPlot({draw_histograms(sampling_data())})
   
   # display the table in the sampling tab    
   output$sampling_table_selected <- DT::renderDataTable(
     custom_datatable(
-      current_sample(),
+      sampling_data(),
       selection = 'none'
     ) %>%
       formatRound(5:8, 2) %>%
@@ -888,7 +909,7 @@ server <- function(input, output, session) {
   output$sampling_table_excluded <- DT::renderDataTable(
     custom_datatable(
       anti_join(population_dataset, 
-                current_sample()),
+                sampling_data()),
       selection = 'none'
     ) %>%
       formatRound(5:8, 2) %>%
@@ -899,15 +920,15 @@ server <- function(input, output, session) {
   # weighting page ----------------------------------------------------------
   
   # select which dataset to use on weighting page
-  weight_selected_data <- reactive({
+  weighting_selected_data <- reactive({
     datasets_available$data[[match(input$weighting_dataset, datasets_available$data_names)]]
   })
   
-  # update weight_n slider max so it's not larger than the dataset
-  observeEvent(nrow(weight_selected_data()), {
-    updateSliderInput(session, "weight_n",
-                      value = nrow(weight_selected_data()),
-                      max = nrow(weight_selected_data())
+  # update weighting_slider_n slider max so it's not larger than the dataset
+  observeEvent(nrow(weighting_selected_data()), {
+    updateSliderInput(session, "weighting_slider_n",
+                      value = nrow(weighting_selected_data()),
+                      max = nrow(weighting_selected_data())
     )
   })
   
@@ -927,9 +948,9 @@ server <- function(input, output, session) {
   })
   
   # current weighted dataset based on inputs
-  weighting_current_data <- reactive({
+  weighting_data <- reactive({
     
-    data <- weight_selected_data()
+    data <- weighting_selected_data()
     
     # scale the variables
     numeric_vars_scaled <- data[, numeric_vars]
@@ -944,7 +965,7 @@ server <- function(input, output, session) {
     data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
     
     # filter to just the top rows selected by the user based on site_score
-    data <- data[order(-data$site_score), ][1:input$weight_n,]
+    data <- data[order(-data$site_score), ][1:input$weighting_slider_n,]
     
     # make site_score as first column in dataframe
     data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
@@ -958,7 +979,7 @@ server <- function(input, output, session) {
   # display the table in the 'table of selected sites' tab within the weighting page
   output$weighting_selected_table <- DT::renderDataTable(
     DT::datatable(
-      weighting_current_data(),
+      weighting_data(),
       selection = 'none',
       rownames = FALSE,
       options = list(
@@ -986,21 +1007,21 @@ server <- function(input, output, session) {
     selected_data <- datasets_available$data[[match(input$manual_dataset, datasets_available$data_names)]]
     
     # exclude rows from manual input
-    selected_data <- selected_data[!selected_data$site_id %in% input$sites_excl,]
+    selected_data <- selected_data[!selected_data$site_id %in% input$manual_select_sites_excl,]
   
     return(selected_data)
   })
   
   # save row selections when button is clicked
   dd <- reactiveValues(select = NULL)
-  observeEvent(input$save_row_selections, {
+  observeEvent(input$manual_button_save_row_selections, {
     
     # get the site ids from the current selected rows
     dd$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
 
     # append selected list in the values in the user input field
-    updateSelectInput(session = session, inputId = "sites_excl",
-                      selected = unique(append(input$sites_excl, dd$current_row_selections)))
+    updateSelectInput(session = session, inputId = "manual_select_sites_excl",
+                      selected = unique(append(input$manual_select_sites_excl, dd$current_row_selections)))
       
   })
   
@@ -1029,7 +1050,7 @@ server <- function(input, output, session) {
   })
   
   # text for final selection page
-  output$summary_final_selection <- renderText({
+  output$invitations_table_summary <- renderText({
     
     data <- sent_invitations_data()
     
@@ -1048,7 +1069,7 @@ server <- function(input, output, session) {
   
   
   # table of key metrics for the send invitations page
-  output$send_scores_table <- renderTable(
+  output$invitations_table_scores <- renderTable(
     score_attributes({
       sent_invitations_data()
     }), 
@@ -1056,7 +1077,7 @@ server <- function(input, output, session) {
   )
   
   # take action when the submit invitations button is clicked
-  observeEvent(input$send_invitations_button, {
+  observeEvent(input$invitations_button_send, {
     
     # move user to the final tab
     updateNavlistPanel(session = session, inputId = "nav", selected = "4. Results")
@@ -1113,9 +1134,12 @@ server <- function(input, output, session) {
       # population, sent invitations, and accepted invitations sites
     updateSelectInput(session = session, inputId = "exploration_dataset",
                       selected = "stacked_results")
-    updateSelectInput(session = session, inputId = "facet_variable",
+    updateSelectInput(session = session, inputId = "exploration_variable_facet",
                       choices = c("none", "site_group", categorical_vars),
                       selected = "site_group")
+    updateSelectInput(session = session, inputId = "exploration_variable_facet_second",
+                      choices = c("none", "site_group", categorical_vars),
+                      selected = "none")
     updateSelectInput(session = session, inputId = "group_variable",
                       choices = c("none", "site_group", categorical_vars))
     
@@ -1142,13 +1166,13 @@ server <- function(input, output, session) {
   })
   
   # plots on send invitations page
-  output$send_plots <- renderPlot({draw_histograms({sent_invitations_data()})})
+  output$invitations_plots <- renderPlot({draw_histograms({sent_invitations_data()})})
   
   
   # results page ------------------------------------------------------------
   
   # text for Results page page
-  output$summary_text <- renderText({
+  output$results_text_summary <- renderText({
     
     data <- final_results[final_results$accepted,]
     
@@ -1165,7 +1189,7 @@ server <- function(input, output, session) {
   })
   
   # table of key metrics for the Results page
-  output$key_metrics_table <- renderTable(
+  output$results_table_scores <- renderTable(
     score_attributes(sites_that_accepted), 
     rownames = TRUE, align = 'r'
   )
@@ -1176,7 +1200,7 @@ server <- function(input, output, session) {
     # insert the tab
     appendTab(inputId = "results_tabs",
               tabPanel("Actual vs. expected", 
-                       plotOutput("actual_vs_expected_plots", height = 650)),
+                       plotOutput("results_plot_actual_v_expected", height = 650)),
               select = TRUE
     )
     
@@ -1191,7 +1215,7 @@ server <- function(input, output, session) {
   })
   
   # summary table for the Results page
-  output$summary_table <- renderTable({
+  output$results_table_summary <- renderTable({
     
     data <- final_results
     
@@ -1255,7 +1279,7 @@ server <- function(input, output, session) {
   output$results_plot_hist <- renderPlot({draw_histograms(sites_that_accepted)})
   
   # sample vs population plots
-  output$samp_v_pop_plots <- renderPlot({
+  output$results_plot_samp_v_pop_ <- renderPlot({
     
     # stack a dataframe with groups per each population (will contain duplicates)
     population_sites <- final_results
@@ -1314,7 +1338,7 @@ server <- function(input, output, session) {
   })
   
   # table of sites that accepted for the Results table
-  output$accepted_table <- DT::renderDataTable(
+  output$results_table_accepted <- DT::renderDataTable(
     
     custom_datatable(
       sites_that_accepted,
@@ -1327,7 +1351,7 @@ server <- function(input, output, session) {
   
   
   # actual vs expected plots
-  output$actual_vs_expected_plots <- renderPlot({
+  output$results_plot_actual_v_expected <- renderPlot({
     
     data <- final_results
     sent_invitations_data <- data[data$sent_invitation,]
@@ -1416,8 +1440,8 @@ server <- function(input, output, session) {
   })
   
   # download button for data_to_download
-  output$downloadData <- downloadHandler(
-    filename <- "sites.csv",
+  output$results_button_download_data <- downloadHandler(
+    filename <- "DS4SI_sites.csv",
     content <- function(file) {
       write.csv(final_results, file, row.names = FALSE)
     }
