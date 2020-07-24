@@ -80,7 +80,7 @@ ui <- fluidPage(
                        tabPanel("Summary statistics",
                                 tableOutput("summary_table")),
                        tabPanel("Plots",
-                                plotOutput("final_hist_plots", height = 650)),
+                                plotOutput("results_plot_hist", height = 650)),
                        tabPanel(
                          "Sample vs. population",
                          plotOutput("samp_v_pop_plots", height = 650)
@@ -260,9 +260,9 @@ ui <- fluidPage(
                              tabsetPanel(
                                type = "tabs",
                                tabPanel("Plots",
-                                        plotOutput("filtered_plots", height = 650)),
-                               tabPanel("Table of selected sites", DT::dataTableOutput('filtering_selected_table')),
-                               tabPanel("Table of excluded sites", DT::dataTableOutput('filtering_excluded_table'))
+                                        plotOutput("filtering_plot_hist", height = 650)),
+                               tabPanel("Table of selected sites", DT::dataTableOutput('filtering_table_selected')),
+                               tabPanel("Table of excluded sites", DT::dataTableOutput('filtering_table_excluded'))
                              )
                    )
                  )
@@ -584,7 +584,7 @@ server <- function(input, output, session) {
       plot_data$cluster <- as.factor(km$cluster)
     }
     
-    # create ase ggplot object
+    # create base ggplot object
     p <- plot_data %>% 
       ggplot(aes_string(x = input$x_variable))
     
@@ -751,10 +751,10 @@ server <- function(input, output, session) {
   })
   
   # histograms and bar plots on 'plots' tab
-  output$filtered_plots <- renderPlot({draw_histograms(filtered_table())})
+  output$filtering_plot_hist <- renderPlot({draw_histograms(filtered_table())})
   
   # display the table in the 'table of selected sites' tab
-  output$filtering_selected_table <- DT::renderDataTable(
+  output$filtering_table_selected <- DT::renderDataTable(
     custom_datatable(
       filtered_table(),
       selection = 'none'
@@ -763,7 +763,7 @@ server <- function(input, output, session) {
       formatRound(9, 0))
   
   # display the table in the 'table of excluded sites' tab
-  output$filtering_excluded_table <- DT::renderDataTable(
+  output$filtering_table_excluded <- DT::renderDataTable(
     custom_datatable(
       anti_join(population_dataset, filtered_table()),
       selection = 'none'
@@ -1252,7 +1252,7 @@ server <- function(input, output, session) {
   )
   
   # the histograms
-  output$final_hist_plots <- renderPlot({draw_histograms(sites_that_accepted)})
+  output$results_plot_hist <- renderPlot({draw_histograms(sites_that_accepted)})
   
   # sample vs population plots
   output$samp_v_pop_plots <- renderPlot({
