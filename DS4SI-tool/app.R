@@ -345,7 +345,7 @@ ui <- fluidPage(
                                 uiOutput("weighting_sliders"),
                                 sliderInput(inputId = "weighting_slider_n", 
                                             label = "Only include top n sites: ", 
-                                            min = 0, 
+                                            min = 1, 
                                             max = population_n, 
                                             value = population_n, 
                                             step = 1),
@@ -541,7 +541,7 @@ server <- function(input, output, session) {
         runjs(
           paste0('document.getElementById("',
                  save_name,
-                 '").style.color = "red"')
+                 '").style.color = "#c92626"')
         )
       }
       
@@ -820,9 +820,9 @@ server <- function(input, output, session) {
     
     # create vector of the pairwise variable names
     # this method works even if one or two input$strata_variables are entered
-    name_combos <- reduce(
-        .x = sampling_selected_data()[, input$strata_variables],
-        .f = paste, sep = "_"
+    name_combos <- Reduce(
+        x = sampling_selected_data()[, input$strata_variables],
+        f = function(var1, var2) paste(var1, var2, sep = "_")
       )
 
     # tally the names
@@ -1066,7 +1066,8 @@ server <- function(input, output, session) {
   # display the table in the 'table of excluded sites' tab: Final selection tab
   output$manual_table_excluded <- DT::renderDataTable(
     custom_datatable(
-      anti_join(population_dataset, manual_selected_data())
+      anti_join(population_dataset, manual_selected_data()),
+      selection = 'none'
     ) %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0))
@@ -1254,13 +1255,20 @@ server <- function(input, output, session) {
     # create list of dataframes representing the three groups
     list_of_tables <- list(sites_that_accepted, sent_invitations_data, data)
     
+    
     # calculate mean numeric stats per group
     numeric_means <- sapply(list_of_tables, function(df){
       apply(df[, numeric_vars], MARGIN = 2, FUN = mean)
     })
     
+    # convert to data frame and move rownames to a column
+    numeric_means <- as.data.frame(numeric_means)
+    numeric_means$row_name <- rownames(numeric_means)
+    rownames(numeric_means) <- NULL
+    colnames(numeric_means) <- c('Accepted', 'Sent invitation', 'Population', 'row_name')
+    
     # calculate proportions for categorical per group
-    categorical_proportions <- sapply(list_of_tables, function(df) {
+    categorical_proportions <- sapply(list_of_tables, simplify = FALSE, function(df) {
       
       # calculate percent other prog / urbanicity
       prog_urban <- apply(df[, c("other_prog", "urban")], MARGIN = 2, function(col) {
@@ -1273,36 +1281,70 @@ server <- function(input, output, session) {
       })
       
       # bind data into a matrix
-      all_categoricals <- rbind(as.matrix(prog_urban), regions)
+      all_categoricals <- as.data.frame(rbind(as.matrix(prog_urban), regions))
+      
+      # move row names to column for later merging
+      all_categoricals$row_name <- rownames(all_categoricals)
       
       return(all_categoricals)
     })
     
-    # add row names
-    rownames(categorical_proportions) <- c("other_prog", "urban", 
-                                           sort(unique(population_dataset$region)))
-    
-    # bind into one table and round the figures
-    summary_table <- rbind(numeric_means, categorical_proportions)
-    summary_table <- round(summary_table, 2)
-    
-    # set column and row names
-    colnames(summary_table) <- c('Accepted', 'Sent invitation', 'Population')
-    rownames(summary_table) <- c(
-      "Mean comfort",
-      "Mean cost",
-      "Mean income",
-      "Mean HS rate",
-      "Mean unemployment",
-      "% with other program",
-      "% urbanicity",
-      "% Northcentral",
-      "% Northeast",
-      "% South",
-      "% West"
+    # merge all the categorical data frames into one using full joins
+    categorical_proportions <- Reduce(
+      x = categorical_proportions,
+      f = function(df1, df2) merge(df1, df2, by = 'row_name', all.x = TRUE, all.y = TRUE)
     )
     
-    return(summary_table)
+    # set column names
+    colnames(categorical_proportions) <- c('row_name', 'Accepted', 'Sent invitation', 'Population')
+    
+    # merge with numeric means
+    summary_table <- rbind(numeric_means, categorical_proportions)
+    
+    # create shell of the summary table
+      # this ensures that any NAs in the previous calculations (e.g. a region is missing)
+      # won't affect the structure of the table
+      # 'row_name' matches the natual output of the above apply functions
+      # 'clean_row_name' is what we want the table to eventually display
+    shell_table <- data.frame(
+      'row_name' = c(
+        "comfort",
+        "cost",
+        "income",
+        "pct_hs",
+        "unemp",
+        "other_prog",
+        "urban",
+        "Northcentral",
+        "Northeast",
+        "South",
+        "West"
+      ),
+      'clean_row_name' = c(
+        "Mean comfort",
+        "Mean cost",
+        "Mean income",
+        "Mean HS rate",
+        "Mean unemployment",
+        "% with other program",
+        "% urbanicity",
+        "% Northcentral",
+        "% Northeast",
+        "% South",
+        "% West"
+      ), stringsAsFactors = FALSE)
+    
+    # join the tables
+    summary_table <- merge(shell_table, summary_table, by = 'row_name', all.x = TRUE)
+    
+    # replace NAs with 0s
+    summary_table[is.na(summary_table)] <- 0
+    
+    # change back to matrix
+    final_table <- as.matrix(summary_table[, c('Accepted', 'Sent invitation', 'Population')])
+    rownames(final_table) <- summary_table$clean_row_name
+    
+    return(final_table)
     
   }, rownames = TRUE
   )
