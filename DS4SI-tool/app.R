@@ -3,11 +3,8 @@ library(shiny)
 library(shinyWidgets)
 library(DT)
 library(gridExtra)
-# library(rlang)
 library(shinyjs)
-library(quantreg) # for weighted box plot
 library(viridis) # for better colors for color blind people
-# options(scipen = 999999)
 set.seed(44)
 
 
@@ -820,16 +817,29 @@ server <- function(input, output, session) {
   
   # table of strata combinations that exist for the selected dataset
   strata_combos <- reactive({
-    sampling_selected_data() %>%
-      group_by_at(vars(input$strata_variables)) %>%
-      tally() %>%
-      unite("strata_combos", input$strata_variables, sep = "_")
+    
+    # create vector of the pairwise variable names
+    # this method works even if one or two input$strata_variables are entered
+    name_combos <- reduce(
+        .x = sampling_selected_data()[, input$strata_variables],
+        .f = paste, sep = "_"
+      )
+
+    # tally the names
+    strata_combos <- as.data.frame(table(name_combos))
+
+    # clean up names and variable types
+    colnames(strata_combos) <- c("name", "n")
+    strata_combos$name <- as.character(strata_combos$name)
+
+    return(strata_combos)
+
   })
   
   # generate sliders for each strata combinations
   output$sampling_strata_sliders <- renderUI({
     tagList(
-      map2(.x = strata_combos()$strata_combos,
+      map2(.x = strata_combos()$name,
            .y = strata_combos()$n,
            .f = function(combo, max_n) {
              sliderInput(
@@ -845,7 +855,7 @@ server <- function(input, output, session) {
   observeEvent(input$sample_reset_sliders, {
     
     # get current list of sliders
-    slider_ids <- strata_combos()$strata_combos
+    slider_ids <- strata_combos()$name
     
     # update the position of the sliders to the maximum amount that still
     # allows equality across the sliders
@@ -864,8 +874,9 @@ server <- function(input, output, session) {
     if (input$sampling_select_simple_or_stratified == "simple"){
       
       # sample the data
-      sampled_data <- slice_sample(data, n = input$sampling_slider_simple_n, replace = FALSE)
-      
+      indices <- sample(1:nrow(data), size = input$sampling_slider_simple_n, replace = FALSE)
+      sampled_data <- data[indices,]
+
       return(sampled_data)
       
     } else {
@@ -873,22 +884,24 @@ server <- function(input, output, session) {
       
       # split the data into the unique groups
       split_groups <- split(x = data,
-                            f = select(data, input$strata_variables),
+                            f = data[, input$strata_variables],
                             sep = "_")
       
       # reorder list so it matches strata_combos() order
-      split_groups <- split_groups[strata_combos()$strata_combos]
+      split_groups <- split_groups[strata_combos()$name]
       
       # list of current slider input values
-      sample_size_per_group <- reactiveValuesToList(input)[strata_combos()$strata_combos]
+      sample_size_per_group <- reactiveValuesToList(input)[strata_combos()$name]
       
       # sample n rows per strata
       sampled_data <- map2_dfr(.x = split_groups,
                                .y = sample_size_per_group,
                                .f = function(strata, strata_size){
                                  
-                                 slice_sample(strata, n = strata_size, replace = FALSE)
-                                 
+                                 # sample the data
+                                 indices <- sample(1:nrow(strata), size = strata_size, replace = FALSE)
+                                 sampled_strata <- strata[indices,]
+                                 return(sampled_strata)
                                })
       
       return(sampled_data)
@@ -898,7 +911,7 @@ server <- function(input, output, session) {
   
   # show text below sample size slider indicating total sample size
   output$n_strata <- renderText({
-    slider_sum <- sum(unlist(reactiveValuesToList(input)[strata_combos()$strata_combos]))
+    slider_sum <- sum(unlist(reactiveValuesToList(input)[strata_combos()$name]))
     paste0("The total selected sample size is ", slider_sum)
   })    
   
@@ -1012,7 +1025,7 @@ server <- function(input, output, session) {
   
   # manual exclusions page --------------------------------------------------
   
-  # select which dataset to use on manual exclusison page
+  # select which dataset to use on manual exclusion page
   manual_selected_data <- reactive({
     selected_data <- datasets_available$data[[match(input$manual_dataset, datasets_available$data_names)]]
     
@@ -1246,10 +1259,10 @@ server <- function(input, output, session) {
       apply(df[, numeric_vars], MARGIN = 2, FUN = mean)
     })
     
-    # calculate proportions for categorgical per group
+    # calculate proportions for categorical per group
     categorical_proportions <- sapply(list_of_tables, function(df) {
       
-      # calculate percent other prog / urbancity
+      # calculate percent other prog / urbanicity
       prog_urban <- apply(df[, c("other_prog", "urban")], MARGIN = 2, function(col) {
         table(col)["TRUE"] / length(col)
       })
@@ -1327,8 +1340,8 @@ server <- function(input, output, session) {
       group_by(population, name, value) %>%
       tally() %>%
       group_by(population, name) %>% 
-      mutate(prop = n / sum(n)) %>%
-      mutate(name = factor(name, levels = categorical_vars)) %>% 
+      mutate(prop = n / sum(n),
+             name = factor(name, levels = categorical_vars)) %>% 
       ggplot(aes(x = value, y = prop, group = population, fill = population)) +
       geom_col(position = 'dodge', color = 'white', alpha = 0.6) +
       scale_fill_viridis_d() +
