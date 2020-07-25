@@ -1340,6 +1340,9 @@ server <- function(input, output, session) {
     # replace NAs with 0s
     summary_table[is.na(summary_table)] <- 0
     
+    # sort the rows so the labels match shell_table
+    summary_table <- summary_table[match(shell_table$clean_row_name, summary_table$clean_row_name),]
+    
     # change back to matrix
     final_table <- as.matrix(summary_table[, c('Accepted', 'Sent invitation', 'Population')])
     rownames(final_table) <- summary_table$clean_row_name
