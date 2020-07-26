@@ -1,441 +1,9 @@
-library(tidyverse)
-library(shiny)
-library(shinyWidgets)
-library(DT)
-library(gridExtra)
-library(shinyjs)
-library(viridis) # for better colors for color blind people
-set.seed(44)
-
-
-# load other files --------------------------------------------------------
-
-source("R/variables.R")
-source("R/ggplot_settings.R")
-source("R/functions.R")
-
-    
-# app ----------------------------------------------------------------------
-
-# Define UI for application
-ui <- fluidPage(
-
-    # initialize shinyjs
-    useShinyjs(),
-    
-    # download roboto font
-    HTML('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'),
-
-    # load custom CSS file
-    includeCSS("www/custom_css.css"),
-
-    # choose default slider skin
-    chooseSliderSkin(skin = "Flat",
-                     color = "#221146"),
-    
-    # set top left title
-    titlePanel("DS4SI Site Selection"),
-    
-    br(),
-    
-    navlistPanel(id = "nav", widths = c(2, 10),
-        
-        tabPanel("Welcome",
-                 mainPanel(width = 10,
-                           tabsetPanel(
-                               type = "tabs",
-                               tabPanel("Welcome",
-                                        includeMarkdown("markdowns/welcome_text.md")),
-                               tabPanel("Tool instructions", 
-                                        includeMarkdown("markdowns/tool_instructions.md"))
-                           ))
-        ),
-        
-        tabPanel(title = "4. Results",
-                 
-                 sidebarLayout(
-                   sidebarPanel(
-                     width = 4,
-                     htmlOutput("results_text_summary"),
-                     tableOutput("results_table_scores"),
-                     br(),br(),
-                     actionButton(inputId = "results_button_run_simulation",
-                                  label = 'How does your random draw compare to 250 simulated draws?'),
-                     br(),br(),
-                     downloadButton("results_button_download_data", "Download the data"),
-                     br(),br(),
-                     actionButton(inputId = "results_button_restart",
-                                  label = 'Erase these data and restart the selection process')
-                   ),
-                   
-                   mainPanel(
-                     width = 6,
-                     tabsetPanel(
-                       id = "results_tabs",
-                       type = "tabs",
-                       tabPanel("Summary statistics",
-                                tableOutput("results_table_summary")),
-                       tabPanel("Plots",
-                                plotOutput("results_plot_hist", height = 650)),
-                       tabPanel(
-                         "Sample vs. population",
-                         plotOutput("results_plot_samp_v_pop_", height = 650)
-                       ),
-                       tabPanel("Sites that accepted",
-                                DT::dataTableOutput('results_table_accepted'))
-                     )
-                   )
-                 )), 
-        
-        HTML('<div><h5>1. Site attributes</h5></div>'),
-        
-        tabPanel(title = HTML("&nbsp &nbsp Data description"),
-                 sidebarLayout(
-                   sidebarPanel(width = 4, includeMarkdown("markdowns/data_description.md")),
-                   mainPanel(width = 6, plotOutput("intro_plots", height = 650))
-                 )), 
-                 
-        tabPanel(title = HTML("&nbsp &nbsp Data exploration"),
-                 sidebarLayout(
-                   sidebarPanel(
-                     width = 4,
-                     h4("Explore the data using scatter plots, histograms, density plots, and boxplots"),
-                     br(),
-                     uiOutput("exploration_selection_data_spawn"),
-                     selectInput(
-                       inputId ="exploration_select_plot_type",
-                       label = "Plot type:",
-                       multiple = FALSE,
-                       choices = c("Scatter", "Histogram", "Density", "Boxplot"),
-                       selected = "Scatter"
-                     ),
-                     selectInput(
-                       inputId ="exploration_variable_x",
-                       label = "X: ",
-                       multiple = FALSE,
-                       choices = numeric_vars,
-                       selected = numeric_vars[5]
-                     ),
-                     conditionalPanel(
-                       condition = "input.exploration_select_plot_type == 'Scatter'",
-                       selectInput(
-                         inputId = "exploration_variable_y",
-                         label = "Y: ",
-                         multiple = FALSE,
-                         choices = numeric_vars,
-                         selected = numeric_vars[3]
-                       ),
-                       selectInput(
-                         inputId = "exploration_variable_fill",
-                         label = "Fill color: ",
-                         multiple = FALSE,
-                         choices = c(numeric_vars, categorical_vars, "cluster"),
-                         selected = numeric_vars[2]
-                       ),
-                       conditionalPanel(
-                         condition = "input.exploration_variable_fill == 'cluster'",
-                         sliderInput(
-                           inputId = "n_clusters",
-                           label = "Number of clusters: ",
-                           min = 2,
-                           max = 10,
-                           value = 4,
-                           step = 1
-                         ),
-                         HTML(
-                           'Hartigan-Wong K-means clustering based on selected X and Y variables. Not recommended when faceting.<br><br>'
-                         )
-                       ),
-                       selectInput(
-                         inputId = "exploration_variable_size",
-                         label = "Size: ",
-                         multiple = FALSE,
-                         choices = c(numeric_vars, categorical_vars),
-                         selected = numeric_vars[1]
-                       ),
-                       selectInput(
-                         inputId = "exploration_variable_regression",
-                         label = "Linear regression: ",
-                         multiple = FALSE,
-                         choices = c('none', 'include'),
-                         selected = 'none'
-                       )
-                     ), 
-                     conditionalPanel(
-                       condition = "input.exploration_select_plot_type == 'Histogram'",
-                       sliderInput(
-                         inputId = "n_bins",
-                         label = "Number of bins: ",
-                         min = 5,
-                         max = 50,
-                         value = 20,
-                         step = 1
-                       )
-                     ),
-                     conditionalPanel(
-                       condition = "input.exploration_select_plot_type == 'Boxplot'",
-                       selectInput(
-                         inputId = "group_variable",
-                         label = "Grouping: ",
-                         multiple = FALSE,
-                         choices = c("none", categorical_vars)
-                       )
-                     ),
-                     selectInput(
-                       inputId = "exploration_variable_facet",
-                       label = "Facet variable: ",
-                       multiple = FALSE,
-                       choices = c("none", categorical_vars),
-                       selected = "none"
-                     ),
-                     conditionalPanel(
-                       condition = "input.exploration_variable_facet != 'none'",
-                       selectInput(
-                         inputId = "exploration_variable_facet_second",
-                         label = "Second facet variable: ",
-                         multiple = FALSE,
-                         choices = c("none", categorical_vars),
-                         selected = "none"
-                       )
-                     ),
-                     conditionalPanel(
-                       condition = "input.exploration_select_plot_type == 'Scatter'",
-                       sliderInput(
-                         inputId = "alpha_variable",
-                         label = "Opacity: ",
-                         min = 0.1,
-                         max = 1,
-                         value = 0.6,
-                         step = 0.1
-                       )
-                     ),
-                     div(
-                       id = "exploration_dataset_div",
-                       HTML('<details><summary>Advanced filters</summary>'),
-                       selectInput(
-                         inputId = "exploration_dataset",
-                         label = "Dataset: ",
-                         multiple = FALSE,
-                         choices = NULL
-                       ),
-                       br(),br(),br(),br(),
-                       HTML(HTML_for_collapsible_2)
-                     )
-                   ),
-                   
-                   mainPanel(
-                     width = 6,
-                     plotOutput('exploration_plot',  height = 600,
-                                brush = brushOpts(id = "plot1_brush")),
-                     br(),
-                     htmlOutput("brush_text"),
-                     DT::dataTableOutput("brush_info")
-                   )
-                 )),
-        
-        HTML("<div><h5>2. Site selection</h5></div>"),
-        
-        tabPanel(title = HTML("&nbsp &nbsp Filtering"),
-                 
-                 sidebarLayout(
-                   sidebarPanel(width = 4,
-                                
-                                htmlOutput("filtering_html_n_sites_selected"),
-                                br(),
-                                selectInput(inputId = "filtering_dataset", 
-                                            label = "Dataset to filter: ", 
-                                            multiple = FALSE, 
-                                            choices = NULL),
-                                br(),
-                                uiOutput(outputId = "filtering_select_categorical"),
-                                uiOutput(outputId = "filtering_sliders_numeric"),
-                                br(),
-                                textInput(inputId = "filtering_data_save_name", 
-                                          value = "my_dataset", 
-                                          label = "Name and save your dataset"),
-                                actionButton(inputId = "filtering_data_save_button", 
-                                             label = "Save my_dataset")
-                   ),
-                   
-                   mainPanel(width = 6,
-                             
-                             tabsetPanel(
-                               type = "tabs",
-                               tabPanel("Plots",
-                                        plotOutput("filtering_plot_hist", height = 650)),
-                               tabPanel("Table of selected sites", DT::dataTableOutput('filtering_table_selected')),
-                               tabPanel("Table of excluded sites", DT::dataTableOutput('filtering_table_excluded'))
-                             )
-                   )
-                 )
-        ),
-        
-        tabPanel(title = HTML("&nbsp &nbsp Sampling"),
-                 sidebarLayout(
-                   sidebarPanel(width = 4,
-                                
-                                h4("Create simple and stratified random samples"),
-                                br(),
-                                selectInput(inputId = "sampling_dataset", 
-                                            label = "Dataset to sample: ", 
-                                            multiple = FALSE,
-                                            choices = NULL),
-                                selectInput(inputId = "sampling_select_simple_or_stratified", 
-                                            label = "Simple or stratified sample: ", 
-                                            multiple = FALSE,
-                                            choices = c("simple", "stratified")),
-                                conditionalPanel(
-                                  condition = "input.sampling_select_simple_or_stratified == 'stratified'",
-                                  selectizeInput(inputId = "strata_variables", 
-                                                 label = "Strata variable (limited to two): ", 
-                                                 multiple = TRUE,
-                                                 options = list(maxItems = 2),
-                                                 choices = categorical_vars,
-                                                 selected = categorical_vars[2]),
-                                  HTML("<strong>Sample size per strata:</strong>"),
-                                  uiOutput("sampling_strata_sliders"),
-                                  br()
-                                ),
-                                conditionalPanel(
-                                  condition = "input.sampling_select_simple_or_stratified == 'stratified'",
-                                  htmlOutput("n_strata"),
-                                  br(),
-                                  actionButton(inputId = "sample_reset_sliders", label = "Reset sliders"),
-                                  br(), br()
-                                ),
-                                conditionalPanel(
-                                  condition = "input.sampling_select_simple_or_stratified == 'simple'",
-                                  sliderInput(inputId = "sampling_slider_simple_n", 
-                                              label = "Sample size: ", 
-                                              min = 0, 
-                                              max = population_n, 
-                                              value = population_n, 
-                                              step = 1)
-                                ),
-                                actionButton(inputId = "sampling_button_run_sampling", label = "Sample the data"),
-                                # save dataset
-                                br(), br(),
-                                textInput("sampling_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
-                                actionButton("sampling_data_save_button", label = "Save my_dataset")
-                                
-                   ),
-                   
-                   mainPanel(width = 6,
-                             
-                             tabsetPanel(
-                               type = "tabs",
-                               tabPanel("Plots",
-                                        plotOutput("sampling_plots", height = 650)), 
-                               tabPanel("Table of selected sites", DT::dataTableOutput('sampling_table_selected')),
-                               tabPanel("Table of excluded sites", DT::dataTableOutput('sampling_table_excluded'))
-                             )
-                   )
-                 )
-        ),
-        
-        tabPanel(title = HTML("&nbsp &nbsp Weighting"),
-                 sidebarLayout(
-                   sidebarPanel(width = 4,
-                                h4("Create a weighted score for each site by setting the importance of each continuous variable below"),
-                                br(),
-                                selectInput(inputId = "weighting_dataset", 
-                                            label = "Dataset to apply weights to: ", 
-                                            multiple = FALSE,
-                                            choices = NULL),
-                                uiOutput("weighting_sliders"),
-                                sliderInput(inputId = "weighting_slider_n", 
-                                            label = "Only include top n sites: ", 
-                                            min = 1, 
-                                            max = population_n, 
-                                            value = population_n, 
-                                            step = 1),
-                                # save dataset
-                                br(),
-                                textInput("weighting_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
-                                actionButton("weighting_data_save_button", label = "Save my_dataset")
-                   ),
-                   
-                   mainPanel(width = 6,
-                             DT::dataTableOutput('weighting_selected_table')
-                   )
-                 )
-        ),
-        
-        tabPanel(title = HTML("&nbsp &nbsp Manual exclusions"),
-                 
-                 sidebarLayout(
-                   sidebarPanel(width = 4,
-                                
-                                h4("Manually exclude sites"),
-                                br(),
-                                selectInput(inputId = "manual_dataset", 
-                                            label = "Dataset to apply exclusions to: ", 
-                                            multiple = FALSE, 
-                                            choices = NULL),
-                                selectInput(inputId = "manual_select_sites_excl", 
-                                            label = "Exclude sites manually by site ID:", 
-                                            multiple = TRUE,
-                                            choices = sort(unique(as.character(population_dataset$site_id)))),
-                                br(),
-                                HTML("<strong>Exclude sites by selecting rows on the table: </strong><br>"),
-                                br(),
-                                actionButton(inputId = "manual_button_save_row_selections", 
-                                             label = "Exclude selected rows"),
-                                br(),br(),
-                                # save dataset
-                                textInput(inputId = "manual_data_save_name", 
-                                          label = "Name and save your dataset", 
-                                          value = "my_dataset", ),
-                                actionButton(inputId = "manual_data_save_button", 
-                                             label = "Save my_dataset")
-                   ),
-                   
-                   mainPanel(width = 6,
-                             tabsetPanel(
-                               type = "tabs",
-                               tabPanel("Table of selected sites", DT::dataTableOutput('manual_table_selected')),
-                               tabPanel("Table of excluded sites", DT::dataTableOutput('manual_table_excluded'))
-                             )
-                   )
-                 )),
-        
-        tabPanel(title = "3. Send invitations",
-                 sidebarLayout(
-                   sidebarPanel(width = 4,
-                                br(),
-                                selectInput(inputId = "invitations_dataset", 
-                                            label = "Dataset: ", 
-                                            multiple = FALSE,
-                                            choices = NULL), 
-                                htmlOutput("invitations_table_summary"),
-                                br(),
-                                tableOutput("invitations_table_scores"),
-                                br(),
-                                actionButton(inputId = "invitations_button_send", 
-                                             label = HTML(HTML_send_button)
-                                ),
-                                br()
-                   ),
-                   mainPanel(width = 6,
-                             plotOutput("invitations_plots", height = 650)
-                   )
-                 )
-        )
-    )
-)
-
-
-
-# server ------------------------------------------------------------------
 
 # Define server logic
 server <- function(input, output, session) {
   
   # hide tab on start
   hideTab(inputId = "nav", target = "4. Results", session = session)
-  
-  # load Rdata that contains score_generalizability() function
-  load("R/score_generalizability.RData", envir = .GlobalEnv)
   
   
   # saving datasets ---------------------------------------------------------
@@ -583,7 +151,7 @@ server <- function(input, output, session) {
     } else {
       # otherwise use the user selected dataframe on the dropdown
       datasets_available$data[[match(input$exploration_dataset, datasets_available$data_names)]]
-      }
+    }
   })
   
   
@@ -666,7 +234,7 @@ server <- function(input, output, session) {
     if (input$exploration_variable_facet != "none"){
       
       if (input$exploration_variable_facet_second == "none"){
-      p <- p + facet_grid(input$exploration_variable_facet, labeller = label_both)
+        p <- p + facet_grid(input$exploration_variable_facet, labeller = label_both)
       } else{
         p <- p + facet_grid(list(input$exploration_variable_facet, input$exploration_variable_facet_second),
                             labeller = label_both)
@@ -821,19 +389,19 @@ server <- function(input, output, session) {
     # create vector of the pairwise variable names
     # this method works even if one or two input$strata_variables are entered
     name_combos <- Reduce(
-        x = sampling_selected_data()[, input$strata_variables],
-        f = function(var1, var2) paste(var1, var2, sep = "_")
-      )
-
+      x = sampling_selected_data()[, input$strata_variables],
+      f = function(var1, var2) paste(var1, var2, sep = "_")
+    )
+    
     # tally the names
     strata_combos <- as.data.frame(table(name_combos))
-
+    
     # clean up names and variable types
     colnames(strata_combos) <- c("name", "n")
     strata_combos$name <- as.character(strata_combos$name)
-
+    
     return(strata_combos)
-
+    
   })
   
   # generate sliders for each strata combinations
@@ -876,7 +444,7 @@ server <- function(input, output, session) {
       # sample the data
       indices <- sample(1:nrow(data), size = input$sampling_slider_simple_n, replace = FALSE)
       sampled_data <- data[indices,]
-
+      
       return(sampled_data)
       
     } else {
@@ -1031,7 +599,7 @@ server <- function(input, output, session) {
     
     # exclude rows from manual input
     selected_data <- selected_data[!selected_data$site_id %in% input$manual_select_sites_excl,]
-  
+    
     return(selected_data)
   })
   
@@ -1041,11 +609,11 @@ server <- function(input, output, session) {
     
     # get the site ids from the current selected rows
     dd$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
-
+    
     # append selected list in the values in the user input field
     updateSelectInput(session = session, inputId = "manual_select_sites_excl",
                       selected = unique(append(input$manual_select_sites_excl, dd$current_row_selections)))
-
+    
   })
   
   # destroy the user input saved IDs after the dataset is saved 
@@ -1164,7 +732,7 @@ server <- function(input, output, session) {
                                        "stacked_results")
     
     # on the data exploration page, added a grouping variable that represents 
-      # population, sent invitations, and accepted invitations sites
+    # population, sent invitations, and accepted invitations sites
     updateSelectInput(session = session, inputId = "exploration_dataset",
                       selected = "stacked_results")
     updateSelectInput(session = session, inputId = "exploration_variable_facet",
@@ -1185,7 +753,7 @@ server <- function(input, output, session) {
                                           "Sent invitation" = "Sent_invitation",
                                           "Accepted invitation" = "Accepted_invitation"),
                            selected = c("Population", "Sent_invitation", "Accepted_invitation")
-                           ),
+        ),
         HTML('<details><summary>Information</summary>'),
         "These datasets are nested within each other. Including all three without faceting or grouping will cause duplicates to appear on the plot.",
         HTML('</details><br>'),
@@ -1302,10 +870,10 @@ server <- function(input, output, session) {
     summary_table <- rbind(numeric_means, categorical_proportions)
     
     # create shell of the summary table
-      # this ensures that any NAs in the previous calculations (e.g. a region is missing)
-      # won't affect the structure of the table
-      # 'row_name' matches the natual output of the above apply functions
-      # 'clean_row_name' is what we want the table to eventually display
+    # this ensures that any NAs in the previous calculations (e.g. a region is missing)
+    # won't affect the structure of the table
+    # 'row_name' matches the natual output of the above apply functions
+    # 'clean_row_name' is what we want the table to eventually display
     shell_table <- data.frame(
       'row_name' = c(
         "comfort",
@@ -1530,6 +1098,3 @@ server <- function(input, output, session) {
   } )
   
 }
-
-# Run the application
-shinyApp(ui = ui, server = server)

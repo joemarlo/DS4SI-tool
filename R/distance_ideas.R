@@ -296,7 +296,22 @@ library(caret)
 library(parallel)
 options(mc.cores = detectCores())
 
-population_dataset <- read_csv("data/jpta.csv")
+population_dataset <- read_csv(
+  file = "DS4SI-tool/data/jpta.csv",
+  col_types = cols(
+    site_id = col_double(),
+    region = col_character(),
+    urban = col_logical(),
+    other_prog = col_logical(),
+    unemp = col_double(),
+    pct_hs = col_double(),
+    income = col_double(),
+    comfort = col_double(),
+    cost = col_double()
+  )
+)
+
+# population_dataset <- read_csv("data/jpta.csv")
 numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
 categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 
@@ -333,7 +348,7 @@ calc_generalizability <- function(sample_data, pca = population_pca, population 
 
 # testing
 
-nsims <- 50000
+nsims <- 10000
 ns <- sample(2:nrow(population_dataset), size = nsims, replace = TRUE)
 raw_scores <- mclapply(1:nsims, function(i){
   my_sample <- slice_sample(population_dataset, n = ns[i], replace = FALSE)
@@ -356,7 +371,7 @@ score_generalizability <- function(...){
 
 score_generalizability(population_dataset)
 
-setwd("..")
+# setwd("..")
 save(calc_generalizability, score_generalizability, ecdf_scores, population_pca,
      file = 'DS4SI-tool/R/score_generalizability.RData')
 

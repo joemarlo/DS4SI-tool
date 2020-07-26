@@ -1,5 +1,14 @@
+library(tidyverse)
+library(shiny)
+library(shinyWidgets)
+library(DT)
+library(gridExtra)
+library(shinyjs)
+library(viridis) # for better colors for color blind people
+set.seed(44)
 
-# load data ---------------------------------------------------------------
+
+# dataset -----------------------------------------------------------------
 
 population_dataset <- read_csv(
   file = "data/jpta.csv",
@@ -17,17 +26,19 @@ population_dataset <- read_csv(
 )
 
 
-# custom variables --------------------------------------------------------
+# load score_generalizbility() --------------------------------------------
 
+load('R/score_generalizability.RData')
+
+
+# misc variables ----------------------------------------------------------
+
+# population_dataset <- read_csv("data/jpta.csv")
+numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
+categorical_vars <- sort(c('region', 'urban', 'other_prog'))
+
+# total number of sites in the population
 population_n <- nrow(population_dataset)
-
-# custom HTML code for collapsiible
-#  see http://jsfiddle.net/thurstanh/emtAm/2/
-HTML_for_collapsible_1 <- '<details><summary>View quantile</summary>'
-HTML_for_collapsible_2 <- '</details><br>'
-
-HTML_for_collapsible_Weighting_1 <- '<details><summary>View details</summary>'
-HTML_for_collapsible_Weighting_2 <- '</details><br>'
 
 # label for invitations_button_send
 HTML_send_button <- paste0(
@@ -38,10 +49,6 @@ HTML_send_button <- paste0(
 
 # violet color
 violet_col <- "#5c5980"
-
-# set list of variables for plotting options
-categorical_vars <- sort(c('region', 'urban', 'other_prog'))
-numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
 
 # choices for categorical selectInput
 # order must match order of categorical_vars
@@ -66,5 +73,6 @@ min_max_df <- population_dataset %>%
 min_max_df['cost',] <- round(min_max_df['cost',], 0)
 
 # sort the rows so its the same order as the numeric_vars
-  # this is important because some of the renderUI elements are order-dependent
+# this is important because some of the renderUI elements are order-dependent
 min_max_df <- min_max_df[numeric_vars,]
+

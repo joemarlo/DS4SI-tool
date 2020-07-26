@@ -11,20 +11,23 @@ Live version of the current draft can be found here: [jmarlo.shinyapps.io/DS4SI-
 
 ## Documentation
 
-- /DS4SI-Tool:
-  - /R:
-    - functions.R: various functions that are used multiple times by app.R
-    - ggplot_settings.R: color and theme settings for ggplot to be loaded by app.R
-    - score_generalizability.RData: pre-defined score_generalizability() function to be loaded by app.R. This is an .RData file because it contains an underlying empirical distribution
-    - variables.R: pre-defined variables to be loaded by app.R
+- /DS4SI-Tool
+  - /R (this folder must be named R so the .R scripts are loaded by Shiny)
+    - functions.R: various functions that are used multiple times
+    - ggplot_settings.R: color and theme settings for ggplot to be loaded by
+    - score_generalizability.RData: pre-defined score_generalizability() function to be loaded by global.R. This is an .RData file because it contains an underlying empirical distribution
   - /data/jpta.csv: dataset of the population of sites
-  - /Markdowns:
+  - /markdowns
     - data_description.md: text on the data description page
     - tool_instructions.md: text on the tool instructions tab of the landing page
     - welcome_text.md: text on the landing page
   - /www/custom_css.css: custom CSS that gives the tool its look and feel
-  - app.R: the core program
-- /R/generate_site_selection_data.R: script generates the jpta.csv dataset
+  - global.R: pre-created objects that are accessible by both ui.R and server.R
+  - server.R: the server side calculations
+  - ui.R: the UI of the app
+- /R
+  - generate_site_selection_data.R: script generates the jpta.csv dataset
+  - score_generalizibility.R: script generates score_generalizability.RData
 
 <br>
 
