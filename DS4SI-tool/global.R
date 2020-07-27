@@ -59,20 +59,10 @@ categorical_choices <- list(
 )
 
 # create df of min and maxes to use in slider calculations
-# convert this to base R
-min_max_df <- population_dataset %>% 
-  select(unemp, pct_hs, income, comfort, cost) %>% 
-  pivot_longer(cols = everything()) %>% 
-  group_by(name) %>% 
-  summarize(min = floor(min(value) * 0.999 * 100) / 100,
-            max = ceiling(max(value) * 1.001 * 100) / 100,
-            .groups = "drop") %>%
-  as.data.frame() %>% 
-  `rownames<-`(.[,'name']) %>% 
-  select(-name)
-min_max_df['cost',] <- round(min_max_df['cost',], 0)
+min_max_df <-
+  t(sapply(population_dataset[, numeric_vars], function(col)
+    list(min(col), max(col))))
+colnames(min_max_df) <- c("min", "max")
+min_max_df <- as.data.frame(min_max_df)
 
-# sort the rows so its the same order as the numeric_vars
-# this is important because some of the renderUI elements are order-dependent
-min_max_df <- min_max_df[numeric_vars,]
-
+      
