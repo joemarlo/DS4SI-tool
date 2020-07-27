@@ -77,7 +77,7 @@ ui <- fluidPage(
                           mainPanel(width = 6, plotOutput("intro_plots", height = 650))
                         )), 
                
-               tabPanel(title = HTML("&nbsp &nbsp Data exploration"),
+               tabPanel(title = htmlOutput("exploration_tab_name"),
                         sidebarLayout(
                           sidebarPanel(
                             width = 4,
@@ -132,7 +132,7 @@ ui <- fluidPage(
                                 inputId = "exploration_variable_size",
                                 label = "Size: ",
                                 multiple = FALSE,
-                                choices = c(numeric_vars, categorical_vars),
+                                choices = numeric_vars,
                                 selected = numeric_vars[1]
                               ),
                               selectInput(

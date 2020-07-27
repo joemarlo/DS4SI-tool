@@ -5,6 +5,9 @@ server <- function(input, output, session) {
   # hide tab on start
   hideTab(inputId = "nav", target = "4. Results", session = session)
   
+  # name the data exploration tab panel (this name is later changed to 
+    # 'sites exploration' once the send invitations button is clicked)
+  output$exploration_tab_name = renderText({"&nbsp &nbsp Data exploration"})
   
   # saving datasets ---------------------------------------------------------
   
@@ -51,7 +54,6 @@ server <- function(input, output, session) {
     
     # make save button label equal to the inputted dataset name 
     observeEvent(input[[save_name]], {
-      
       updateActionButton(session = session, 
                          inputId = save_button,
                          label = paste0("Save ", str_trim(input[[save_name]]))
@@ -138,8 +140,8 @@ server <- function(input, output, session) {
   # select which dataset to use on data exploration tab
   exploration_selected_data <- reactive({
     
-    # if the send invitations button has been triggered then used the 
-    # "stacked_results" dataframe
+    # if the send invitations button has been triggered then use the 
+    # "stacked_results" dataframe instead of the user selected dataset
     if ("stacked_results" %in% datasets_available$data_names){
       data <- datasets_available$data[[match("stacked_results", datasets_available$data_names)]]
       
@@ -170,6 +172,12 @@ server <- function(input, output, session) {
       
       # add cluster assignment to the dataframe
       plot_data$cluster <- as.factor(km$cluster)
+      
+      # hclust
+      # dist_matrix <- dist(plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)])
+      # clust <- hclust(d = dist_matrix,  method = 'ward.D2')
+      # plot_data$cluster <- as.factor(cutree(clust, input$n_clusters))
+      
     }
     
     # create base ggplot object
@@ -683,6 +691,10 @@ server <- function(input, output, session) {
     # move user to the final tab
     updateNavlistPanel(session = session, inputId = "nav", selected = "4. Results")
     showTab(inputId = "nav", target = "4. Results", session = session)
+    
+    # change the tab name from 'data exploration' to 'results exploration' so
+      # user knows it's new
+    output$exploration_tab_name = renderText({HTML("&nbsp &nbsp Results exploration")})
     
     # hide old tabs
     hide(selector = "li.navbar-brand") # this hides the HTML(2. Site selection) text
