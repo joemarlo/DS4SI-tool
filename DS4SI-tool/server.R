@@ -89,19 +89,13 @@ server <- function(input, output, session) {
       
       # launch popup confirmation if sites are less than 100
       if (nrow(dataset_to_save) < min_sites_to_approach) {
-        show_alert(
-          title = "Less than 100 sites are currently selected",
-          text = "You must approach at least 100 sites",
-          type = "warning",
-          btn_colors = "#302f42",
-          session = session
-        )
+        show_alert_min_sites(session)
       }
       
       # stop here if number of sites selected is less than 100
       validate(
         need(nrow(dataset_to_save) >= min_sites_to_approach,
-             "Less than 100 sites are currently selected")
+             paste0("Less than ", min_sites_to_approach, " sites are currently selected"))
       )
       
       # add input data to list of of dataframes 
@@ -115,6 +109,14 @@ server <- function(input, output, session) {
       updateTextInput(session = session,
                       inputId = save_name,
                       value = NA)
+      
+      # if the user is saving the manual exclusions dataset then
+      # destroy the user input saved IDs after the dataset is saved 
+      if (id == 'manual_data_save') {
+        updateSelectInput(session = session,
+                          inputId = "manual_select_sites_excl",
+                          selected = NA)
+      }
       
     })
     
@@ -383,13 +385,7 @@ server <- function(input, output, session) {
        nrow(filtering_data()) < min_sites_to_approach) {
 
       # launch popup confirmation
-      show_alert(
-        title = "Less than 100 sites are currently selected",
-        text = "You must approach at least 100 sites",
-        type = "warning",
-        btn_colors = "#302f42",
-        session = session
-      )
+      show_alert_min_sites(session)
     }
   })
   
@@ -540,13 +536,7 @@ server <- function(input, output, session) {
        nrow(sampling_data()) < min_sites_to_approach) {
       
       # launch popup confirmation
-      show_alert(
-        title = "Less than 100 sites are currently selected",
-        text = "You must approach at least 100 sites",
-        type = "warning",
-        btn_colors = "#302f42",
-        session = session
-      )
+      show_alert_min_sites(session)
     }
   })
   
@@ -683,13 +673,6 @@ server <- function(input, output, session) {
     
   })
   
-  # destroy the user input saved IDs after the dataset is saved 
-  observeEvent(input$manual_data_save_button, {
-    updateSelectInput(session = session,
-                      inputId = "manual_select_sites_excl",
-                      selected = NA)
-  })
-  
   # initiate a popup notifying the user if at least 100 sites have been selected
   observeEvent(nrow(manual_selected_data()), {
     
@@ -699,13 +682,7 @@ server <- function(input, output, session) {
        nrow(manual_selected_data()) < min_sites_to_approach) {
       
       # launch popup confirmation
-      show_alert(
-        title = "Less than 100 sites are currently selected",
-        text = "You must approach at least 100 sites",
-        type = "warning",
-        btn_colors = "#302f42",
-        session = session
-      )
+      show_alert_min_sites(session)
     }
   })
   
@@ -747,7 +724,7 @@ server <- function(input, output, session) {
     if (n_sites < min_sites_to_approach){
       error_message <- paste0(
         '<h4 style="color:#c92626">',
-        'You must approach at least 100 sites. Your selected dataset contains only ',
+        paste0('You must approach at least ', min_sites_to_approach, ' sites. Your selected dataset contains only '),
         scales::comma_format()(n_sites),
         ' sites.',
         '</h4>'
@@ -800,7 +777,7 @@ server <- function(input, output, session) {
     # do not take action dataset contains less than 100 sites
     validate(
       need(nrow(sent_invitations_data()) >= min_sites_to_approach,
-           "Selected dataset contains less than 100 sites")
+           paste0("Selected dataset contains less than ", min_sites_to_approach, " sites"))
     )
     
     # launch popup confirmation

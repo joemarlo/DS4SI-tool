@@ -153,3 +153,20 @@ determine_x_pos <- function(value){
     value == "West" ~ 4
   )
 }
+
+show_alert_min_sites <- function(session = session) {
+  # function is a wrapper around show_alert()
+  # sets the default message for the popups indicating
+    # the minimum amount of sites has not been reached
+  show_alert(
+    title = paste0(
+      "Less than ",
+      min_sites_to_approach,
+      " sites are currently selected"
+    ),
+    text = paste0("You must approach at least ", min_sites_to_approach, " sites"),
+    type = "warning",
+    btn_colors = "#302f42",
+    session = session
+  )
+}
