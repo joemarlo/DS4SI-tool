@@ -63,13 +63,9 @@ draw_histograms <- function(data){
     mutate(name = factor(name, levels = categorical_vars)) %>%
     ggplot(aes(x = value)) +
     geom_bar(fill = violet_col, alpha = 0.9) +
-    # this ensures the xy limits do not change by building an invisible
+    # this ensures the x limits do not change by building an invisible
     # plot of the full population
-    geom_bar(data = population_dataset %>%
-               select(region, urban, other_prog) %>%
-               mutate(urban = as.character(urban),
-                      other_prog = as.character(other_prog)) %>%
-               pivot_longer(cols = everything()),
+    geom_bar(data = pop_data_for_categorical_limits,
              alpha = 0) +
     facet_wrap(~name, scales = 'free_x', ncol = 3) +
     labs(x = NULL,
@@ -83,12 +79,9 @@ draw_histograms <- function(data){
     mutate(name = factor(name, levels = numeric_vars)) %>%
     ggplot(aes(x = value)) +
     geom_histogram(fill = violet_col, alpha = 0.9, color = 'white', bins = 20) +
-    # this ensures the xy limits do not change by building an invisible
+    # this ensures the x limits do not change by building an invisible
     # plot of the full population
-    geom_histogram(data = population_dataset %>% 
-                     select(unemp, pct_hs, income, comfort, cost) %>%
-                     pivot_longer(cols = everything()) %>%
-                     mutate(name = factor(name, levels = numeric_vars)),
+    geom_histogram(data = pop_data_for_numeric_limits,
                    alpha = 0, bins = 20) +
     facet_wrap(~name, scales = 'free_x', ncol = 3) +
     labs(x = NULL,

@@ -73,4 +73,17 @@ min_max_df <-
 colnames(min_max_df) <- c("min", "max")
 min_max_df <- as.data.frame(min_max_df)
 
-      
+# data to artificially set x limits in ggplot histograms
+pop_data_for_numeric_limits <- population_dataset %>% 
+  select(unemp, pct_hs, income, comfort, cost) %>%
+  pivot_longer(cols = everything()) %>%
+  mutate(name = factor(name, levels = numeric_vars)) %>%
+  group_by(name) %>% 
+  filter(value == min(value) | value == max(value))
+pop_data_for_categorical_limits <- 
+    tibble('region' = unique(population_dataset$region),
+           'urban' = rep(unique(population_dataset$urban), 2),
+           'other_prog' = rep(unique(population_dataset$other_prog), 2)) %>% 
+  mutate(urban = as.character(urban),
+         other_prog = as.character(other_prog)) %>%
+  pivot_longer(cols = everything())
