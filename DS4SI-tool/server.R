@@ -77,7 +77,7 @@ server <- function(input, output, session) {
              "Dataset name already used")
       )
       
-      # add input data to list of of dataframes 
+      # get the dataset for this page
       dataset_to_save <- switch(
         id,
         "filtering_data_save" = filtering_data(),
@@ -86,6 +86,25 @@ server <- function(input, output, session) {
         # "weighting_data_save" = weighting_data()[, setdiff(colnames(weighting_data()), 'site_score')],
         "manual_data_save" = manual_selected_data()
       )
+      
+      # launch popup confirmation if sites are less than 100
+      if (nrow(dataset_to_save) < min_sites_to_approach) {
+        show_alert(
+          title = "Less than 100 sites are currently selected",
+          text = "You must approach at least 100 sites",
+          type = "warning",
+          btn_colors = "#302f42",
+          session = session
+        )
+      }
+      
+      # stop here if number of sites selected is less than 100
+      validate(
+        need(nrow(dataset_to_save) >= min_sites_to_approach,
+             "Less than 100 sites are currently selected")
+      )
+      
+      # add input data to list of of dataframes 
       datasets_available$data <- c(datasets_available$data, list(dataset_to_save))
       
       # add input string to list of dataset names
@@ -298,7 +317,7 @@ server <- function(input, output, session) {
   filter_selected_data <- reactive({
     datasets_available$data[[match(input$filtering_dataset, datasets_available$data_names)]]
   })
-  
+
   # generate select inputs for each categorical variable
   output$filtering_select_categorical <- renderUI({
     tagList(
@@ -353,6 +372,25 @@ server <- function(input, output, session) {
                    data$cost <= input$filtering_slider_cost[2],]
     
     return(data)
+  })
+  
+  # initiate a popup notifying the user if at least 100 sites have been selected
+  observeEvent(nrow(filtering_data()), {
+
+    # if the user is on the filtering page and the selected dataset has less
+    # than 100 sites then show the popup
+    if(input$nav == HTML("&nbsp &nbsp Filtering") &
+       nrow(filtering_data()) < min_sites_to_approach) {
+
+      # launch popup confirmation
+      show_alert(
+        title = "Less than 100 sites are currently selected",
+        text = "You must approach at least 100 sites",
+        type = "warning",
+        btn_colors = "#302f42",
+        session = session
+      )
+    }
   })
   
   # histograms and bar plots on 'plots' tab
@@ -491,7 +529,26 @@ server <- function(input, output, session) {
   output$n_strata <- renderText({
     slider_sum <- sum(unlist(reactiveValuesToList(input)[strata_combos()$name]))
     paste0("The total selected sample size is ", slider_sum)
-  })    
+  })  
+  
+  # initiate a popup notifying the user if at least 100 sites have been selected
+  observeEvent(nrow(sampling_data()), {
+    
+    # if the user is on the filtering page and the selected dataset has less
+    # than 100 sites then show the popup
+    if(input$nav == HTML("&nbsp &nbsp Sampling") &
+       nrow(sampling_data()) < min_sites_to_approach) {
+      
+      # launch popup confirmation
+      show_alert(
+        title = "Less than 100 sites are currently selected",
+        text = "You must approach at least 100 sites",
+        type = "warning",
+        btn_colors = "#302f42",
+        session = session
+      )
+    }
+  })
   
   # the plots for sampling page
   output$sampling_plots <- renderPlot({draw_histograms(sampling_data())})
@@ -633,6 +690,25 @@ server <- function(input, output, session) {
                       selected = NA)
   })
   
+  # initiate a popup notifying the user if at least 100 sites have been selected
+  observeEvent(nrow(manual_selected_data()), {
+    
+    # if the user is on the filtering page and the selected dataset has less
+    # than 100 sites then show the popup
+    if(input$nav == HTML("&nbsp &nbsp Manual exclusions") &
+       nrow(manual_selected_data()) < min_sites_to_approach) {
+      
+      # launch popup confirmation
+      show_alert(
+        title = "Less than 100 sites are currently selected",
+        text = "You must approach at least 100 sites",
+        type = "warning",
+        btn_colors = "#302f42",
+        session = session
+      )
+    }
+  })
+  
   # display the table in the 'table of selected sites' tab within the final selection page
   output$manual_table_selected <- DT::renderDataTable(
     custom_datatable(
@@ -668,7 +744,7 @@ server <- function(input, output, session) {
     expected_cost <- sum(data$comfort * data$cost)
     
     # return a red error message if n sites is less than 100
-    if (n_sites < 100){
+    if (n_sites < min_sites_to_approach){
       error_message <- paste0(
         '<h4 style="color:#c92626">',
         'You must approach at least 100 sites. Your selected dataset contains only ',
@@ -690,6 +766,25 @@ server <- function(input, output, session) {
     return(final_HTML)
   })
   
+  # render invitations_table_scores and invitations_button_send
+    # only if selected dataset contains >=100 sites
+  output$invitations_table_button <- renderUI({
+    
+    # only render the table and send invitations button if the selected
+    # dataset contains 100 or more sites
+    validate(
+      need(nrow(sent_invitations_data()) >= min_sites_to_approach,
+           "")
+    )
+    
+    tagList(
+      tableOutput("invitations_table_scores"),
+      br(),
+      actionButton(inputId = "invitations_button_send",
+                   label = HTML(invitations_HTML_send)
+      )
+    )
+  })
   
   # table of key metrics for the send invitations page
   output$invitations_table_scores <- renderTable(
@@ -704,99 +799,157 @@ server <- function(input, output, session) {
     
     # do not take action dataset contains less than 100 sites
     validate(
-      need(nrow(sent_invitations_data()) >= 100,
+      need(nrow(sent_invitations_data()) >= min_sites_to_approach,
            "Selected dataset contains less than 100 sites")
     )
     
-    # move user to the final tab
-    updateNavlistPanel(session = session, inputId = "nav", selected = "4. Results")
-    showTab(inputId = "nav", target = "4. Results", session = session)
+    # launch popup confirmation
+    ask_confirmation(inputId = "invitations_popup_confirm",
+                     title = "Are you sure you would like to send the invitations?",
+                     text = "Site selection will no longer be available",
+                     btn_colors = c("#c7c7c7", "#302f42"),
+                     html = TRUE
+    )
+  })
     
-    # change the tab name from 'data exploration' to 'results exploration' so
+  # if the user confirms on the popup, then do the rest of these actions
+  # otherwise stop here
+  observeEvent(input$invitations_popup_confirm, {
+    if (isTRUE(input$invitations_popup_confirm)) {
+      # move user to the final tab
+      updateNavlistPanel(session = session,
+                         inputId = "nav",
+                         selected = "4. Results")
+      showTab(inputId = "nav",
+              target = "4. Results",
+              session = session)
+      
+      # change the tab name from 'data exploration' to 'results exploration' so
       # user knows it's new
-    output$exploration_tab_name = renderText({HTML("&nbsp &nbsp Results exploration")})
-    
-    # hide old tabs
-    hide(selector = "li.navbar-brand") # this hides the HTML(2. Site selection) text
-    hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Data description"), session = session)
-    hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Filtering"), session = session)
-    # hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Weighting"), session = session)
-    hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Sampling"), session = session)
-    hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Manual exclusions"), session = session)
-    hideTab(inputId = "nav", target = "3. Send invitations", session = session)
-    
-    # save which dataset was used to send invitations
-    sent_invitations_data <<- sent_invitations_data()
-    
-    # flip a coin with prob = comfort to see which sites accepted
-    accepted_boolean <- rbinom(n = nrow(sent_invitations_data), 
-                               size = 1, 
-                               prob = sent_invitations_data$comfort) == 1
-    sites_that_accepted <<- sent_invitations_data[accepted_boolean,]
-    
-    # final data frame of of all sites with indicator if site was sent inviation and if accepted
-    # assign variable to global environment so it can be used in other functions
-    population_dataset$sent_invitation <- population_dataset$site_id %in% sent_invitations_data$site_id
-    population_dataset$accepted <- population_dataset$site_id %in% sites_that_accepted$site_id
-    final_results <<- population_dataset
-    
-    # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
-    # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
-    tmp1 <- sent_invitations_data
-    tmp1$site_group <- "Sent_invitation"
-    tmp2 <- sites_that_accepted
-    tmp2$site_group <- "Accepted_invitation"
-    tmp3 <- population_dataset[, setdiff(colnames(population_dataset), c("sent_invitation", "accepted"))]
-    tmp3$site_group <- "Population"
-    stacked_results <- rbind(tmp1, tmp2, tmp3)
-    rm(tmp1, tmp2, tmp3)
-    
-    # factor the site_group variable so its in the right order
-    stacked_results$site_group <- factor(stacked_results$site_group,
-                                         levels = c("Accepted_invitation",
-                                                    "Sent_invitation",
-                                                    "Population"))
-    
-    # add stacked_results to list of dataframes available
-    datasets_available$data <- c(datasets_available$data, 
-                                 list(stacked_results))
-    datasets_available$data_names <- c(datasets_available$data_names,
-                                       "stacked_results")
-    
-    # on the data exploration page, add a grouping variable that represents 
-      # population, sent invitations, and accepted invitations sites
-    updateSelectInput(session = session, inputId = "exploration_dataset",
-                      selected = "stacked_results")
-    updateSelectInput(session = session, inputId = "exploration_variable_facet",
-                      choices = c("none", "site_group", categorical_vars),
-                      selected = "site_group")
-    updateSelectInput(session = session, inputId = "exploration_variable_facet_second",
-                      choices = c("none", "site_group", categorical_vars),
-                      selected = "none")
-    updateSelectInput(session = session, inputId = "group_variable",
-                      choices = c("none", "site_group", categorical_vars))
-    
-    # create the three checkmark boxes on the data exploration page
-    output$exploration_selection_data_spawn <- renderUI({
-      tagList(
-        checkboxGroupInput(inputId = "exploration_checkboxes",
-                           label = "Sites to include:",
-                           choices = list("Population" = "Population",
-                                          "Sent invitation" = "Sent_invitation",
-                                          "Accepted invitation" = "Accepted_invitation"),
-                           selected = c("Population", "Sent_invitation", "Accepted_invitation")
-        ),
-        # add "Information" expansion below the checkmark boxes
-        HTML('<details><summary>Information</summary>'),
-        "These datasets are nested within each other. Including all three without faceting or grouping will cause duplicates to appear on the plot.",
-        HTML('</details><br>'),
-        br()
+      output$exploration_tab_name = renderText({
+        HTML("&nbsp &nbsp Results exploration")
+      })
+      
+      # hide old tabs
+      hide(selector = "li.navbar-brand") # this hides the HTML(2. Site selection) text
+      hideTab(
+        inputId = "nav",
+        target = HTML("&nbsp &nbsp Data description"),
+        session = session
       )
-    })
-    
-    # remove dataset selector element from the data exploration page
-    removeUI(selector = "#exploration_dataset_div")
-    
+      hideTab(
+        inputId = "nav",
+        target = HTML("&nbsp &nbsp Filtering"),
+        session = session
+      )
+      # hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Weighting"), session = session)
+      hideTab(
+        inputId = "nav",
+        target = HTML("&nbsp &nbsp Sampling"),
+        session = session
+      )
+      hideTab(
+        inputId = "nav",
+        target = HTML("&nbsp &nbsp Manual exclusions"),
+        session = session
+      )
+      hideTab(inputId = "nav",
+              target = "3. Send invitations",
+              session = session)
+      
+      # save which dataset was used to send invitations
+      sent_invitations_data <<- sent_invitations_data()
+      
+      # flip a coin with prob = comfort to see which sites accepted
+      accepted_boolean <- rbinom(
+        n = nrow(sent_invitations_data),
+        size = 1,
+        prob = sent_invitations_data$comfort
+      ) == 1
+      sites_that_accepted <<- sent_invitations_data[accepted_boolean,]
+      
+      # final data frame of of all sites with indicator if site was sent inviation and if accepted
+      # assign variable to global environment so it can be used in other functions
+      population_dataset$sent_invitation <- population_dataset$site_id %in% sent_invitations_data$site_id
+      population_dataset$accepted <- population_dataset$site_id %in% sites_that_accepted$site_id
+      final_results <<- population_dataset
+      
+      # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
+      # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
+      tmp1 <- sent_invitations_data
+      tmp1$site_group <- "Sent_invitation"
+      tmp2 <- sites_that_accepted
+      tmp2$site_group <- "Accepted_invitation"
+      tmp3 <-
+        population_dataset[, setdiff(colnames(population_dataset),
+                                     c("sent_invitation", "accepted"))]
+      tmp3$site_group <- "Population"
+      stacked_results <- rbind(tmp1, tmp2, tmp3)
+      rm(tmp1, tmp2, tmp3)
+      
+      # factor the site_group variable so its in the right order
+      stacked_results$site_group <- factor(
+        stacked_results$site_group,
+        levels = c("Accepted_invitation",
+                   "Sent_invitation",
+                   "Population")
+      )
+      
+      # add stacked_results to list of dataframes available
+      datasets_available$data <- c(datasets_available$data,
+                                   list(stacked_results))
+      datasets_available$data_names <-
+        c(datasets_available$data_names,
+          "stacked_results")
+      
+      # on the data exploration page, add a grouping variable that represents
+      # population, sent invitations, and accepted invitations sites
+      updateSelectInput(session = session,
+                        inputId = "exploration_dataset",
+                        selected = "stacked_results")
+      updateSelectInput(
+        session = session,
+        inputId = "exploration_variable_facet",
+        choices = c("none", "site_group", categorical_vars),
+        selected = "site_group"
+      )
+      updateSelectInput(
+        session = session,
+        inputId = "exploration_variable_facet_second",
+        choices = c("none", "site_group", categorical_vars),
+        selected = "none"
+      )
+      updateSelectInput(
+        session = session,
+        inputId = "group_variable",
+        choices = c("none", "site_group", categorical_vars)
+      )
+      
+      # create the three checkmark boxes on the data exploration page
+      output$exploration_selection_data_spawn <- renderUI({
+        tagList(
+          checkboxGroupInput(
+            inputId = "exploration_checkboxes",
+            label = "Sites to include:",
+            choices = list(
+              "Population" = "Population",
+              "Sent invitation" = "Sent_invitation",
+              "Accepted invitation" = "Accepted_invitation"
+            ),
+            selected = c("Population", "Sent_invitation", "Accepted_invitation")
+          ),
+          # add "Information" expansion below the checkmark boxes
+          HTML('<details><summary>Information</summary>'),
+          "These datasets are nested within each other. Including all three without faceting or grouping will cause duplicates to appear on the plot.",
+          HTML('</details><br>'),
+          br()
+        )
+      })
+      
+      # remove dataset selector element from the data exploration page
+      removeUI(selector = "#exploration_dataset_div")
+      
+    }
   })
   
   # plots on send invitations page

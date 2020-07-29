@@ -289,7 +289,7 @@ ui <- fluidPage(
                                          condition = "input.sampling_select_simple_or_stratified == 'simple'",
                                          sliderInput(inputId = "sampling_slider_simple_n", 
                                                      label = "Sample size: ", 
-                                                     min = 0, 
+                                                     min = 1, 
                                                      max = population_n, 
                                                      value = population_n, 
                                                      step = 1)
@@ -386,16 +386,17 @@ ui <- fluidPage(
                           sidebarPanel(width = 4,
                                        br(),
                                        selectInput(inputId = "invitations_dataset", 
-                                                   label = "Dataset: ", 
+                                                   label = "Dataset to send invitations: ", 
                                                    multiple = FALSE,
                                                    choices = NULL), 
                                        htmlOutput("invitations_table_summary"),
                                        br(),
-                                       tableOutput("invitations_table_scores"),
-                                       br(),
-                                       actionButton(inputId = "invitations_button_send", 
-                                                    label = HTML(invitations_HTML_send)
-                                       ),
+                                       uiOutput("invitations_table_button"),
+                                       # tableOutput("invitations_table_scores"),
+                                       # br(),
+                                       # actionButton(inputId = "invitations_button_send", 
+                                       #              label = HTML(invitations_HTML_send)
+                                       # ),
                                        br()
                           ),
                           mainPanel(width = 6,

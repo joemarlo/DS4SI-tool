@@ -41,6 +41,9 @@ categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 # total number of sites in the population
 population_n <- nrow(population_dataset)
 
+# minimum amount of sites to approach
+min_sites_to_approach <- 100
+
 # label for invitations_button_send
 invitations_HTML_send <- paste0(
   'Send invitations<br>
