@@ -74,7 +74,7 @@ ui <- fluidPage(
                tabPanel(title = HTML("&nbsp &nbsp Data description"),
                         sidebarLayout(
                           sidebarPanel(width = 4, includeMarkdown("markdowns/data_description.md")),
-                          mainPanel(width = 6, plotOutput("intro_plots", height = 650))
+                          mainPanel(width = 6, plotOutput("description_plots", height = 650))
                         )), 
                
                tabPanel(title = htmlOutput("exploration_tab_name"),
@@ -315,33 +315,33 @@ ui <- fluidPage(
                         )
                ),
                
-               tabPanel(title = HTML("&nbsp &nbsp Weighting"),
-                        sidebarLayout(
-                          sidebarPanel(width = 4,
-                                       h4("Create a weighted score for each site by setting the importance of each continuous variable below"),
-                                       br(),
-                                       selectInput(inputId = "weighting_dataset", 
-                                                   label = "Dataset to apply weights to: ", 
-                                                   multiple = FALSE,
-                                                   choices = NULL),
-                                       uiOutput("weighting_sliders"),
-                                       sliderInput(inputId = "weighting_slider_n", 
-                                                   label = "Only include top n sites: ", 
-                                                   min = 1, 
-                                                   max = population_n, 
-                                                   value = population_n, 
-                                                   step = 1),
-                                       # save dataset
-                                       br(),
-                                       textInput("weighting_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
-                                       actionButton("weighting_data_save_button", label = "Save my_dataset")
-                          ),
-                          
-                          mainPanel(width = 6,
-                                    DT::dataTableOutput('weighting_selected_table')
-                          )
-                        )
-               ),
+               # tabPanel(title = HTML("&nbsp &nbsp Weighting"),
+               #          sidebarLayout(
+               #            sidebarPanel(width = 4,
+               #                         h4("Create a weighted score for each site by setting the importance of each continuous variable below"),
+               #                         br(),
+               #                         selectInput(inputId = "weighting_dataset", 
+               #                                     label = "Dataset to apply weights to: ", 
+               #                                     multiple = FALSE,
+               #                                     choices = NULL),
+               #                         uiOutput("weighting_sliders"),
+               #                         sliderInput(inputId = "weighting_slider_n", 
+               #                                     label = "Only include top n sites: ", 
+               #                                     min = 1, 
+               #                                     max = population_n, 
+               #                                     value = population_n, 
+               #                                     step = 1),
+               #                         # save dataset
+               #                         br(),
+               #                         textInput("weighting_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
+               #                         actionButton("weighting_data_save_button", label = "Save my_dataset")
+               #            ),
+               #            
+               #            mainPanel(width = 6,
+               #                      DT::dataTableOutput('weighting_selected_table')
+               #            )
+               #          )
+               # ),
                
                tabPanel(title = HTML("&nbsp &nbsp Manual exclusions"),
                         
@@ -394,7 +394,7 @@ ui <- fluidPage(
                                        tableOutput("invitations_table_scores"),
                                        br(),
                                        actionButton(inputId = "invitations_button_send", 
-                                                    label = HTML(HTML_send_button)
+                                                    label = HTML(invitations_HTML_send)
                                        ),
                                        br()
                           ),

@@ -33,7 +33,8 @@ load('R/score_generalizability.RData')
 
 # misc variables ----------------------------------------------------------
 
-# population_dataset <- read_csv("data/jpta.csv")
+# preset numeric and categorical variables; this is used widely in ui.R
+  # and server.R; its important they remain alphabetical
 numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
 categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 
@@ -41,7 +42,7 @@ categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 population_n <- nrow(population_dataset)
 
 # label for invitations_button_send
-HTML_send_button <- paste0(
+invitations_HTML_send <- paste0(
   'Send invitations<br>
   <p style="font-size: 0.6em; font-weight: 10;">
   Once sent, site selection will no longer be available</p>'
@@ -60,8 +61,12 @@ categorical_choices <- list(
 
 # create df of min and maxes to use in slider calculations
 min_max_df <-
-  t(sapply(population_dataset[, numeric_vars], function(col)
-    list(min(col), max(col))))
+  t(sapply(population_dataset[, numeric_vars], function(col) {
+    list(
+      floor((min(col)*0.99) * 10) / 10, 
+      ceiling((max(col)*1.01) * 10) / 10
+    )
+  }))
 colnames(min_max_df) <- c("min", "max")
 min_max_df <- as.data.frame(min_max_df)
 

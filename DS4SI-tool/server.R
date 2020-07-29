@@ -2,12 +2,12 @@
 # Define server logic
 server <- function(input, output, session) {
   
-  # hide tab on start
+  # hide the Results tab on start
   hideTab(inputId = "nav", target = "4. Results", session = session)
   
   # name the data exploration tab panel (this name is later changed to 
     # 'sites exploration' once the send invitations button is clicked)
-  output$exploration_tab_name = renderText({"&nbsp &nbsp Data exploration"})
+  output$exploration_tab_name <- renderText({"&nbsp &nbsp Data exploration"})
   
   # saving datasets ---------------------------------------------------------
   
@@ -20,15 +20,17 @@ server <- function(input, output, session) {
   # this applies to every page that has a dataset dropdown
   observeEvent(datasets_available$data, {
     
+    # list of dropdown ids
     dataset_selector_ids <- c(
       "filtering_dataset", 
       "sampling_dataset", 
-      "weighting_dataset",
+      # "weighting_dataset",
       "manual_dataset",
       "invitations_dataset",
       "exploration_dataset"
     )
     
+    # update the dropdown options
     lapply(dataset_selector_ids, function(id){
       updateSelectInput(session = session, inputId = id,
                         choices = datasets_available$data_names)  
@@ -41,7 +43,7 @@ server <- function(input, output, session) {
   data_save_name_prefixes <- c(
     "filtering_data_save",
     "sampling_data_save",
-    "weighting_data_save",
+    # "weighting_data_save",
     "manual_data_save"
   )
   
@@ -81,7 +83,7 @@ server <- function(input, output, session) {
         "filtering_data_save" = filtering_data(),
         "sampling_data_save" = sampling_data(),
         # remove site_score column before saving
-        "weighting_data_save" = weighting_data()[, setdiff(colnames(weighting_data()), 'site_score')],
+        # "weighting_data_save" = weighting_data()[, setdiff(colnames(weighting_data()), 'site_score')],
         "manual_data_save" = manual_selected_data()
       )
       datasets_available$data <- c(datasets_available$data, list(dataset_to_save))
@@ -131,8 +133,8 @@ server <- function(input, output, session) {
   
   # description page --------------------------------------------------------
   
-  # plots on data description page
-  output$intro_plots <- renderPlot({draw_histograms(population_dataset)})
+  # render plots on data description page
+  output$description_plots <- renderPlot({draw_histograms(population_dataset)})
   
   
   # exploration page --------------------------------------------------------
@@ -155,7 +157,6 @@ server <- function(input, output, session) {
       datasets_available$data[[match(input$exploration_dataset, datasets_available$data_names)]]
     }
   })
-  
   
   # site exploration plots
   output$exploration_plot <- renderPlot({
@@ -298,7 +299,7 @@ server <- function(input, output, session) {
     datasets_available$data[[match(input$filtering_dataset, datasets_available$data_names)]]
   })
   
-  # generate sliders for each categorical variable
+  # generate select inputs for each categorical variable
   output$filtering_select_categorical <- renderUI({
     tagList(
       pmap(
@@ -458,7 +459,8 @@ server <- function(input, output, session) {
     } else {
       # stratified sampling
       
-      # split the data into the unique groups
+      # split the data into groups corresponding to
+        # combinations of input$strata_variables 
       split_groups <- split(x = data,
                             f = data[, input$strata_variables],
                             sep = "_")
@@ -519,84 +521,84 @@ server <- function(input, output, session) {
   # weighting page ----------------------------------------------------------
   
   # select which dataset to use on weighting page
-  weighting_selected_data <- reactive({
-    datasets_available$data[[match(input$weighting_dataset, datasets_available$data_names)]]
-  })
-  
-  # update weighting_slider_n slider max so it's not larger than the dataset
-  observeEvent(nrow(weighting_selected_data()), {
-    updateSliderInput(session, "weighting_slider_n",
-                      value = nrow(weighting_selected_data()),
-                      max = nrow(weighting_selected_data())
-    )
-  })
-  
-  # generate sliders for each variable
-  output$weighting_sliders <- renderUI({
-    tagList(
-      lapply(numeric_vars, function(variable) {
-        sliderInput(
-          inputId = paste0("weighting_slider_", variable),
-          label = paste0(variable, ": "),
-          min = 1,
-          max = 100,
-          value = 50
-        )
-      }
-      ))
-  })
-  
-  # current weighted dataset based on inputs
-  weighting_data <- reactive({
-    
-    data <- weighting_selected_data()
-    
-    # scale the variables
-    numeric_vars_scaled <- data[, numeric_vars]
-    numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
-    
-    # vector of weights (ordering must match the numeric_vars_scaled column order)
-    weights <- c(input$weighting_slider_comfort, input$weighting_slider_cost, 
-                 input$weighting_slider_income, input$weighting_slider_pct_hs,
-                 input$weighting_slider_unemp)
-    
-    # calculate score per each row
-    data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
-    
-    # filter to just the top rows selected by the user based on site_score
-    data <- data[order(-data$site_score), ][1:input$weighting_slider_n,]
-    
-    # make site_score as first column in dataframe
-    data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
-    
-    # round the score
-    data$site_score <- round(data$site_score, 1)
-    
-    return(data)
-  })
-  
-  # display the table in the 'table of selected sites' tab within the weighting page
-  output$weighting_selected_table <- DT::renderDataTable(
-    DT::datatable(
-      weighting_data(),
-      selection = 'none',
-      rownames = FALSE,
-      options = list(
-        # sets n observations shown
-        pageLength = 20,
-        # removes option to change n observations shown
-        lengthChange = FALSE,
-        # removes the search bar
-        sDom  = '<"top">lrt<"bottom">ip',
-        # default sort by site score
-        order = list(0, 'desc'),
-        # enable side scroll so table doesn't overflow
-        scrollX = TRUE
-      )
-    ) %>%
-      formatRound(6:9, 2) %>%
-      formatRound(10, 0)
-  )
+  # weighting_selected_data <- reactive({
+  #   datasets_available$data[[match(input$weighting_dataset, datasets_available$data_names)]]
+  # })
+  # 
+  # # update weighting_slider_n slider max so it's not larger than the dataset
+  # observeEvent(nrow(weighting_selected_data()), {
+  #   updateSliderInput(session, "weighting_slider_n",
+  #                     value = nrow(weighting_selected_data()),
+  #                     max = nrow(weighting_selected_data())
+  #   )
+  # })
+  # 
+  # # generate sliders for each variable
+  # output$weighting_sliders <- renderUI({
+  #   tagList(
+  #     lapply(numeric_vars, function(variable) {
+  #       sliderInput(
+  #         inputId = paste0("weighting_slider_", variable),
+  #         label = paste0(variable, ": "),
+  #         min = 1,
+  #         max = 100,
+  #         value = 50
+  #       )
+  #     }
+  #     ))
+  # })
+  # 
+  # # current weighted dataset based on inputs
+  # weighting_data <- reactive({
+  #   
+  #   data <- weighting_selected_data()
+  #   
+  #   # scale the variables
+  #   numeric_vars_scaled <- data[, numeric_vars]
+  #   numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
+  #   
+  #   # vector of weights (ordering must match the numeric_vars_scaled column order)
+  #   weights <- c(input$weighting_slider_comfort, input$weighting_slider_cost, 
+  #                input$weighting_slider_income, input$weighting_slider_pct_hs,
+  #                input$weighting_slider_unemp)
+  #   
+  #   # calculate score per each row
+  #   data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
+  #   
+  #   # filter to just the top rows selected by the user based on site_score
+  #   data <- data[order(-data$site_score), ][1:input$weighting_slider_n,]
+  #   
+  #   # make site_score as first column in dataframe
+  #   data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
+  #   
+  #   # round the score
+  #   data$site_score <- round(data$site_score, 1)
+  #   
+  #   return(data)
+  # })
+  # 
+  # # display the table in the 'table of selected sites' tab within the weighting page
+  # output$weighting_selected_table <- DT::renderDataTable(
+  #   DT::datatable(
+  #     weighting_data(),
+  #     selection = 'none',
+  #     rownames = FALSE,
+  #     options = list(
+  #       # sets n observations shown
+  #       pageLength = 20,
+  #       # removes option to change n observations shown
+  #       lengthChange = FALSE,
+  #       # removes the search bar
+  #       sDom  = '<"top">lrt<"bottom">ip',
+  #       # default sort by site score
+  #       order = list(0, 'desc'),
+  #       # enable side scroll so table doesn't overflow
+  #       scrollX = TRUE
+  #     )
+  #   ) %>%
+  #     formatRound(6:9, 2) %>%
+  #     formatRound(10, 0)
+  # )
   
   
   # manual exclusions page --------------------------------------------------
@@ -656,7 +658,7 @@ server <- function(input, output, session) {
     datasets_available$data[[match(input$invitations_dataset, datasets_available$data_names)]]
   })
   
-  # text for final selection page
+  # text for top of send invitations page
   output$invitations_table_summary <- renderText({
     
     data <- sent_invitations_data()
@@ -664,6 +666,18 @@ server <- function(input, output, session) {
     n_sites <- nrow(data)
     mean_acceptance <- mean(data$comfort)
     expected_cost <- sum(data$comfort * data$cost)
+    
+    # return a red error message if n sites is less than 100
+    if (n_sites < 100){
+      error_message <- paste0(
+        '<h4 style="color:#c92626">',
+        'You must approach at least 100 sites. Your selected dataset contains only ',
+        scales::comma_format()(n_sites),
+        ' sites.',
+        '</h4>'
+      )
+      return(error_message)
+    }
     
     final_HTML <- paste0(
       '<h4>',
@@ -688,6 +702,12 @@ server <- function(input, output, session) {
   # take action when the submit invitations button is clicked
   observeEvent(input$invitations_button_send, {
     
+    # do not take action dataset contains less than 100 sites
+    validate(
+      need(nrow(sent_invitations_data()) >= 100,
+           "Selected dataset contains less than 100 sites")
+    )
+    
     # move user to the final tab
     updateNavlistPanel(session = session, inputId = "nav", selected = "4. Results")
     showTab(inputId = "nav", target = "4. Results", session = session)
@@ -700,7 +720,7 @@ server <- function(input, output, session) {
     hide(selector = "li.navbar-brand") # this hides the HTML(2. Site selection) text
     hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Data description"), session = session)
     hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Filtering"), session = session)
-    hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Weighting"), session = session)
+    # hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Weighting"), session = session)
     hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Sampling"), session = session)
     hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Manual exclusions"), session = session)
     hideTab(inputId = "nav", target = "3. Send invitations", session = session)
@@ -743,8 +763,8 @@ server <- function(input, output, session) {
     datasets_available$data_names <- c(datasets_available$data_names,
                                        "stacked_results")
     
-    # on the data exploration page, added a grouping variable that represents 
-    # population, sent invitations, and accepted invitations sites
+    # on the data exploration page, add a grouping variable that represents 
+      # population, sent invitations, and accepted invitations sites
     updateSelectInput(session = session, inputId = "exploration_dataset",
                       selected = "stacked_results")
     updateSelectInput(session = session, inputId = "exploration_variable_facet",
@@ -766,6 +786,7 @@ server <- function(input, output, session) {
                                           "Accepted invitation" = "Accepted_invitation"),
                            selected = c("Population", "Sent_invitation", "Accepted_invitation")
         ),
+        # add "Information" expansion below the checkmark boxes
         HTML('<details><summary>Information</summary>'),
         "These datasets are nested within each other. Including all three without faceting or grouping will cause duplicates to appear on the plot.",
         HTML('</details><br>'),
@@ -834,7 +855,6 @@ server <- function(input, output, session) {
     
     # create list of dataframes representing the three groups
     list_of_tables <- list(sites_that_accepted, sent_invitations_data, data)
-    
     
     # calculate mean numeric stats per group
     numeric_means <- sapply(list_of_tables, function(df){
