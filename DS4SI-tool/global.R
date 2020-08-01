@@ -83,8 +83,8 @@ numeric_popover_messages <- list(
 min_max_df <-
   t(sapply(population_dataset[, numeric_vars], function(col) {
     list(
-      floor((min(col)*0.99) * 10) / 10, 
-      ceiling((max(col)*1.01) * 10) / 10
+      floor((min(col)*0.99) * 100) / 100, 
+      ceiling((max(col)*1.01) * 100) / 100
     )
   }))
 colnames(min_max_df) <- c("min", "max")
