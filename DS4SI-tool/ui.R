@@ -146,7 +146,7 @@ ui <- fluidPage(
                             conditionalPanel(
                               condition = "input.exploration_select_plot_type == 'Histogram'",
                               sliderInput(
-                                inputId = "n_bins",
+                                inputId = "exploration_variable_n_bins",
                                 label = "Number of bins: ",
                                 min = 5,
                                 max = 50,
@@ -157,7 +157,7 @@ ui <- fluidPage(
                             conditionalPanel(
                               condition = "input.exploration_select_plot_type == 'Boxplot'",
                               selectInput(
-                                inputId = "group_variable",
+                                inputId = "exploration_variable_group",
                                 label = "Grouping: ",
                                 multiple = FALSE,
                                 choices = c("none", categorical_vars)
@@ -183,11 +183,11 @@ ui <- fluidPage(
                             conditionalPanel(
                               condition = "input.exploration_select_plot_type == 'Scatter'",
                               sliderInput(
-                                inputId = "alpha_variable",
+                                inputId = "exploration_variable_alpha",
                                 label = "Opacity: ",
                                 min = 0.1,
                                 max = 1,
-                                value = 0.6,
+                                value = 0.5,
                                 step = 0.1
                               )
                             ),
@@ -276,7 +276,7 @@ ui <- fluidPage(
                                                         selected = categorical_vars[2]),
                                          HTML("<strong>Sample size per strata:</strong>"),
                                          uiOutput("sampling_strata_sliders"),
-                                         br()
+                                         br(),
                                        ),
                                        conditionalPanel(
                                          condition = "input.sampling_select_simple_or_stratified == 'stratified'",
@@ -298,8 +298,11 @@ ui <- fluidPage(
                                        # save dataset
                                        br(), br(),
                                        textInput("sampling_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
-                                       actionButton("sampling_data_save_button", label = "Save my_dataset")
-                                       
+                                       actionButton("sampling_data_save_button", label = "Save my_dataset"),
+                                       bsPopover(id = "sampling_select_simple_or_stratified",
+                                                 title = "Simple or stratified",
+                                                 content = "A simple random sample will be....And a stratified sample will be ..",
+                                                 placement = 'top')
                           ),
                           
                           mainPanel(width = 6,

@@ -87,7 +87,7 @@ server <- function(input, output, session) {
         "manual_data_save" = manual_selected_data()
       )
       
-      # launch popup confirmation if sites are less than 100
+      # launch popup alert if sites are less than 100
       if (nrow(dataset_to_save) < min_sites_to_approach) {
         show_alert_min_sites(session)
       }
@@ -179,6 +179,18 @@ server <- function(input, output, session) {
     }
   })
   
+  # update second facet options so user cannot double facet on the same variable
+    # b/c that causes an error
+  observeEvent(input$exploration_variable_facet, {
+    if (input$exploration_variable_facet != "none") {
+      updateSelectInput(
+        session = session,
+        inputId = "exploration_variable_facet_second",
+        choices = setdiff(c("none", categorical_vars), input$exploration_variable_facet)
+      )
+    }
+  })
+  
   # site exploration plots
   output$exploration_plot <- renderPlot({
     
@@ -191,7 +203,7 @@ server <- function(input, output, session) {
       # run kmeans algo
       km <- kmeans(x = plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)],
                    centers = input$n_clusters, iter.max = 50, nstart = 5)
-      
+
       # add cluster assignment to the dataframe
       plot_data$cluster <- as.factor(km$cluster)
       
@@ -213,12 +225,12 @@ server <- function(input, output, session) {
                               fill = input$exploration_variable_fill,
                               size = input$exploration_variable_size,
                               color = input$exploration_variable_fill),
-                   alpha = input$alpha_variable)
+                   alpha = input$exploration_variable_alpha)
       
       # regression line
       if(input$exploration_variable_regression == 'include'){
         p <- p + geom_smooth(
-          aes(y = get(input$exploration_variable_y)),
+          aes_string(y = input$exploration_variable_y),
           method = "lm",
           formula = 'y ~ x',
           color = "grey20"
@@ -239,7 +251,7 @@ server <- function(input, output, session) {
     
     # histogram
     if (input$exploration_select_plot_type == 'Histogram'){
-      p <- p + geom_histogram(color = 'white', bins = input$n_bins, 
+      p <- p + geom_histogram(color = 'white', bins = input$exploration_variable_n_bins, 
                               fill = violet_col, alpha = 0.9) +
         labs(y = NULL)
     }
@@ -254,7 +266,7 @@ server <- function(input, output, session) {
     if (input$exploration_select_plot_type == 'Boxplot'){
       p <- p + 
         geom_boxplot(fill = violet_col, alpha = 0.5,
-                     if(input$group_variable != 'none') aes_string(y = input$group_variable)
+                     if(input$exploration_variable_group != 'none') aes_string(y = input$exploration_variable_group)
         ) +
         coord_flip() +
         scale_y_discrete()
@@ -324,15 +336,21 @@ server <- function(input, output, session) {
   output$filtering_select_categorical <- renderUI({
     tagList(
       pmap(
-        .l = list(categorical_vars, categorical_choices),
-        .f = function(variable, var_choices) {
+        .l = list(categorical_vars, categorical_choices, categorical_popover_messages),
+        .f = function(variable, var_choices, popover_message) {
           selectInput(
             inputId = paste0("filtering_select_", variable),
             label = paste0(variable, ": "),
             multiple = TRUE,
             choices = var_choices,
             selected = var_choices
-          )
+          ) %>% 
+            # add the popover element
+            popify(
+              el = .,
+              title = paste0(variable, ": "),
+              content = popover_message
+            )
         }
       ))
   })    
@@ -341,15 +359,21 @@ server <- function(input, output, session) {
   output$filtering_sliders_numeric <- renderUI({
     tagList(
       pmap(
-        .l = list(numeric_vars, min_max_df$min, min_max_df$max),
-        .f = function(variable, var_min, var_max) {
+        .l = list(numeric_vars, min_max_df$min, min_max_df$max, numeric_popover_messages),
+        .f = function(variable, var_min, var_max, popover_message) {
           sliderInput(
             inputId = paste0("filtering_slider_", variable),
             label = paste0(variable, ": "),
             min = var_min,
             max = var_max,
             value = c(var_min, var_max)
-          )
+          ) %>% 
+            # add the popover element
+            popify(
+              el = .,
+              title = paste0(variable, ": "),
+              content = popover_message
+            )
         }
       ))
   })
@@ -384,7 +408,7 @@ server <- function(input, output, session) {
     if(input$nav == HTML("&nbsp &nbsp Filtering") &
        nrow(filtering_data()) < min_sites_to_approach) {
 
-      # launch popup confirmation
+      # launch popup alert
       show_alert_min_sites(session)
     }
   })
@@ -506,15 +530,16 @@ server <- function(input, output, session) {
       sample_size_per_group <- reactiveValuesToList(input)[strata_combos()$name]
       
       # sample n rows per strata
-      sampled_data <- map2_dfr(.x = split_groups,
-                               .y = sample_size_per_group,
-                               .f = function(strata, strata_size){
-                                 
-                                 # sample the data
-                                 indices <- sample(1:nrow(strata), size = strata_size, replace = FALSE)
-                                 sampled_strata <- strata[indices,]
-                                 return(sampled_strata)
-                               })
+      sampled_data <- map2_dfr(
+        .x = split_groups,
+        .y = sample_size_per_group,
+        .f = function(strata, strata_size) {
+          # sample the data
+          indices <- sample(1:nrow(strata), size = strata_size, replace = FALSE)
+          sampled_strata <- strata[indices, ]
+          return(sampled_strata)
+        }
+      )
       
       return(sampled_data)
       
@@ -535,7 +560,7 @@ server <- function(input, output, session) {
     if(input$nav == HTML("&nbsp &nbsp Sampling") &
        nrow(sampling_data()) < min_sites_to_approach) {
       
-      # launch popup confirmation
+      # launch popup alert
       show_alert_min_sites(session)
     }
   })
@@ -681,7 +706,7 @@ server <- function(input, output, session) {
     if(input$nav == HTML("&nbsp &nbsp Manual exclusions") &
        nrow(manual_selected_data()) < min_sites_to_approach) {
       
-      # launch popup confirmation
+      # launch popup alert
       show_alert_min_sites(session)
     }
   })
@@ -892,13 +917,7 @@ server <- function(input, output, session) {
       )
       updateSelectInput(
         session = session,
-        inputId = "exploration_variable_facet_second",
-        choices = c("none", "site_group", categorical_vars),
-        selected = "none"
-      )
-      updateSelectInput(
-        session = session,
-        inputId = "group_variable",
+        inputId = "exploration_variable_group",
         choices = c("none", "site_group", categorical_vars)
       )
       
@@ -1205,7 +1224,7 @@ server <- function(input, output, session) {
              x_pos = determine_x_pos(value),
              name = factor(name, categorical_vars)) %>% 
       ggplot(aes(x = value, y = prop, group = sim)) +
-      geom_jitter(alpha = 0) +
+      geom_jitter(alpha = 0) + # this for some reason allows us to retain the x labels
       geom_segment(aes(x = x_pos - 0.25, xend = x_pos + 0.25,
                        y = prop, yend = prop), alpha = 0.025) +
       geom_segment(data = sites_that_accepted_categorical,

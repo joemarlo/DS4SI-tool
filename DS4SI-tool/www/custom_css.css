@@ -1,6 +1,6 @@
-/* the default Shiny blue color is #337ab7 */
+/* most of this CSS overrides the default bootstrap*/
 
-/* color of "Quantile" text */
+/* text color of the expansion sections */
 summary{
     color: #a3a3a3;
     font-size: 0.9em;
@@ -34,7 +34,6 @@ a {
 }
 
 .well {
-  /*background-color: #5c5980;*/
   border: 0px solid #e3e3e3;
   border-radius: 0px;
   -webkit-box-shadow: inset 0 0 0 rgba(0, 0, 0, 0.00);
@@ -120,6 +119,30 @@ a {
 
 #results_button_restart {
   background-color: #ab2c2c !important;
+}
+
+.popover, .popover-title  {
+  background-color: #5c5980;
+  color: white;
+  border: 0;
+}
+
+.popover-title {
+  font-weight: 700;
+}
+
+.popover.in, .popover-title.in {
+  opacity: 0.9;
+  filter: alpha(opacity=90);
+  border: 0;
+}
+
+.popover.bottom .arrow:after {
+  border-bottom-color: #5c5980;
+}
+
+.popover.top .arrow:after {
+  border-top-color: #5c5980;
 }
 
 hr {

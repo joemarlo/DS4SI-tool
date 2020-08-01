@@ -1,9 +1,10 @@
 library(tidyverse)
 library(shiny)
-library(shinyWidgets)
-library(DT)
-library(gridExtra)
+library(shinyWidgets) # for alerts
+library(DT) # for UI tables
+library(gridExtra) # for combining multiple ggplots into one object 
 library(shinyjs)
+library(shinyBS) # for popovers
 library(viridis) # for better colors for color blind people
 set.seed(44)
 
@@ -62,6 +63,22 @@ categorical_choices <- list(
   rev(unique(as.character(population_dataset$urban)))
 )
 
+# messages for popovers
+# order must match order of categorical_vars
+categorical_popover_messages <- list(
+  "Remember that ...",
+  "Focusing on one region may...",
+  "Only including urban may reduce..."
+)
+# order must match order of numeric_vars
+numeric_popover_messages <- list(
+  "Remember that ...",
+  "Focusing on one region may...",
+  "Only including urban may reduce...",
+  "however ...",
+  "this is gonna be good"
+)
+
 # create df of min and maxes to use in slider calculations
 min_max_df <-
   t(sapply(population_dataset[, numeric_vars], function(col) {
@@ -80,10 +97,12 @@ pop_data_for_numeric_limits <- population_dataset %>%
   mutate(name = factor(name, levels = numeric_vars)) %>%
   group_by(name) %>% 
   filter(value == min(value) | value == max(value))
-pop_data_for_categorical_limits <- 
-    tibble('region' = unique(population_dataset$region),
-           'urban' = rep(unique(population_dataset$urban), 2),
-           'other_prog' = rep(unique(population_dataset$other_prog), 2)) %>% 
+pop_data_for_categorical_limits <-
+  tibble(
+    'region' = unique(population_dataset$region),
+    'urban' = rep(unique(population_dataset$urban), 2),
+    'other_prog' = rep(unique(population_dataset$other_prog), 2)
+  ) %>%
   mutate(urban = as.character(urban),
          other_prog = as.character(other_prog)) %>%
   pivot_longer(cols = everything())
