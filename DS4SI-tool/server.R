@@ -954,6 +954,27 @@ server <- function(input, output, session) {
       # remove dataset selector element from the data exploration page
       removeUI(selector = "#exploration_dataset_div")
       
+      # add popup indicating to user dangers of not faceting on site_group if there are 
+        # multiple populations selected
+      # this is triggered if the user checks multiple groups while facet != site_group or
+        # if the user unselects facet == site_group while multiples are checked 
+      events_to_listen <- reactive({
+        list(input$exploration_variable_facet, input$exploration_checkboxes)
+      })
+      observeEvent(events_to_listen(), {
+        if (input$exploration_variable_facet != "site_group" &
+            length(input$exploration_checkboxes) > 1) {
+
+          show_alert(
+            title = "Multiple groups of sites are being shown without faceting",
+            text = "Including multiple groups without faceting on `site_group` will cause duplicate data to be shown on the plot(s). Either facet on `site_group` or check only one group under 'Sites to include'",
+            type = "warning",
+            btn_colors = "#302f42",
+            session = session
+          )
+
+        }
+      })
     }
   })
   
