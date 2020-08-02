@@ -1,27 +1,27 @@
 /* most of this CSS overrides the default bootstrap*/
 
-/* text color of the expansion sections */
-summary{
-    color: #a3a3a3;
-    font-size: 0.9em;
-}
-
 body {
-  /*background-color: #5c5980;*/
   padding: 5px 20px 20px 5px;
   font-family: "Roboto", Helvetica, Arial, sans-serif;
   color: #636363;
   font-weight: 350;
 }
 
+/* headers */
 h1, h2, h3, h4, h5, h6 {
   color: #525252;
   font-weight: 500;
 }
 
+/* links */
 a {
   color: #5c5980;
   text-decoration: none;
+}
+
+/* horizontal line */
+hr {
+  border-top: 1px solid #fff
 }
 
 .text-primary {
@@ -33,6 +33,13 @@ a {
   background-color: #5c5980;
 }
 
+/* text color of the expansion sections */
+summary{
+    color: #a3a3a3;
+    font-size: 0.9em;
+}
+
+/*background squares for nav and main input sections*/
 .well {
   border: 0px solid #e3e3e3;
   border-radius: 0px;
@@ -40,6 +47,7 @@ a {
   box-shadow: inset 0 0 0 rgba(0, 0, 0, 0.00);;
 }
 
+/* navigation pills on the left side */
 .nav-pills > li > a {
     border-radius: 0 0 0 0;
 }
@@ -51,6 +59,7 @@ a {
   background-color: #5c5980;
 }
 
+/* navigation tabs on the top */
 .nav-tabs > li > a {
   margin-right: 2px;
   line-height: 1.42857143;
@@ -58,6 +67,7 @@ a {
   border-radius: 0 0 0 0;
 }
 
+/* dropdowns */
 .selectize-input {
   border: 1px solid #cccccc;
   padding: 6px 12px;
@@ -90,6 +100,15 @@ a {
   box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(92, 89, 128, 0.6);
 }
 
+/* the little 'pills' when mulitple items are selected 
+within the selectize dropdowns */
+.item {
+  -webkit-border-radius: 0 0 0 0 !important;
+  -moz-border-radius: 0 0 0 0 !important;
+  border-radius: 0 0 0 0 !important;
+}
+
+/* buttons */
 .btn, .btn:hover, .btn:active, .btn:visited {
     background-color: #302f42 !important;
     border-radius: 0;
@@ -110,6 +129,7 @@ a {
   background-color: #1e1d29 !important;
 }
 
+/* specfic ids to modify */
 #invitations_button_send {
   height: 70px;
   font-size: 1.35em;
@@ -121,6 +141,7 @@ a {
   background-color: #ab2c2c !important;
 }
 
+/* tooltips and popovers */
 .tooltip.in {
   opacity: 0.9;
   filter: alpha(opacity=90);
@@ -165,10 +186,6 @@ a {
 
 .popover.top .arrow:after {
   border-top-color: #5c5980;
-}
-
-hr {
-  border-top: 1px solid #fff
 }
 
 /* the below code is for the datatabels

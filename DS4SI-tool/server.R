@@ -963,11 +963,12 @@ server <- function(input, output, session) {
       })
       observeEvent(events_to_listen(), {
         if (input$exploration_variable_facet != "site_group" &
+            input$exploration_variable_group != "site_group" &
             length(input$exploration_checkboxes) > 1) {
 
           show_alert(
             title = "Multiple groups of sites are being shown without faceting",
-            text = "Including multiple groups without faceting on `site_group` will cause duplicate data to be shown on the plot(s). Either facet on `site_group` or check only one group under 'Sites to include'",
+            text = "Including multiple groups of sites without faceting on `site_group` will cause duplicate data to be shown on the plot(s). Either facet on `site_group` or check only one group under 'Sites to include'",
             type = "warning",
             btn_colors = "#302f42",
             session = session

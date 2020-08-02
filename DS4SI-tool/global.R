@@ -63,7 +63,7 @@ categorical_choices <- list(
   rev(unique(as.character(population_dataset$urban)))
 )
 
-# messages for popovers
+# messages for tooltips
 # order must match order of categorical_vars
 categorical_popover_messages <- list(
   "Think about how the existence or absence of another jobs training program will impact the counterfactual",
@@ -78,6 +78,9 @@ numeric_popover_messages <- list(
   "How does excluding low or high high school graduation rates sites affect generalizability?",
   "How does excluding low or high unemployment sites affect generalizability?"
 )
+
+# message for sampling tooltip
+sampling_message <- "A simple random sample is an unbiased surveying technique and, in expectation, retains the characteristics of the population. Stratified sampling enables you to partition subpopulations by variables and then sample the subpopulations separately."
 
 # create df of min and maxes to use in slider calculations
 min_max_df <-
