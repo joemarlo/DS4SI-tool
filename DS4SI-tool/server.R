@@ -345,11 +345,10 @@ server <- function(input, output, session) {
             choices = var_choices,
             selected = var_choices
           ) %>% 
-            # add the popover element
-            popify(
+            # add the tooltip element
+            tipify(
               el = .,
-              title = paste0(variable, ": "),
-              content = popover_message
+              title = popover_message
             )
         }
       ))
@@ -367,12 +366,11 @@ server <- function(input, output, session) {
             min = var_min,
             max = var_max,
             value = c(var_min, var_max)
-          ) %>% 
-            # add the popover element
-            popify(
+          ) %>%
+            # add the tooltip element
+            tipify(
               el = .,
-              title = paste0(variable, ": "),
-              content = popover_message
+              title = popover_message
             )
         }
       ))
@@ -998,11 +996,11 @@ server <- function(input, output, session) {
               select = TRUE
     )
     
-    # add text
+    # add text indicating to user that results will appear on a new tab
     insertUI(selector = "#results_button_run_simulation",
              where = "afterEnd",
              ui = h4("One moment ... Simulation results will appear on the 'Actual vs. expected' tab"))
-    
+
     # remove button
     removeUI(selector = "#results_button_run_simulation")
     

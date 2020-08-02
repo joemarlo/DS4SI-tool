@@ -66,17 +66,17 @@ categorical_choices <- list(
 # messages for popovers
 # order must match order of categorical_vars
 categorical_popover_messages <- list(
-  "Remember that ...",
-  "Focusing on one region may...",
-  "Only including urban may reduce..."
+  "Think about how the existence or absence of another jobs training program will impact the counterfactual",
+  "How will excluding regions affect generalizability?",
+  "How will excluding urban or rural sites affect generalizability?"
 )
 # order must match order of numeric_vars
 numeric_popover_messages <- list(
-  "Remember that ...",
-  "Focusing on one region may...",
-  "Only including urban may reduce...",
-  "however ...",
-  "this is gonna be good"
+  "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if comfort is low",
+  "It is important to balance the goals of the evaluators along with the funders (i.e. keeping costs low)",
+  "How does excluding low or high income sites affect generalizability?",
+  "How does excluding low or high high school graduation rates sites affect generalizability?",
+  "How does excluding low or high unemployment sites affect generalizability?"
 )
 
 # create df of min and maxes to use in slider calculations

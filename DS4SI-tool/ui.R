@@ -299,9 +299,8 @@ ui <- fluidPage(
                                        br(), br(),
                                        textInput("sampling_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
                                        actionButton("sampling_data_save_button", label = "Save my_dataset"),
-                                       bsPopover(id = "sampling_select_simple_or_stratified",
-                                                 title = "Simple or stratified",
-                                                 content = "A simple random sample will be....And a stratified sample will be ..",
+                                       bsTooltip(id = "sampling_select_simple_or_stratified",
+                                                 title = "A simple random sample is an effective way to retain the characteristics of the population while reducing the number of sites to approach. Stratified sample enables you to selectively sample sub-populations.",
                                                  placement = 'top')
                           ),
                           
