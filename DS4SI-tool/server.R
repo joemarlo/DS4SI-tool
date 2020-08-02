@@ -826,6 +826,17 @@ server <- function(input, output, session) {
               target = "4. Results",
               session = session)
       
+      # add popover element
+      addPopover(
+        session = session,
+        id = 'exploration_tab_name',
+        title = "Explore your data further",
+        content = 'Create custom plots to understand how your sites compare',
+        placement = 'bottom'
+      )
+      # force the popover to show itself on load
+      runjs("$('#exploration_tab_name').popover('show')")
+      
       # change the tab name from 'data exploration' to 'results exploration' so
       # user knows it's new
       output$exploration_tab_name = renderText({
