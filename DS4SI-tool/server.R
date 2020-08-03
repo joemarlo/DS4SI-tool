@@ -111,7 +111,7 @@ server <- function(input, output, session) {
                       value = NA)
       
       # if the user is saving the manual exclusions dataset then
-      # destroy the user input saved IDs after the dataset is saved 
+        # destroy the user input saved IDs after the dataset is saved 
       if (id == 'manual_data_save') {
         updateSelectInput(session = session,
                           inputId = "manual_select_sites_excl",
@@ -164,7 +164,7 @@ server <- function(input, output, session) {
   exploration_selected_data <- reactive({
     
     # if the send invitations button has been triggered then use the 
-    # "stacked_results" dataframe instead of the user selected dataset
+      # "stacked_results" dataframe instead of the user selected dataset
     if ("stacked_results" %in% datasets_available$data_names){
       data <- datasets_available$data[[match("stacked_results", datasets_available$data_names)]]
       
@@ -277,7 +277,7 @@ server <- function(input, output, session) {
       
       if (input$exploration_variable_facet_second == "none"){
         p <- p + facet_grid(input$exploration_variable_facet, labeller = label_both)
-      } else{
+      } else {
         p <- p + facet_grid(list(input$exploration_variable_facet, input$exploration_variable_facet_second),
                             labeller = label_both)
       }
@@ -691,7 +691,8 @@ server <- function(input, output, session) {
     dd$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
     
     # append selected list in the values in the user input field
-    updateSelectInput(session = session, inputId = "manual_select_sites_excl",
+    updateSelectInput(session = session, 
+                      inputId = "manual_select_sites_excl",
                       selected = unique(append(input$manual_select_sites_excl, dd$current_row_selections)))
     
   })
@@ -813,7 +814,7 @@ server <- function(input, output, session) {
   })
     
   # if the user confirms on the popup, then do the rest of these actions
-  # otherwise stop here
+    # otherwise stop here
   observeEvent(input$invitations_popup_confirm, {
     if (isTRUE(input$invitations_popup_confirm)) {
       # move user to the final tab
@@ -836,7 +837,7 @@ server <- function(input, output, session) {
       runjs("$('#exploration_tab_name').popover('show')")
       
       # change the tab name from 'data exploration' to 'results exploration' so
-      # user knows it's new
+        # user knows it's new
       output$exploration_tab_name = renderText({
         HTML("&nbsp &nbsp Results exploration")
       })
@@ -914,7 +915,7 @@ server <- function(input, output, session) {
           "stacked_results")
       
       # on the data exploration page, add a grouping variable that represents
-      # population, sent invitations, and accepted invitations sites
+       # population, sent invitations, and accepted invitations sites
       updateSelectInput(session = session,
                         inputId = "exploration_dataset",
                         selected = "stacked_results")
@@ -945,7 +946,7 @@ server <- function(input, output, session) {
           ),
           # add "Information" expansion below the checkmark boxes
           HTML('<details><summary>Information</summary>'),
-          "These datasets are nested within each other. Including all three without faceting or grouping will cause duplicates to appear on the plot.",
+          "These datasets are nested within each other. Including multiple without faceting or grouping will cause duplicates to appear on the plot.",
           HTML('</details><br>'),
           br()
         )
@@ -1206,7 +1207,6 @@ server <- function(input, output, session) {
     
   )
   
-  
   # actual vs expected plots
   output$results_plot_actual_v_expected <- renderPlot({
     
@@ -1296,7 +1296,7 @@ server <- function(input, output, session) {
     
   })
   
-  # download button for data_to_download
+  # download button
   output$results_button_download_data <- downloadHandler(
     filename <- "DS4SI_sites.csv",
     content <- function(file) {

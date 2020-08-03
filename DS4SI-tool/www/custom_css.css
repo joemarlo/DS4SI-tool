@@ -161,7 +161,7 @@ within the selectize dropdowns */
 }
 
 .tooltip.top .tooltip-arrow {
-  border-bottom-color: #5c5980;
+  border-top-color: #5c5980;
 }
 
 .popover, .popover-title  {
