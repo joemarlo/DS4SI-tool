@@ -102,7 +102,7 @@ score_attributes <- function(data){
   total_cost <- sum(data$cost)
   total_cost <- scales::dollar(total_cost)
   
-  # generalizability TBD
+  # generalizability score
   general_score <- round(score_generalizability(data), 2)
   
   # causality

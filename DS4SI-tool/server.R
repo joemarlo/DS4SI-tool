@@ -121,11 +121,11 @@ server <- function(input, output, session) {
     })
     
     # make save_name text red if its a duplicate of a name
-    # already in datasets_available$data_names
+      # already in datasets_available$data_names
     observe({
       
       # make names lower case and remove white space so 
-      # save_name is 1:1 with data_names
+        # save_name is 1:1 with data_names
       clean_save_name <- str_to_lower(str_trim(input[[save_name]]))
       dataset_names <- str_to_lower(datasets_available$data_names)
       
@@ -136,11 +136,9 @@ server <- function(input, output, session) {
                  save_name,
                  '").style.color = "#c92626"')
         )
-      }
-      
+      } else {
       # javascript permanently changes text color so it needs to change it back
-      # to black when the input text is valid
-      if(!clean_save_name %in% dataset_names) {
+       # to black when the input text is valid
         runjs(
           paste0('document.getElementById("',
                  save_name,
@@ -155,7 +153,7 @@ server <- function(input, output, session) {
   # description page --------------------------------------------------------
   
   # render plots on data description page
-  output$description_plots <- renderPlot({draw_histograms(population_dataset)})
+  output$description_plots <- renderPlot(draw_histograms(population_dataset))
   
   
   # exploration page --------------------------------------------------------
@@ -323,12 +321,12 @@ server <- function(input, output, session) {
     paste0('<h4>',
            'Apply filters to the data using the inputs below. ',
            scales::comma_format()(nrow(filtering_data())),' 
-             sites are currently selected</h4>'
+           sites are currently selected</h4>'
     )
   )
   
   # select which dataset to use on filtering tab
-  filter_selected_data <- reactive({
+  filtering_selected_data <- reactive({
     datasets_available$data[[match(input$filtering_dataset, datasets_available$data_names)]]
   })
 
@@ -380,7 +378,7 @@ server <- function(input, output, session) {
   filtering_data <- reactive({
     
     # apply user's inputted filters
-    data <- filter_selected_data()
+    data <- filtering_selected_data()
     data <- data[data$region %in% input$filtering_select_region,]
     data <- data[data$urban %in% input$filtering_select_urban,]
     data <- data[data$other_prog %in% input$filtering_select_other_prog,]
@@ -412,7 +410,7 @@ server <- function(input, output, session) {
   })
   
   # histograms and bar plots on 'plots' tab
-  output$filtering_plot_hist <- renderPlot({draw_histograms(filtering_data())})
+  output$filtering_plot_hist <- renderPlot(draw_histograms(filtering_data()))
   
   # display the table in the 'table of selected sites' tab
   output$filtering_table_selected <- DT::renderDataTable(
@@ -564,7 +562,7 @@ server <- function(input, output, session) {
   })
   
   # the plots for sampling page
-  output$sampling_plots <- renderPlot({draw_histograms(sampling_data())})
+  output$sampling_plots <- renderPlot(draw_histograms(sampling_data()))
   
   # display the table in the sampling tab    
   output$sampling_table_selected <- DT::renderDataTable(
@@ -807,7 +805,7 @@ server <- function(input, output, session) {
     # launch popup confirmation
     ask_confirmation(inputId = "invitations_popup_confirm",
                      title = "Are you sure you would like to send the invitations?",
-                     text = "Site selection will no longer be available",
+                     text = "Site selection will no longer be available. You will, however, be able to restart from the beginning if you wish.",
                      btn_colors = c("#c7c7c7", "#302f42"),
                      html = TRUE
     )
@@ -817,13 +815,13 @@ server <- function(input, output, session) {
     # otherwise stop here
   observeEvent(input$invitations_popup_confirm, {
     if (isTRUE(input$invitations_popup_confirm)) {
-      # move user to the final tab
-      updateNavlistPanel(session = session,
-                         inputId = "nav",
-                         selected = "4. Results")
+      # show and move user to the final tab
       showTab(inputId = "nav",
               target = "4. Results",
               session = session)
+      updateNavlistPanel(session = session,
+                         inputId = "nav",
+                         selected = "4. Results")
       
       # add popover element
       addPopover(
@@ -837,13 +835,13 @@ server <- function(input, output, session) {
       runjs("$('#exploration_tab_name').popover('show')")
       
       # change the tab name from 'data exploration' to 'results exploration' so
-        # user knows it's new
+        # user knows it's a new tab
       output$exploration_tab_name = renderText({
         HTML("&nbsp &nbsp Results exploration")
       })
       
       # hide old tabs
-      hide(selector = "li.navbar-brand") # this hides the HTML(2. Site selection) text
+      hide(selector = "li.navbar-brand") # this hides the "1. ..." and "2. ..." text in the nav
       hideTab(
         inputId = "nav",
         target = HTML("&nbsp &nbsp Data description"),
@@ -854,7 +852,11 @@ server <- function(input, output, session) {
         target = HTML("&nbsp &nbsp Filtering"),
         session = session
       )
-      # hideTab(inputId = "nav", target = HTML("&nbsp &nbsp Weighting"), session = session)
+      # hideTab(
+      #   inputId = "nav",
+      #   target = HTML("&nbsp &nbsp Weighting"),
+      #   session = session
+      # )
       hideTab(
         inputId = "nav",
         target = HTML("&nbsp &nbsp Sampling"),
@@ -981,7 +983,7 @@ server <- function(input, output, session) {
   })
   
   # plots on send invitations page
-  output$invitations_plots <- renderPlot({draw_histograms({sent_invitations_data()})})
+  output$invitations_plots <- renderPlot(draw_histograms(sent_invitations_data()))
   
   
   # results page ------------------------------------------------------------
@@ -1134,7 +1136,7 @@ server <- function(input, output, session) {
   )
   
   # the histograms
-  output$results_plot_hist <- renderPlot({draw_histograms(sites_that_accepted)})
+  output$results_plot_hist <- renderPlot(draw_histograms(sites_that_accepted))
   
   # sample vs population plots
   output$results_plot_samp_v_pop_ <- renderPlot({

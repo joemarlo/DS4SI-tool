@@ -8,19 +8,20 @@ ui <- fluidPage(
   # download roboto font
   HTML('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'),
   
-  # load custom CSS file
-  includeCSS("www/custom_css.css"),
-  
   # choose default slider skin
   chooseSliderSkin(skin = "Flat",
                    color = "#221146"),
+  
+  # load custom CSS file
+  includeCSS("www/custom_css.css"),
   
   # set top left title
   titlePanel("DS4SI Site Selection"),
   
   br(),
   
-  navlistPanel(id = "nav", widths = c(2, 10),
+  navlistPanel(id = "nav", 
+               widths = c(2, 10),
                
                tabPanel("Welcome",
                         mainPanel(width = 10,
@@ -394,11 +395,6 @@ ui <- fluidPage(
                                        htmlOutput("invitations_table_summary"),
                                        br(),
                                        uiOutput("invitations_table_button"),
-                                       # tableOutput("invitations_table_scores"),
-                                       # br(),
-                                       # actionButton(inputId = "invitations_button_send", 
-                                       #              label = HTML(invitations_HTML_send)
-                                       # ),
                                        br()
                           ),
                           mainPanel(width = 6,

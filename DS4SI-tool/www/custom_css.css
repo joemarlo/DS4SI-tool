@@ -108,6 +108,11 @@ within the selectize dropdowns */
   border-radius: 0 0 0 0 !important;
 }
 
+.item:hover {
+  background-color: #dbdbdb !important;
+  color: #636363 !important;
+}
+
 /* buttons */
 .btn, .btn:hover, .btn:active, .btn:visited {
     background-color: #302f42 !important;

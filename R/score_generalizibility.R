@@ -41,40 +41,48 @@ calc_generalizability <- function(sample_data, pca = population_pca, population 
 }
 
 
-# create an simulated distribution of generalizability metrics
+# to normalize the score between [0,1], create a simulated distribution
+  # of scores based on random samples of the population
+# the scores are correlated with sample size so cap the sample size at 500
+  # otherwise the scores the students receieve will be quite low as their 
+  # their final samples should be around 100
 nsims <- 1000
-ns <- sample(2:nrow(population_dataset), size = nsims, replace = TRUE)
+ns <- sample(50:500, size = nsims, replace = TRUE)
 raw_scores <- mclapply(1:nsims, function(i){
   my_sample <- slice_sample(population_dataset, n = ns[i], replace = FALSE)
   calc_generalizability(my_sample)
 } ) %>% unlist()
 
+# plot(density(raw_scores))
+
 # save the ecdf
-ecdf_scores <- ecdf(log(raw_scores))
+ecdf_scores <- ecdf(raw_scores)
 
 score_generalizability <- function(...){
   # function is a wrapper around calc_generalizability
-  # takes the output and compares it to a pre-calculated
-  # distribution of raw scores
+  # takes the output and compares it to a pre-simulated
+    # distribution of raw scores
   
   raw_score <- calc_generalizability(...)
-  score <- 1 - ecdf_scores(log(raw_score))
+  score <- 1 - ecdf_scores(raw_score)
   return(score)
 }
 
+# this should equal 1
 score_generalizability(population_dataset)
 
-sapply(rep(100:500, 10), function(x) score_generalizability(slice_sample(population_dataset, n = x))) %>% 
-  plot(x = rep(100:500, 10), y = .)
-
-x <- sapply(rep(seq(100, 1000, by = 50), 50), function(x) score_generalizability(slice_sample(population_dataset, n = x)))
+# see how the scores change with sample size
+x <- sapply(rep(seq(100, 1000, by = 50), 100), function(x) score_generalizability(slice_sample(population_dataset, n = x)))
 x %>% 
   enframe() %>% 
-  mutate(group = rep(seq(100, 1000, by = 50), 50)) %>% 
+  mutate(group = rep(seq(100, 1000, by = 50), 100)) %>% 
          # group = cut(group, breaks = seq(100, 100, by = 25))) %>% 
   ggplot(aes(x = value, group = group)) + 
-  geom_density() + facet_wrap(~group)
+  geom_density() + 
+  facet_wrap(~group, scales = 'free_y')
+rm(x)
 
 
 save(calc_generalizability, score_generalizability, ecdf_scores, population_pca,
-     file = 'DS4SI-tool/R/score_generalizability.RData')
+     file = 'R/score_generalizability.RData')
+
