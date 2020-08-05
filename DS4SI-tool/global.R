@@ -66,23 +66,23 @@ categorical_choices <- list(
 # messages for tooltips
 # order must match order of categorical_vars
 categorical_popover_messages <- list(
-  "Think about how the existence or absence of another jobs training program will impact the counterfactual",
-  "How will excluding regions affect generalizability?",
-  "How will excluding urban or rural sites affect generalizability?"
+  "Think about how the existence or absence of another jobs training program will impact the counterfactual and generalizability",
+  "How will excluding regions affect the counterfactual and generalizability?",
+  "How will excluding urban or rural sites affect the counterfactual and generalizability?"
 )
 # order must match order of numeric_vars
 numeric_popover_messages <- list(
   "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if comfort is low",
-  "It is important to balance the goals of the evaluators along with the funders (i.e. keeping costs low)",
-  "How does excluding low or high income sites affect generalizability?",
-  "How does excluding low or high high school graduation rates sites affect generalizability?",
-  "How does excluding low or high unemployment sites affect generalizability?"
+  "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low)",
+  "How does excluding low or high income sites affect the counterfactual and generalizability?",
+  "How does excluding low or high high school graduation rates sites affect the counterfactual and generalizability?",
+  "How does excluding low or high unemployment sites affect the counterfactual and generalizability?"
 )
 
 # message for sampling tooltip
 sampling_message <- "A simple random sample is an unbiased surveying technique and, in expectation, retains the characteristics of the population. Stratified sampling enables you to partition subpopulations by variables and then sample the subpopulations separately."
 
-# create df of min and maxes to use in slider calculations
+# create dataframe of min and maxes to use in slider calculations
 min_max_df <-
   t(sapply(population_dataset[, numeric_vars], function(col) {
     list(
@@ -94,6 +94,9 @@ colnames(min_max_df) <- c("min", "max")
 min_max_df <- as.data.frame(min_max_df)
 
 # data to artificially set x limits in ggplot histograms
+# this 'cheats' ggplot by creating a dataset of just the most extreme
+  # observations. Then we pass this to ggplot as another layer that's invisible,
+  # otherwise, setting limits on individual facets is a huge pain
 pop_data_for_numeric_limits <- population_dataset %>% 
   select(unemp, pct_hs, income, comfort, cost) %>%
   pivot_longer(cols = everything()) %>%

@@ -24,7 +24,8 @@ You will not be graded based on the metric scores, however it is important to be
 
 ## Tips: 
 - Do not stay idle for more than 15 minutes. The tool will time-out and you may have to restart your selection process
-
+- On the **Results** page you'll be able to download the data. Feel free to use this to do further analyses and summarizations
+- Take screenshots on the plots you created for use in your report
 
 
 <br>

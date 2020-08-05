@@ -31,11 +31,11 @@ Your final product will be a 2-3 page report in which you do the following:
 You will be graded on your ability to thoughtfully discuss these issues, the trade-offs between the issues, and how to implement a strategy that addresses your priorities.
 
 ### Suggested organizational structure of your report
-1. **1/2 page:** Overview of goals with regard to the considerations you are going to prioritize over others and why 
-2. **1/2 page to a page:** More detail (step-by-step) about how your sites were selected, tying the choices to the specific considerations
-3. **1-2 paragraphs:** Descriptives about the sample you would try to recruit. This should optimally be in the form of a table or (even better!) figure(s) as well as text describing the interesting features of the sample. Feel free to use the built-in tools to create visualizations of your sites
-4. **1 paragraph:** Short discussion of overall cost and expected number of sites (one paragraph) and how that fits with the goals laid out in (1) above
-5. **2-3 paragraphs:** Conclusion/discussion. A brief overview of your ability to achieve the goals you had laid out for yourself as well as frustrations or limitations with why it was difficult/impossible to achieve them all.  
+- **1/2 page:** Overview of goals with regard to the considerations you are going to prioritize over others and why 
+- **1/2 page to a page:** More detail (step-by-step) about how your sites were selected, tying the choices to the specific considerations
+- **1-2 paragraphs:** Descriptives about the sample you would try to recruit. This should optimally be in the form of a table or (even better!) figure(s) as well as text describing the interesting features of the sample. Feel free to use the built-in tools to create visualizations of your sites
+- **1 paragraph:** Short discussion of overall cost and expected number of sites (one paragraph) and how that fits with the goals laid out in (1) above
+- **2-3 paragraphs:** Conclusion/discussion. A brief overview of your ability to achieve the goals you had laid out for yourself as well as frustrations or limitations with why it was difficult/impossible to achieve them all.  
 
 <br>
 <br>

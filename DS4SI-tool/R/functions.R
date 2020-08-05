@@ -4,32 +4,6 @@ scale_01 <- function(x) {
   (x - min(x)) / (max(x) - min(x))
 }
 
-get_quantile = function(distribution, value){
-  # function to return the quantile amount
-  
-  # find the value in distribution that is closest to value
-  closest_value_in_distribution <- distribution[which.min(abs(distribution - value))]
-  
-  # find the quantile of this closest value
-  closest_quantile <- ecdf(distribution)(closest_value_in_distribution)
-  return(closest_quantile)
-} 
-
-get_value <- function(distribution, probs){
-  # function to get the quantile, but make sure it matches an actual value in the distribution
-  # similar to stats::quantile() but returns the quantile to the closest value in the distribution
-  
-  # get the actual quantile
-  actual_quantile <- as.numeric(quantile(distribution, probs = probs))
-  
-  # find the value in distribution that is closest to value
-  closest_prob_in_distribution <- distribution[which.min(abs(distribution - actual_quantile))]
-  
-  # closest_value <- distribution[all_quantiles  == closest_quantile_in_distribution]
-  
-  return(closest_prob_in_distribution)
-}
-
 custom_datatable <- function(...){
   # wrapper around DT::datatable so commonly used arguments
   # can be set as global defaults
@@ -49,7 +23,6 @@ custom_datatable <- function(...){
 }
 
 draw_histograms <- function(data){
-  
   # function takes in a dataset and then draws histograms for continuous
   # variables and barplots for categoricals. Returns a single grid.arrange
   # object to pass to renderPlot({})
@@ -94,7 +67,6 @@ draw_histograms <- function(data){
 
 
 score_attributes <- function(data){
-  
   # function returns a table of the score attributes
   # total cost, generalizability, causality, sample size
   

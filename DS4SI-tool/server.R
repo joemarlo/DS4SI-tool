@@ -7,7 +7,7 @@ server <- function(input, output, session) {
   
   # name the data exploration tab panel (this name is later changed to 
     # 'sites exploration' once the send invitations button is clicked)
-  output$exploration_tab_name <- renderText({"&nbsp &nbsp Data exploration"})
+  output$exploration_tab_name <- renderText("&nbsp &nbsp Data exploration")
   
   # saving datasets ---------------------------------------------------------
   
@@ -17,7 +17,7 @@ server <- function(input, output, session) {
   datasets_available$data_names <- c("Population")
   
   # update list of dataframes in the dataset dropdowns
-  # this applies to every page that has a dataset dropdown
+    # this applies to every page that has a dataset dropdown
   observeEvent(datasets_available$data, {
     
     # list of dropdown ids
@@ -69,12 +69,24 @@ server <- function(input, output, session) {
       clean_save_name <- str_to_lower(str_trim(input[[save_name]]))
       
       # make sure inputted dataset name is not already used and is not length 0
-      # this prevents the saving of datasets if the name already exists in
-      # datasets_available$data_names
+        # this prevents the saving of datasets if the name already exists in
+        # datasets_available$data_names
+      if (str_to_lower(str_trim(input[[save_name]])) %in%
+          str_to_lower(datasets_available$data_names)) {
+        show_alert(
+          title = "Dataset name already taken",
+          text = "Please choose another name",
+          type = "error",
+          btn_colors = "#302f42",
+          session = session
+        )
+      }
+      
+      # stop here if dataset name is taken
       validate(
         need(!(clean_save_name %in% str_to_lower(datasets_available$data_names)) &
                length(clean_save_name) > 0,
-             "Dataset name already used")
+             "Dataset name already taken")
       )
       
       # get the dataset for this page
@@ -137,8 +149,8 @@ server <- function(input, output, session) {
                  '").style.color = "#c92626"')
         )
       } else {
-      # javascript permanently changes text color so it needs to change it back
-       # to black when the input text is valid
+        # javascript permanently changes text color so it needs to change it back
+         # to black when the input text is valid
         runjs(
           paste0('document.getElementById("',
                  save_name,
@@ -162,7 +174,7 @@ server <- function(input, output, session) {
   exploration_selected_data <- reactive({
     
     # if the send invitations button has been triggered then use the 
-      # "stacked_results" dataframe instead of the user selected dataset
+     # "stacked_results" dataframe instead of the user selected dataset
     if ("stacked_results" %in% datasets_available$data_names){
       data <- datasets_available$data[[match("stacked_results", datasets_available$data_names)]]
       
@@ -189,23 +201,23 @@ server <- function(input, output, session) {
     }
   })
   
-  # site exploration plots
+  # render site exploration plots
   output$exploration_plot <- renderPlot({
     
     # set which dataset to use
     plot_data <- exploration_selected_data()
     
-    # add kmeans cluster to dataframe
+    # add kmeans cluster to data dataframe
     if(input$exploration_select_plot_type == 'Scatter' & input$exploration_variable_fill == "cluster"){
       
       # run kmeans algo
       km <- kmeans(x = plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)],
                    centers = input$n_clusters, iter.max = 50, nstart = 5)
-
+      
       # add cluster assignment to the dataframe
       plot_data$cluster <- as.factor(km$cluster)
       
-      # hclust
+      # run hclust algo instead
       # dist_matrix <- dist(plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)])
       # clust <- hclust(d = dist_matrix,  method = 'ward.D2')
       # plot_data$cluster <- as.factor(cutree(clust, input$n_clusters))
@@ -213,8 +225,7 @@ server <- function(input, output, session) {
     }
     
     # create base ggplot object
-    p <- plot_data %>% 
-      ggplot(aes_string(x = input$exploration_variable_x))
+    p <- ggplot(plot_data, aes_string(x = input$exploration_variable_x))
     
     # scatter
     if (input$exploration_select_plot_type == 'Scatter'){
@@ -329,7 +340,7 @@ server <- function(input, output, session) {
   filtering_selected_data <- reactive({
     datasets_available$data[[match(input$filtering_dataset, datasets_available$data_names)]]
   })
-
+  
   # generate select inputs for each categorical variable
   output$filtering_select_categorical <- renderUI({
     tagList(
@@ -398,12 +409,12 @@ server <- function(input, output, session) {
   
   # initiate a popup notifying the user if at least 100 sites have been selected
   observeEvent(nrow(filtering_data()), {
-
+    
     # if the user is on the filtering page and the selected dataset has less
     # than 100 sites then show the popup
     if(input$nav == HTML("&nbsp &nbsp Filtering") &
        nrow(filtering_data()) < min_sites_to_approach) {
-
+      
       # launch popup alert
       show_alert_min_sites(session)
     }
@@ -475,7 +486,7 @@ server <- function(input, output, session) {
            .f = function(combo, max_n) {
              sliderInput(
                inputId = combo, 
-               label = str_replace(combo, "_", ":"), 
+               label = str_replace_all(combo, "_", ":"), 
                value = min(strata_combos()$n), 
                min = 0, max = max_n, step = 1) 
            })
@@ -489,7 +500,7 @@ server <- function(input, output, session) {
     slider_ids <- strata_combos()$name
     
     # update the position of the sliders to the maximum amount that still
-    # allows equality across the sliders
+      # allows equality across the sliders
     lapply(slider_ids, function(slider){
       updateSliderInput(session = session, inputId = slider, value = min(strata_combos()$n))
     })
@@ -732,9 +743,9 @@ server <- function(input, output, session) {
   sent_invitations_data <- reactive({
     datasets_available$data[[match(input$invitations_dataset, datasets_available$data_names)]]
   })
-  
+
   # text for top of send invitations page
-  output$invitations_table_summary <- renderText({
+  output$invitations_text_summary <- renderText({
     
     data <- sent_invitations_data()
     
@@ -766,11 +777,11 @@ server <- function(input, output, session) {
   })
   
   # render invitations_table_scores and invitations_button_send
-    # only if selected dataset contains >=100 sites
+   # only if selected dataset contains >=100 sites
   output$invitations_table_button <- renderUI({
     
     # only render the table and send invitations button if the selected
-    # dataset contains 100 or more sites
+      # dataset contains 100 or more sites
     validate(
       need(nrow(sent_invitations_data()) >= min_sites_to_approach,
            "")
@@ -810,11 +821,12 @@ server <- function(input, output, session) {
                      html = TRUE
     )
   })
-    
+  
   # if the user confirms on the popup, then do the rest of these actions
     # otherwise stop here
   observeEvent(input$invitations_popup_confirm, {
     if (isTRUE(input$invitations_popup_confirm)) {
+      
       # show and move user to the final tab
       showTab(inputId = "nav",
               target = "4. Results",
@@ -883,7 +895,7 @@ server <- function(input, output, session) {
       sites_that_accepted <<- sent_invitations_data[accepted_boolean,]
       
       # final data frame of of all sites with indicator if site was sent inviation and if accepted
-      # assign variable to global environment so it can be used in other functions
+        # assign variable to global environment so it can be used in other functions
       population_dataset$sent_invitation <- population_dataset$site_id %in% sent_invitations_data$site_id
       population_dataset$accepted <- population_dataset$site_id %in% sites_that_accepted$site_id
       final_results <<- population_dataset
@@ -917,7 +929,7 @@ server <- function(input, output, session) {
           "stacked_results")
       
       # on the data exploration page, add a grouping variable that represents
-       # population, sent invitations, and accepted invitations sites
+        # population, sent invitations, and accepted invitations sites
       updateSelectInput(session = session,
                         inputId = "exploration_dataset",
                         selected = "stacked_results")
@@ -968,7 +980,7 @@ server <- function(input, output, session) {
         if (input$exploration_variable_facet != "site_group" &
             input$exploration_variable_group != "site_group" &
             length(input$exploration_checkboxes) > 1) {
-
+          
           show_alert(
             title = "Multiple groups of sites are being shown without faceting",
             text = "Including multiple groups of sites without faceting on `site_group` will cause duplicate data to be shown on the plot(s). Either facet on `site_group` or check only one group under 'Sites to include'",
@@ -976,7 +988,7 @@ server <- function(input, output, session) {
             btn_colors = "#302f42",
             session = session
           )
-
+          
         }
       })
     }
@@ -1025,7 +1037,7 @@ server <- function(input, output, session) {
     insertUI(selector = "#results_button_run_simulation",
              where = "afterEnd",
              ui = h4("One moment ... Simulation results will appear on the 'Actual vs. expected' tab"))
-
+    
     # remove button
     removeUI(selector = "#results_button_run_simulation")
     
@@ -1086,7 +1098,7 @@ server <- function(input, output, session) {
     
     # create shell of the summary table
     # this ensures that any NAs in the previous calculations (e.g. a region is missing)
-    # won't affect the structure of the table
+      # won't affect the structure of the table
     # 'row_name' matches the natual output of the above apply functions
     # 'clean_row_name' is what we want the table to eventually display
     shell_table <- data.frame(
