@@ -193,7 +193,7 @@ within the selectize dropdowns */
   border-top-color: #5c5980;
 }
 
-/* the below code is for the datatabels
+/* the below code is for the datatables
 Note that much of this CSS overrides the default datatable CSS sheet */
 /* row striping for data table */
 table.dataTable.stripe tbody tr.odd,

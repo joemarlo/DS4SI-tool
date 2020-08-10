@@ -4,7 +4,7 @@ ui <- fluidPage(
   
   # initialize shinyjs
   useShinyjs(),
-  
+
   # download roboto font
   HTML('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'),
   
@@ -60,10 +60,8 @@ ui <- fluidPage(
                                        tableOutput("results_table_summary")),
                               tabPanel("Plots",
                                        plotOutput("results_plot_hist", height = 650)),
-                              tabPanel(
-                                "Sample vs. population",
-                                plotOutput("results_plot_samp_v_pop_", height = 650)
-                              ),
+                              tabPanel("Sample vs. population",
+                                       plotOutput("results_plot_samp_v_pop_", height = 650)),
                               tabPanel("Sites that accepted",
                                        DT::dataTableOutput('results_table_accepted'))
                             )
@@ -407,4 +405,3 @@ ui <- fluidPage(
                )
   )
 )
-

@@ -1,9 +1,9 @@
-library(tidyverse)
+library(tidyverse) # for ggplot, dplyr data munging
 library(shiny)
 library(shinyWidgets) # for alerts
 library(DT) # for UI tables
 library(gridExtra) # for combining multiple ggplots into one object 
-library(shinyjs)
+library(shinyjs) # for running javascript on the server side
 library(shinyBS) # for popovers
 library(viridis) # for better colors for color blind people
 set.seed(44)
@@ -30,6 +30,27 @@ population_dataset <- read_csv(
 # load score_generalizbility() --------------------------------------------
 
 load('R/score_generalizability.RData')
+
+
+# # messages for tooltips and popovers ------------------------------------
+
+# order must match order of categorical_vars
+categorical_popover_messages <- list(
+  "Think about how the existence or absence of another jobs training program will impact the counterfactual and generalizability",
+  "How will excluding regions affect the counterfactual and generalizability?",
+  "How will excluding urban or rural sites affect the counterfactual and generalizability?"
+)
+# order must match order of numeric_vars
+numeric_popover_messages <- list(
+  "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if comfort is low",
+  "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low)",
+  "How does excluding low or high income sites affect the counterfactual and generalizability?",
+  "How does excluding low or high high school graduation rates sites affect the counterfactual and generalizability?",
+  "How does excluding low or high unemployment sites affect the counterfactual and generalizability?"
+)
+
+# message for sampling tooltip
+sampling_message <- "A simple random sample is an unbiased surveying technique and, in expectation, retains the characteristics of the population. Stratified sampling enables you to partition subpopulations by variables and then sample the subpopulations separately."
 
 
 # misc variables ----------------------------------------------------------
@@ -62,25 +83,6 @@ categorical_choices <- list(
   unique(as.character(population_dataset$region)),
   rev(unique(as.character(population_dataset$urban)))
 )
-
-# messages for tooltips
-# order must match order of categorical_vars
-categorical_popover_messages <- list(
-  "Think about how the existence or absence of another jobs training program will impact the counterfactual and generalizability",
-  "How will excluding regions affect the counterfactual and generalizability?",
-  "How will excluding urban or rural sites affect the counterfactual and generalizability?"
-)
-# order must match order of numeric_vars
-numeric_popover_messages <- list(
-  "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if comfort is low",
-  "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low)",
-  "How does excluding low or high income sites affect the counterfactual and generalizability?",
-  "How does excluding low or high high school graduation rates sites affect the counterfactual and generalizability?",
-  "How does excluding low or high unemployment sites affect the counterfactual and generalizability?"
-)
-
-# message for sampling tooltip
-sampling_message <- "A simple random sample is an unbiased surveying technique and, in expectation, retains the characteristics of the population. Stratified sampling enables you to partition subpopulations by variables and then sample the subpopulations separately."
 
 # create dataframe of min and maxes to use in slider calculations
 min_max_df <-
