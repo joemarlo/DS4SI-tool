@@ -107,6 +107,9 @@ sampling_message <- "A simple random sample is an unbiased surveying technique a
 numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
 categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 
+# set order of metrics (used for plots)
+metrics_order <- c("sample_size", "total_cost", "generalizability_index", "causality_index")
+
 # total number of sites in the population
 population_n <- nrow(population_dataset)
 

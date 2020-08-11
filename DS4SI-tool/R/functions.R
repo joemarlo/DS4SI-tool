@@ -141,5 +141,41 @@ get_dataset <- function(dataset_name, list_of_datasets){
     # pre-defined reactiveList
   
   list_of_datasets$data[[match(dataset_name, list_of_datasets$data_names)]]
-  
 }
+
+# flip a coin with prob = comfort to see which sites accepted
+
+run_simulation <- function(data){
+  
+  # get datasets from the list
+  sent_invitations_data <- data[data$site_group == 'Sent_invitation',]
+  sites_that_accepted <- data[data$site_group == 'Accepted_invitation',]
+  
+  list_of_accepted_dataframes <- list()
+  nsims <- 250
+  scores <- data.frame(sample_size = NA, total_cost = NA, generalizability_index = NA, causality_index = NA)
+  for (i in 1:nsims){
+    # sample the data and return T/F for indices that accepted
+    accepted_boolean <- rbinom(n = nrow(sent_invitations_data),
+                               size = 1,
+                               prob = sent_invitations_data$comfort) == 1
+    
+    # subset the data based on the indices
+    accepted_data <- sent_invitations_data[accepted_boolean,]
+    
+    # add identifier for use in plotting
+    accepted_data$sim <- i
+    
+    # add dataframe to list of total dataframes
+    list_of_accepted_dataframes[[i]] <- accepted_data
+    
+    # create dataframe of scores
+    scores[i, 'sample_size'] <- sum(accepted_boolean)
+    scores[i, 'total_cost'] <- sum(accepted_data$cost)
+    scores[i, 'generalizability_index'] <- score_generalizability(accepted_data)
+    scores[i, 'causality_index'] <- score_causality(accepted_data)
+  }
+  
+  return(list(list_of_accepted_dataframes, scores))
+}
+

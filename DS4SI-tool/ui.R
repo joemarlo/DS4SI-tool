@@ -56,7 +56,7 @@ ui <- fluidPage(
                             tabsetPanel(
                               id = "results_tabs",
                               type = "tabs",
-                              tabPanel("Summary statistics",
+                              tabPanel("Summary metrics and attributes",
                                        tableOutput("results_table_summary")),
                               tabPanel("Plots",
                                        plotOutput("results_plot_hist", height = 650)),

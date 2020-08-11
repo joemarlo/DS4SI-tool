@@ -836,13 +836,20 @@ server <- function(input, output, session) {
                          inputId = "nav",
                          selected = "4. Results")
       
-      # add popover element
+      # add popover elements
       addPopover(
         session = session,
         id = 'exploration_tab_name',
         title = "Explore your data further",
         content = 'Create custom plots to understand how your sites compare',
         placement = 'bottom'
+      )
+      addPopover(
+        session = session,
+        id = 'results_button_download_data',
+        title = "Download your data",
+        content = 'Be sure to download your data for future assignments',
+        placement = 'left'
       )
       # force the popover to show itself on load
       runjs("$('#exploration_tab_name').popover('show')")
@@ -1024,20 +1031,28 @@ server <- function(input, output, session) {
   # insert tab after running simulation
   observeEvent(input$results_button_run_simulation, {
     
-    # insert the tab
-    appendTab(inputId = "results_tabs",
-              tabPanel("Actual vs. expected", 
-                       plotOutput("results_plot_actual_v_expected", height = 650)),
-              select = TRUE
-    )
-    
     # add text indicating to user that results will appear on a new tab
     insertUI(selector = "#results_button_run_simulation",
              where = "afterEnd",
-             ui = h4("One moment ... Simulation results will appear on the 'Actual vs. expected' tab"))
+             ui = h4("One moment ... Simulation results will appear on the 'Expected ...' tabs"))
     
     # remove button
     removeUI(selector = "#results_button_run_simulation")
+    
+    # run the simulation
+    sim_results <<- run_simulation(data = get_dataset("stacked_results", datasets_available))
+    
+    # insert the tabs
+    appendTab(inputId = "results_tabs",
+              tabPanel("Expected attributes",
+                       plotOutput("results_plot_expected_attributes", height = 650)),
+              select = TRUE
+    )
+    appendTab(inputId = "results_tabs",
+              tabPanel("Expected metrics",
+                       plotOutput("results_plot_expected_attributes_metrics", height = 433)),
+              select = TRUE
+    )
     
   })
   
@@ -1223,40 +1238,16 @@ server <- function(input, output, session) {
       formatRound(5:8, 2) %>%
       formatRound(9, 0)
   })
-  
-  # actual vs expected plots
-  output$results_plot_actual_v_expected <- renderPlot({
+
+  # expected attributes plots
+  output$results_plot_expected_attributes <- renderPlot({
+   
+    # get the sim results
+    list_of_accepted_dataframes <- sim_results[[1]]
+    scores <- sim_results[[2]]
     
-    # get datasets from the list
     data <- get_dataset("stacked_results", datasets_available)
-    sent_invitations_data <- data[data$site_group == 'Sent_invitation',]
     sites_that_accepted <- data[data$site_group == 'Accepted_invitation',]
-    
-    # flip a coin with prob = comfort to see which sites accepted
-    list_of_accepted_dataframes <- list()
-    nsims <- 250
-    scores <- data.frame(sim = NA, n = NA, cost = NA, gen_score = NA, cau_score = NA)
-    for (i in 1:nsims){
-      # sample the data and return T/F for indices that accepted
-      accepted_boolean <- rbinom(n = nrow(sent_invitations_data), 
-                                 size = 1, 
-                                 prob = sent_invitations_data$comfort) == 1  
-      
-      # subset the data based on the indices
-      accepted_data <- sent_invitations_data[accepted_boolean,]
-      
-      # add identifier for use in plotting
-      accepted_data$sim <- i
-      
-      # add dataframe to list of total dataframes
-      list_of_accepted_dataframes[[i]] <- accepted_data
-      
-      # create dataframe of scores
-      scores[i, 'n'] <- sum(accepted_boolean)
-      scores[i, 'cost'] <- sum(accepted_data$cost)
-      scores[i, 'gen_score'] <- score_generalizability(accepted_data)
-      scores[i, 'cau_score'] <- score_causality(accepted_data)
-    }
     
     # convert sites_that_accepted to long format - categoricals only
     sites_that_accepted_categorical <- sites_that_accepted %>% 
@@ -1317,28 +1308,43 @@ server <- function(input, output, session) {
       labs(x = NULL,
            y = NULL)
     
-    # convert sites_that_accepted to long format - numerics only
+    # render both plots vertically
+    grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+  })
+  
+  # expected metrics plots  
+  output$results_plot_expected_attributes_metrics <- renderPlot({
+    
+    # get the sim results
+    list_of_accepted_dataframes <- sim_results[[1]]
+    scores <- sim_results[[2]]
+    
+    data <- get_dataset("stacked_results", datasets_available)
+    sites_that_accepted <- data[data$site_group == 'Accepted_invitation',]
+    
+    # create dataframe of scores of the sites that accepted
     actual_scores <- tibble(
-      n = nrow(sites_that_accepted),
-      cost = sum(sites_that_accepted$cost),
-      gen_score = score_generalizability(sites_that_accepted),
-      cau_score = score_causality(sites_that_accepted)
+      sample_size = nrow(sites_that_accepted),
+      total_cost = sum(sites_that_accepted$cost),
+      generalizability_index = score_generalizability(sites_that_accepted),
+      causality_index = score_causality(sites_that_accepted)
     ) %>%
-    pivot_longer(cols = everything())
+      pivot_longer(cols = everything()) %>% 
+      mutate(name = factor(name, levels = metrics_order))
     
     # calculate scores and plot
-    p3 <- scores %>%
+    scores %>%
       pivot_longer(cols = everything()) %>%
+      mutate(name = factor(name, levels = metrics_order)) %>% 
       ggplot(aes(x = value)) +
-      geom_density() +
-      geom_vline(data = actual_scores, aes(xintercept = value)) +
+      geom_density(fill = violet_col, alpha = 0.5) +
+      geom_vline(data = actual_scores, aes(xintercept = value),
+                 color = "white", size = 1.1) +
+      geom_vline(data = actual_scores, aes(xintercept = value),
+                 color = "#302f42", size = 1.3, linetype = "dotted") +
       facet_wrap(~name, scales = 'free', ncol = 3) +
       labs(x = NULL,
            y = NULL)
-
-    # render both plots vertically
-    grid.arrange(p1, p2, p3, ncol = 1, heights = c(1, 2, 2))
-    
   })
   
   # download button
