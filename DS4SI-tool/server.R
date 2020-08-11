@@ -693,16 +693,17 @@ server <- function(input, output, session) {
   })
   
   # save row selections when button is clicked
-  dd <- reactiveValues(select = NULL)
+  selected_rows <- reactiveValues(select = NULL)
   observeEvent(input$manual_button_save_row_selections, {
     
     # get the site ids from the current selected rows
-    dd$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
+    # placing "_rows_selected" after the table name returns the selected rows 
+    selected_rows$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
     
     # append selected list in the values in the user input field
     updateSelectInput(session = session, 
                       inputId = "manual_select_sites_excl",
-                      selected = unique(append(input$manual_select_sites_excl, dd$current_row_selections)))
+                      selected = unique(append(input$manual_select_sites_excl, selected_rows$current_row_selections)))
     
   })
   
@@ -1099,7 +1100,7 @@ server <- function(input, output, session) {
     # create shell of the summary table
     # this ensures that any NAs in the previous calculations (e.g. a region is missing)
       # won't affect the structure of the table
-    # 'row_name' matches the natual output of the above apply functions
+    # 'row_name' matches the natural output of the above apply functions
     # 'clean_row_name' is what we want the table to eventually display
     shell_table <- data.frame(
       'row_name' = c(
@@ -1142,6 +1143,16 @@ server <- function(input, output, session) {
     final_table <- as.matrix(summary_table[, c('Accepted', 'Sent invitation', 'Population')])
     rownames(final_table) <- summary_table$clean_row_name
     
+    # add in scores to the top of the matrix
+    scores <- Reduce(
+      x = lapply(list_of_tables, score_attributes),
+      f = function(df1, df2) cbind(df1, df2)
+    )
+    scores_char <- apply(scores, 2, as.character)
+    rownames(scores_char) <- rownames(scores)
+    colnames(scores_char) <- colnames(final_table)
+    final_table <- rbind(scores_char, round(final_table, 2))
+  
     return(final_table)
     
   }, rownames = TRUE

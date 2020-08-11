@@ -70,6 +70,10 @@ score_attributes <- function(data){
   # function returns a table of the score attributes
   # total cost, generalizability, causality, sample size
   
+  # sample size
+  n_sites <- nrow(data)
+  n_sites <- scales::comma(n_sites)
+  
   # total cost
   total_cost <- sum(data$cost)
   total_cost <- scales::dollar(total_cost)
@@ -80,13 +84,9 @@ score_attributes <- function(data){
   # causality
   causality_index <- round(score_causality(data), 2)
   
-  # sample size
-  n_sites <- nrow(data)
-  n_sites <- scales::comma(n_sites)
-  
   # build the final table
-  metrics_table <- data.frame(Metric = c(total_cost, generalizability_index, causality_index, n_sites))
-  rownames(metrics_table) <- c("Total cost", "Generalizability index", "Causality index", "Sample size")
+  metrics_table <- data.frame(Metric = c(n_sites, total_cost, generalizability_index, causality_index))
+  rownames(metrics_table) <- c("Sample size", "Total cost", "Generalizability index", "Causality index")
   
   # return the table
   return(metrics_table)
