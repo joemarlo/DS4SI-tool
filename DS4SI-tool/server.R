@@ -891,13 +891,7 @@ server <- function(input, output, session) {
         prob = sent_invitations_data()$comfort
       ) == 1
       sites_that_accepted <- sent_invitations_data()[accepted_boolean,]
-      
-      # final data frame of of all sites with indicator if site was sent inviation and if accepted
-        # assign variable to global environment so it can be used in other functions
-      population_dataset$sent_invitation <- population_dataset$site_id %in% sent_invitations_data()$site_id
-      population_dataset$accepted <- population_dataset$site_id %in% sites_that_accepted$site_id
-      final_results <<- population_dataset
-      
+
       # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
       # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
       tmp1 <- sent_invitations_data()
@@ -1236,10 +1230,12 @@ server <- function(input, output, session) {
     # get datasets from the list
     data <- get_dataset("stacked_results", datasets_available)
     sent_invitations_data <- data[data$site_group == 'Sent_invitation',]
+    sites_that_accepted <- data[data$site_group == 'Accepted_invitation',]
     
     # flip a coin with prob = comfort to see which sites accepted
     list_of_accepted_dataframes <- list()
     nsims <- 250
+    scores <- data.frame(sim = NA, n = NA, cost = NA, gen_score = NA, cau_score = NA)
     for (i in 1:nsims){
       # sample the data and return T/F for indices that accepted
       accepted_boolean <- rbinom(n = nrow(sent_invitations_data), 
@@ -1254,6 +1250,12 @@ server <- function(input, output, session) {
       
       # add dataframe to list of total dataframes
       list_of_accepted_dataframes[[i]] <- accepted_data
+      
+      # create dataframe of scores
+      scores[i, 'n'] <- sum(accepted_boolean)
+      scores[i, 'cost'] <- sum(accepted_data$cost)
+      scores[i, 'gen_score'] <- score_generalizability(accepted_data)
+      scores[i, 'cau_score'] <- score_causality(accepted_data)
     }
     
     # convert sites_that_accepted to long format - categoricals only
@@ -1315,8 +1317,27 @@ server <- function(input, output, session) {
       labs(x = NULL,
            y = NULL)
     
+    # convert sites_that_accepted to long format - numerics only
+    actual_scores <- tibble(
+      n = nrow(sites_that_accepted),
+      cost = sum(sites_that_accepted$cost),
+      gen_score = score_generalizability(sites_that_accepted),
+      cau_score = score_causality(sites_that_accepted)
+    ) %>%
+    pivot_longer(cols = everything())
+    
+    # calculate scores and plot
+    p3 <- scores %>%
+      pivot_longer(cols = everything()) %>%
+      ggplot(aes(x = value)) +
+      geom_density() +
+      geom_vline(data = actual_scores, aes(xintercept = value)) +
+      facet_wrap(~name, scales = 'free', ncol = 3) +
+      labs(x = NULL,
+           y = NULL)
+
     # render both plots vertically
-    grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+    grid.arrange(p1, p2, p3, ncol = 1, heights = c(1, 2, 2))
     
   })
   
@@ -1324,12 +1345,23 @@ server <- function(input, output, session) {
   output$results_button_download_data <- downloadHandler(
     filename <- "DS4SI_sites.csv",
     content <- function(file) {
-      write.csv(final_results, file, row.names = FALSE)
+      
+      # create data frame of all sites indicator columns 
+        # if site was sent invitation and if accepted
+      data <- get_dataset("stacked_results", datasets_available)
+      population_dataset$sent_invitation <-
+        population_dataset$site_id %in% data$site_id[data$site_group == "Sent_invitation"]
+      population_dataset$accepted <-
+        population_dataset$site_id %in% data$site_id[data$site_group == "Accepted_invitation"]
+
+      # download the data
+      write.csv(population_dataset, file, row.names = FALSE)
     }
   )
   
   # restart the session based on button click
   observeEvent(input$results_button_restart, {
+    gc()
     session$reload()
   } )
   
