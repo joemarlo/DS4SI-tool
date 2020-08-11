@@ -135,3 +135,11 @@ show_alert_min_sites <- function(session = session) {
     session = session
   )
 }
+
+get_dataset <- function(dataset_name, list_of_datasets){
+  # function returns a dataset based on its name from the 
+    # pre-defined reactiveList
+  
+  list_of_datasets$data[[match(dataset_name, list_of_datasets$data_names)]]
+  
+}

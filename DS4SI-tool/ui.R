@@ -349,7 +349,7 @@ ui <- fluidPage(
                         sidebarLayout(
                           sidebarPanel(width = 4,
                                        
-                                       h4("Manually exclude sites"),
+                                       h4("Manually exclude sites by their site ID"),
                                        br(),
                                        selectInput(inputId = "manual_dataset", 
                                                    label = "Dataset to apply exclusions to: ", 

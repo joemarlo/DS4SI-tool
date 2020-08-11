@@ -176,7 +176,7 @@ server <- function(input, output, session) {
     # if the send invitations button has been triggered then use the 
      # "stacked_results" dataframe instead of the user selected dataset
     if ("stacked_results" %in% datasets_available$data_names){
-      data <- datasets_available$data[[match("stacked_results", datasets_available$data_names)]]
+      data <- get_dataset("stacked_results", datasets_available)
       
       # apply filters from checkmark boxes
       data <- data[data$site_group %in% input$exploration_checkboxes,]
@@ -185,7 +185,7 @@ server <- function(input, output, session) {
       
     } else {
       # otherwise use the user selected dataframe on the dropdown
-      datasets_available$data[[match(input$exploration_dataset, datasets_available$data_names)]]
+      get_dataset(input$exploration_dataset, datasets_available)
     }
   })
   
@@ -338,7 +338,7 @@ server <- function(input, output, session) {
   
   # select which dataset to use on filtering tab
   filtering_selected_data <- reactive({
-    datasets_available$data[[match(input$filtering_dataset, datasets_available$data_names)]]
+    get_dataset(input$filtering_dataset, datasets_available)
   })
   
   # generate select inputs for each categorical variable
@@ -446,7 +446,7 @@ server <- function(input, output, session) {
   
   # select which dataset to use on sampling tab
   sampling_selected_data <- reactive({
-    datasets_available$data[[match(input$sampling_dataset, datasets_available$data_names)]]
+    get_dataset(input$sampling_dataset, datasets_available)
   })
   
   # update sampling_slider_simple_n slider max so it's not larger than the dataset
@@ -684,7 +684,7 @@ server <- function(input, output, session) {
   
   # select which dataset to use on manual exclusion page
   manual_selected_data <- reactive({
-    selected_data <- datasets_available$data[[match(input$manual_dataset, datasets_available$data_names)]]
+    selected_data <- get_dataset(input$manual_dataset, datasets_available)
     
     # exclude rows from manual input
     selected_data <- selected_data[!selected_data$site_id %in% input$manual_select_sites_excl,]
@@ -742,7 +742,7 @@ server <- function(input, output, session) {
   
   # select which dataset to use on send invitations tab
   sent_invitations_data <- reactive({
-    datasets_available$data[[match(input$invitations_dataset, datasets_available$data_names)]]
+    get_dataset(input$invitations_dataset, datasets_available)
   })
 
   # text for top of send invitations page
@@ -884,32 +884,28 @@ server <- function(input, output, session) {
               target = "3. Send invitations",
               session = session)
       
-      # save which dataset was used to send invitations
-      sent_invitations_data <<- sent_invitations_data()
-      
       # flip a coin with prob = comfort to see which sites accepted
       accepted_boolean <- rbinom(
-        n = nrow(sent_invitations_data),
+        n = nrow(sent_invitations_data()),
         size = 1,
-        prob = sent_invitations_data$comfort
+        prob = sent_invitations_data()$comfort
       ) == 1
-      sites_that_accepted <<- sent_invitations_data[accepted_boolean,]
+      sites_that_accepted <- sent_invitations_data()[accepted_boolean,]
       
       # final data frame of of all sites with indicator if site was sent inviation and if accepted
         # assign variable to global environment so it can be used in other functions
-      population_dataset$sent_invitation <- population_dataset$site_id %in% sent_invitations_data$site_id
+      population_dataset$sent_invitation <- population_dataset$site_id %in% sent_invitations_data()$site_id
       population_dataset$accepted <- population_dataset$site_id %in% sites_that_accepted$site_id
       final_results <<- population_dataset
       
       # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
       # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
-      tmp1 <- sent_invitations_data
+      tmp1 <- sent_invitations_data()
       tmp1$site_group <- "Sent_invitation"
       tmp2 <- sites_that_accepted
       tmp2$site_group <- "Accepted_invitation"
-      tmp3 <-
-        population_dataset[, setdiff(colnames(population_dataset),
-                                     c("sent_invitation", "accepted"))]
+      tmp3 <- population_dataset[, setdiff(colnames(population_dataset),
+                                           c("sent_invitation", "accepted"))]
       tmp3$site_group <- "Population"
       stacked_results <- rbind(tmp1, tmp2, tmp3)
       rm(tmp1, tmp2, tmp3)
@@ -925,9 +921,8 @@ server <- function(input, output, session) {
       # add stacked_results to list of dataframes available
       datasets_available$data <- c(datasets_available$data,
                                    list(stacked_results))
-      datasets_available$data_names <-
-        c(datasets_available$data_names,
-          "stacked_results")
+      datasets_available$data_names <- c(datasets_available$data_names,
+                                         "stacked_results")
       
       # on the data exploration page, add a grouping variable that represents
         # population, sent invitations, and accepted invitations sites
@@ -1001,10 +996,12 @@ server <- function(input, output, session) {
   
   # results page ------------------------------------------------------------
   
-  # text for Results page page
+  # text for Results page 
   output$results_text_summary <- renderText({
     
-    data <- final_results[final_results$accepted,]
+    # get the dataset
+    data <- get_dataset("stacked_results", datasets_available)
+    data <- data[data$site_group == "Accepted_invitation",]
     
     # calculate summary stats
     n_sites <- nrow(data)
@@ -1019,10 +1016,16 @@ server <- function(input, output, session) {
   })
   
   # table of key metrics for the Results page
-  output$results_table_scores <- renderTable(
-    score_attributes(sites_that_accepted), 
-    rownames = TRUE, align = 'r'
-  )
+  output$results_table_scores <- renderTable({
+    
+    # get the data
+    data <- get_dataset("stacked_results", datasets_available)
+    data <- data[data$site_group == 'Accepted_invitation', ]
+    
+    # calculate the scores
+    score_attributes(data)
+  },
+  rownames = TRUE, align = 'r')
   
   # insert tab after running simulation
   observeEvent(input$results_button_run_simulation, {
@@ -1047,10 +1050,12 @@ server <- function(input, output, session) {
   # summary table for the Results page
   output$results_table_summary <- renderTable({
     
-    data <- final_results
+    # get the dataset
+    data <- get_dataset("stacked_results", datasets_available)
     
     # create list of dataframes representing the three groups
-    list_of_tables <- list(sites_that_accepted, sent_invitations_data, data)
+    list_of_tables <- split(x = data,
+                            f = data$site_group)
     
     # calculate mean numeric stats per group
     numeric_means <- sapply(list_of_tables, function(df){
@@ -1159,41 +1164,32 @@ server <- function(input, output, session) {
   )
   
   # the histograms
-  output$results_plot_hist <- renderPlot(draw_histograms(sites_that_accepted))
+  output$results_plot_hist <- renderPlot({
+    
+    # get the data
+    data <- get_dataset("stacked_results", datasets_available)
+    data <- data[data$site_group == 'Accepted_invitation',]
+    
+    draw_histograms(data)
+  })
   
   # sample vs population plots
   output$results_plot_samp_v_pop_ <- renderPlot({
     
-    # stack a dataframe with groups per each population (will contain duplicates)
-    population_sites <- final_results
-    sent_sites <- final_results[final_results$sent_invitation,]
-    accepted_sites <- final_results[final_results$accepted,]
-    
-    # add identifier for each population
-    population_sites$population <- "Population"
-    sent_sites$population <- "Sent_invitation"
-    accepted_sites$population <- "Accepted_invitation"
-    
-    # bind the three datasets together
-    data_for_plot <- rbind(population_sites, sent_sites, accepted_sites)
-    
-    # reorder population variables
-    data_for_plot$population <- factor(data_for_plot$population,
-                                       levels = c("Accepted_invitation",
-                                                  "Sent_invitation",
-                                                  "Population"))
+    # get stacked dataset from list 
+    data_for_plot <- get_dataset("stacked_results", datasets_available)
     
     # barplots
     p1 <- data_for_plot %>% 
-      select(population, all_of(categorical_vars)) %>% 
+      select(site_group, all_of(categorical_vars)) %>% 
       mutate_at(categorical_vars, as.character) %>% 
-      pivot_longer(cols = -c("population")) %>%
-      group_by(population, name, value) %>%
+      pivot_longer(cols = -c("site_group")) %>%
+      group_by(site_group, name, value) %>%
       tally() %>%
-      group_by(population, name) %>% 
+      group_by(site_group, name) %>% 
       mutate(prop = n / sum(n),
              name = factor(name, levels = categorical_vars)) %>% 
-      ggplot(aes(x = value, y = prop, group = population, fill = population)) +
+      ggplot(aes(x = value, y = prop, group = site_group, fill = site_group)) +
       geom_col(position = 'dodge', color = 'white', alpha = 0.6) +
       scale_fill_viridis_d() +
       facet_wrap(~name, scales = 'free_x') +
@@ -1204,9 +1200,9 @@ server <- function(input, output, session) {
     
     # density plots
     p2 <- data_for_plot %>% 
-      select(population, all_of(numeric_vars)) %>% 
-      pivot_longer(cols = -c("population")) %>% 
-      ggplot(aes(x = value, group = population, fill = population)) +
+      select(site_group, all_of(numeric_vars)) %>% 
+      pivot_longer(cols = -c("site_group")) %>% 
+      ggplot(aes(x = value, group = site_group, fill = site_group)) +
       geom_density(alpha = 0.24) +
       facet_wrap(~name, scales = 'free') +
       scale_fill_viridis_d() +
@@ -1221,22 +1217,25 @@ server <- function(input, output, session) {
   })
   
   # table of sites that accepted for the Results table
-  output$results_table_accepted <- DT::renderDataTable(
+  output$results_table_accepted <- DT::renderDataTable({
     
-    custom_datatable(
-      sites_that_accepted,
-      selection = 'none'
-    ) %>%
+    # get the data
+    data <- get_dataset("stacked_results", datasets_available)
+    data <- data[data$site_group == 'Accepted_invitation',]
+    
+    # build the table
+    custom_datatable(data,
+                     selection = 'none') %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0)
-    
-  )
+  })
   
   # actual vs expected plots
   output$results_plot_actual_v_expected <- renderPlot({
     
-    data <- final_results
-    sent_invitations_data <- data[data$sent_invitation,]
+    # get datasets from the list
+    data <- get_dataset("stacked_results", datasets_available)
+    sent_invitations_data <- data[data$site_group == 'Sent_invitation',]
     
     # flip a coin with prob = comfort to see which sites accepted
     list_of_accepted_dataframes <- list()
