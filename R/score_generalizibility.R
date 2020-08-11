@@ -44,7 +44,7 @@ calc_generalizability <- function(sample_data, pca = population_pca, population 
 # to normalize the score between [0,1], create a simulated distribution
   # of scores based on random samples of the population
 # the scores are correlated with sample size so cap the sample size at 500
-  # otherwise the scores the students receieve will be quite low as their 
+  # otherwise the scores the students receive will be quite low as their 
   # their final samples should be around 100
 nsims <- 1000
 ns <- sample(50:500, size = nsims, replace = TRUE)
@@ -80,6 +80,21 @@ x %>%
   ggplot(aes(x = value, group = group)) + 
   geom_density() + 
   facet_wrap(~group, scales = 'free_y')
+rm(x)
+
+# see how the scores change with random binaries
+x <- sapply(100:500, function(i){
+  region <- sample(c("South", "Northeast", "West", "Northcentral"), size = sample(1:4, 1))
+  urban <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
+  other_prog <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
+  data <- population_dataset %>% 
+    filter(region %in% region,
+           urban %in% urban,
+           other_prog %in% other_prog)
+  slice_sample(data, n = i) %>% score_generalizability()
+})
+summary(x)
+plot(density(x))
 rm(x)
 
 
