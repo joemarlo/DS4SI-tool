@@ -122,6 +122,28 @@ server <- function(input, output, session) {
                       inputId = save_name,
                       value = NA)
       
+      # if the user is saving the filtering dataset then reset the sliders
+        # on button click, reset the sliders to the starting position
+      if (id == 'filtering_data_save') {
+        
+        # reset the categorical inputs to default position
+        pmap(.l = list(categorical_vars, categorical_choices),
+             .f = function(variable, var_choices) {
+               updateSelectInput(session = session,
+                                 inputId = paste0("filtering_select_", variable),
+                                 selected = var_choices)
+               })
+        
+        # reset the numeric inputs
+        pmap(.l = list(numeric_vars, min_max_df$min, min_max_df$max),
+             .f = function(variable, var_min, var_max) {
+               updateSliderInput(session = session,
+                                 inputId = paste0("filtering_slider_", variable),
+                                 value = c(var_min, var_max))
+              }
+            )
+      }
+      
       # if the user is saving the manual exclusions dataset then
         # destroy the user input saved IDs after the dataset is saved 
       if (id == 'manual_data_save') {
