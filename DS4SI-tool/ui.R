@@ -42,10 +42,10 @@ ui <- fluidPage(
                             htmlOutput("results_text_summary"),
                             tableOutput("results_table_scores"),
                             br(),br(),
+                            downloadButton("results_button_download_data", "Download the data"),
+                            br(),br(),
                             actionButton(inputId = "results_button_run_simulation",
                                          label = 'How does your random draw compare to 250 simulated draws?'),
-                            br(),br(),
-                            downloadButton("results_button_download_data", "Download the data"),
                             br(),br(),
                             actionButton(inputId = "results_button_restart",
                                          label = 'Erase these data and restart the selection process')

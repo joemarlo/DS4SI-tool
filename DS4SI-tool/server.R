@@ -13,7 +13,7 @@ server <- function(input, output, session) {
   
   # initialize list of saved datasets
   datasets_available <- reactiveValues(data = NULL, data_names = NULL)
-  datasets_available$data <- list(population_dataset)
+  datasets_available$data <- list(population_dataset$site_id)
   datasets_available$data_names <- c("Population")
   
   # update list of dataframes in the dataset dropdowns
@@ -72,7 +72,7 @@ server <- function(input, output, session) {
         # this prevents the saving of datasets if the name already exists in
         # datasets_available$data_names
       if (str_to_lower(str_trim(input[[save_name]])) %in%
-          str_to_lower(datasets_available$data_names)) {
+          str_to_lower(c(datasets_available$data_names, "stacked_results"))) {
         show_alert(
           title = "Dataset name already taken",
           text = "Please choose another name",
@@ -84,7 +84,7 @@ server <- function(input, output, session) {
       
       # stop here if dataset name is taken
       validate(
-        need(!(clean_save_name %in% str_to_lower(datasets_available$data_names)) &
+        need(!(clean_save_name %in% str_to_lower(c(datasets_available$data_names, "stacked_results"))) &
                length(clean_save_name) > 0,
              "Dataset name already taken")
       )
@@ -110,8 +110,8 @@ server <- function(input, output, session) {
              paste0("Less than ", min_sites_to_approach, " sites are currently selected"))
       )
       
-      # add input data to list of of dataframes 
-      datasets_available$data <- c(datasets_available$data, list(dataset_to_save))
+      # append the selected sites as a new sublist to the master list of saved sites
+      datasets_available$data <- c(datasets_available$data, list(dataset_to_save$site_id))
       
       # add input string to list of dataset names
       datasets_available$data_names <- c(datasets_available$data_names,
@@ -139,7 +139,7 @@ server <- function(input, output, session) {
       # make names lower case and remove white space so 
         # save_name is 1:1 with data_names
       clean_save_name <- str_to_lower(str_trim(input[[save_name]]))
-      dataset_names <- str_to_lower(datasets_available$data_names)
+      dataset_names <- str_to_lower(c(datasets_available$data_names, "stacked_results"))
       
       # make text red
       if(clean_save_name %in% dataset_names) {
@@ -1231,22 +1231,21 @@ server <- function(input, output, session) {
     # insert the tabs
     appendTab(inputId = "results_tabs",
               tabPanel("Expected attributes",
-                       absolutePanel("One moment while the simulation runs",
+                       absolutePanel("One moment while the simulation runs ...",
                                      top = 100, left = 30, right = 'auto', bottom = 'auto',
                                      style = "z-index: -2;"),
                        plotOutput("results_plot_expected_attributes", height = 650)),
               select = TRUE)
     appendTab(inputId = "results_tabs",
               tabPanel("Expected metrics",
-                       absolutePanel("One moment while the simulation runs",
+                       absolutePanel("One moment while the simulation runs ...",
                                      top = 100, left = 30, right = 'auto', bottom = 'auto',
                                      style = "z-index: -2;"),
                        plotOutput("results_plot_expected_attributes_metrics", height = 433),
                        absolutePanel(id = "floating_window", 
                                      top = 340, left = "auto", right = 50, bottom = "auto",
-                                     width = 330, height = "auto",
-                                     results_message_float
-                       )
+                                     width = 250, height = "auto",
+                                     results_message_float)
                        ),
               select = TRUE)
   })

@@ -101,9 +101,9 @@ sampling_message <- "A simple random sample is an unbiased surveying technique a
 
 # message for floating window on results page
 results_message_float <- list(
-  strong("This is how your sample compares to 250 random draws"),
+  strong("This is how your final sample compares to 250 random draws"),
   br(),br(),
-  HTML("I.e. if you resent the invitations 250 times, these are the distributions of those outcomes. The vertical line represents your sample.")
+  HTML("If you resent the invitations 250 times, these are the distributions of those outcomes. The vertical line represents your final sample.")
 )
 
 # misc variables ----------------------------------------------------------

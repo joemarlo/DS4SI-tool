@@ -208,6 +208,14 @@ within the selectize dropdowns */
   border-top-color: #5c5980;
 }
 
+.popover.left .arrow:after {
+  border-left-color: #5c5980;
+}
+
+.popover.right .arrow:after {
+  border-right-color: #5c5980;
+}
+
 /* the below code is for the datatables
 Note that much of this CSS overrides the default datatable CSS sheet */
 /* row striping for data table */

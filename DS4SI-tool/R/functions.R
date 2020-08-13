@@ -136,11 +136,30 @@ show_alert_min_sites <- function(session = session) {
   )
 }
 
+# get_dataset <- function(dataset_name, list_of_datasets){
+#   # function returns a dataset based on its name from the 
+#     # pre-defined reactiveList
+#   
+#   list_of_datasets$data[[match(dataset_name, list_of_datasets$data_names)]]
+# }
+
 get_dataset <- function(dataset_name, list_of_datasets){
   # function returns a dataset based on its name from the 
-    # pre-defined reactiveList
+  # pre-defined reactiveList
   
-  list_of_datasets$data[[match(dataset_name, list_of_datasets$data_names)]]
+  # get list of site_ids
+  site_ids <- list_of_datasets$data[[match(dataset_name, list_of_datasets$data_names)]]
+  
+  # if the input name is "stacked_results" then return back the object as this is a dataframe
+    # This dataset is created when the user clicks input$invitations_popup_confirm
+  if (dataset_name == "stacked_results"){
+    return(site_ids)
+  }
+  
+  # filter the population dataframe to just include those site_ids
+  data <- population_dataset[population_dataset$site_id %in% site_ids,]
+  
+  return(data)
 }
 
 # flip a coin with prob = comfort to see which sites accepted
