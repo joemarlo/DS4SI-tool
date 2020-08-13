@@ -1026,35 +1026,8 @@ server <- function(input, output, session) {
     # calculate the scores
     score_attributes(data)
   },
-  rownames = TRUE, align = 'r')
-  
-  # insert tab after running simulation
-  observeEvent(input$results_button_run_simulation, {
-    
-    # add text indicating to user that results will appear on a new tab
-    insertUI(selector = "#results_button_run_simulation",
-             where = "afterEnd",
-             ui = h4("One moment ... Simulation results will appear on the 'Expected ...' tabs"))
-    
-    # remove button
-    removeUI(selector = "#results_button_run_simulation")
-    
-    # run the simulation
-    sim_results <<- run_simulation(data = get_dataset("stacked_results", datasets_available))
-    
-    # insert the tabs
-    appendTab(inputId = "results_tabs",
-              tabPanel("Expected attributes",
-                       plotOutput("results_plot_expected_attributes", height = 650)),
-              select = TRUE
-    )
-    appendTab(inputId = "results_tabs",
-              tabPanel("Expected metrics",
-                       plotOutput("results_plot_expected_attributes_metrics", height = 433)),
-              select = TRUE
-    )
-    
-  })
+  rownames = TRUE, align = 'r'
+  )
   
   # summary table for the Results page
   output$results_table_summary <- renderTable({
@@ -1232,11 +1205,44 @@ server <- function(input, output, session) {
     data <- get_dataset("stacked_results", datasets_available)
     data <- data[data$site_group == 'Accepted_invitation',]
     
+    # remove site_group column
+    data <- data[, setdiff(colnames(data), 'site_group')]
+    
     # build the table
-    custom_datatable(data,
-                     selection = 'none') %>%
+    custom_datatable(data, selection = 'none') %>%
       formatRound(5:8, 2) %>%
       formatRound(9, 0)
+  })
+  
+  # insert tab after running simulation
+  observeEvent(input$results_button_run_simulation, {
+    
+    # add text indicating to user that results will appear on a new tab
+    insertUI(selector = "#results_button_run_simulation",
+             where = "afterEnd",
+             ui = h4("One moment ... Simulation results will appear on the 'Expected ...' tabs"))
+    
+    # remove button
+    removeUI(selector = "#results_button_run_simulation")
+    
+    # run the simulation
+    sim_results <<- run_simulation(data = get_dataset("stacked_results", datasets_available))
+    
+    # insert the tabs
+    appendTab(inputId = "results_tabs",
+              tabPanel("Expected attributes",
+                       plotOutput("results_plot_expected_attributes", height = 650)),
+              select = TRUE)
+    appendTab(inputId = "results_tabs",
+              tabPanel("Expected metrics",
+                       plotOutput("results_plot_expected_attributes_metrics", height = 433),
+                       absolutePanel(id = "floating_window", 
+                                     top = 340, left = "auto", right = 50, bottom = "auto",
+                                     width = 330, height = "auto",
+                                     results_message_float
+                       )
+                       ),
+              select = TRUE)
   })
 
   # expected attributes plots
@@ -1332,7 +1338,7 @@ server <- function(input, output, session) {
       pivot_longer(cols = everything()) %>% 
       mutate(name = factor(name, levels = metrics_order))
     
-    # calculate scores and plot
+    # plot it
     scores %>%
       pivot_longer(cols = everything()) %>%
       mutate(name = factor(name, levels = metrics_order)) %>% 
@@ -1345,7 +1351,7 @@ server <- function(input, output, session) {
       facet_wrap(~name, scales = 'free', ncol = 3) +
       labs(x = NULL,
            y = NULL)
-  })
+    })
   
   # download button
   output$results_button_download_data <- downloadHandler(

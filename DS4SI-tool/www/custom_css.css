@@ -146,11 +146,23 @@ within the selectize dropdowns */
   background-color: #ab2c2c !important;
 }
 
+#floating_window {
+  background-color: #5c5980;
+  opacity: 0.9;
+  filter: alpha(opacity=90);
+  border: 0;
+  border-radius: 5px;
+  padding: 10px 10px 10px 10px;
+  color: white;
+}
+
 /* tooltips and popovers */
 .tooltip.in {
   opacity: 0.9;
   filter: alpha(opacity=90);
   border: 0;
+  color: white;
+  font-family: "Roboto", Helvetica, Arial, sans-serif !important;
 }
 
 .tooltip.bottom .tooltip-inner {
@@ -173,16 +185,19 @@ within the selectize dropdowns */
   background-color: #5c5980;
   color: white;
   border: 0;
+  font-family: "Roboto", Helvetica, Arial, sans-serif !important;
 }
 
 .popover-title {
   font-weight: 700;
+  font-family: "Roboto", Helvetica, Arial, sans-serif !important;
 }
 
 .popover.in, .popover-title.in, .tooltip.in {
   opacity: 0.85;
   filter: alpha(opacity=85);
   border: 0;
+  font-family: "Roboto", Helvetica, Arial, sans-serif;
 }
 
 .popover.bottom .arrow:after {
