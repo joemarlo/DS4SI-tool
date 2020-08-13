@@ -1231,10 +1231,16 @@ server <- function(input, output, session) {
     # insert the tabs
     appendTab(inputId = "results_tabs",
               tabPanel("Expected attributes",
+                       absolutePanel("One moment while the simulation runs",
+                                     top = 100, left = 30, right = 'auto', bottom = 'auto',
+                                     style = "z-index: -2;"),
                        plotOutput("results_plot_expected_attributes", height = 650)),
               select = TRUE)
     appendTab(inputId = "results_tabs",
               tabPanel("Expected metrics",
+                       absolutePanel("One moment while the simulation runs",
+                                     top = 100, left = 30, right = 'auto', bottom = 'auto',
+                                     style = "z-index: -2;"),
                        plotOutput("results_plot_expected_attributes_metrics", height = 433),
                        absolutePanel(id = "floating_window", 
                                      top = 340, left = "auto", right = 50, bottom = "auto",
