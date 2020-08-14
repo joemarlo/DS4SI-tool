@@ -255,10 +255,18 @@ server <- function(input, output, session) {
     )
   })
   
-  # download the plot on click
+  # download the plot on the popup
   output$exploration_button_download_plot <- downloadHandler(
     
-    filename <- "hello.png",
+    # use plot title as file name but only retain alpha-numeric characters
+    filename <- function() {paste0(
+      str_replace_all(
+        input$exploration_text_plot_title, 
+        "[^[:alnum:]]", ""),
+      ".png")
+      }, 
+    
+    # plot to save
     content <- function(file) {
       ggsave(file,
              plot = exploration_plot() + labs(title = input$exploration_text_plot_title),

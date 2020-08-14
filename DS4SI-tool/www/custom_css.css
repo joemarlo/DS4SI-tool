@@ -140,6 +140,7 @@ within the selectize dropdowns */
   height: 43px;
   border-radius: 5px;
   vertical-align: middle; 
+  font-size: 0.85em;
 }
 
 #inline label{
