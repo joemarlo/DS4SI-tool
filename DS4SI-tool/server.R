@@ -223,8 +223,58 @@ server <- function(input, output, session) {
     }
   })
   
+  # if user clicks download plot then trigger popup with additional inputs
+  observeEvent(input$exploration_button_download, {
+    show_alert(
+      title = "Download your plot",
+      text =
+        list(
+          br(),
+          tags$div(id = "inline",
+            textInput(inputId = "exploration_text_plot_title",
+                      label = "Give your plot a title",
+                      value = "Figure 1: My plot"),
+            numericInput(inputId = "exploration_numeric_width",
+                            label = "Set width (cm)",
+                            value = 16,
+                            min = 1),
+            numericInput(inputId = "exploration_numeric_height",
+                         label = "Set height (cm)",
+                         value = 12,
+                         min = 1)
+          ), 
+          br(),
+          downloadButton(outputId = "exploration_button_download_plot", 
+                         label = "Download")
+        ),
+      type = NULL,
+      btn_labels = "Cancel",
+      btn_colors = "#c7c7c7",
+      session = session,
+      html = TRUE
+    )
+  })
+  
+  # download the plot on click
+  output$exploration_button_download_plot <- downloadHandler(
+    
+    filename <- "hello.png",
+    content <- function(file) {
+      ggsave(file,
+             plot = exploration_plot() + labs(title = input$exploration_text_plot_title),
+             device = "png",
+             width = input$exploration_numeric_width,
+             height = input$exploration_numeric_height,
+             units = "cm")
+    }
+  )
+  
+
   # render site exploration plots
-  output$exploration_plot <- renderPlot({
+  output$exploration_plot <- renderPlot(exploration_plot())
+  
+  # build the exploration plots
+  exploration_plot <- reactive({
     
     # set which dataset to use
     plot_data <- exploration_selected_data()

@@ -8,7 +8,7 @@ ui <- fluidPage(
   # download roboto font
   HTML('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,300,700,400italic">'),
   
-  # choose default slider skin
+  # set default slider skin
   chooseSliderSkin(skin = "Flat",
                    color = "#221146"),
   
@@ -16,13 +16,16 @@ ui <- fluidPage(
   includeCSS("www/custom_css.css"),
   
   # set top left title
-  titlePanel("DS4SI Site Selection"),
+  titlePanel(title = h1("NYU DS4SI Site Selection"),
+             windowTitle = "DS4SI Site Selection"),
   
   br(),
   
   navlistPanel(id = "nav", 
                widths = c(2, 10),
-               
+
+# welcome page ------------------------------------------------------------
+
                tabPanel("Welcome",
                         mainPanel(width = 10,
                                   tabsetPanel(
@@ -33,7 +36,9 @@ ui <- fluidPage(
                                              includeMarkdown("markdowns/tool_instructions.md"))
                                   ))
                ),
-               
+
+# results page ------------------------------------------------------------
+
                tabPanel(title = "4. Results",
                         
                         sidebarLayout(
@@ -69,13 +74,17 @@ ui <- fluidPage(
                         )), 
                
                HTML('<div><h5>1. Site attributes</h5></div>'),
-               
+
+# data description page ---------------------------------------------------
+
                tabPanel(title = HTML("&nbsp &nbsp Data description"),
                         sidebarLayout(
                           sidebarPanel(width = 4, includeMarkdown("markdowns/data_description.md")),
                           mainPanel(width = 6, plotOutput("description_plots", height = 650))
                         )), 
-               
+
+# data exploration page ---------------------------------------------------
+
                tabPanel(title = htmlOutput("exploration_tab_name"),
                         sidebarLayout(
                           sidebarPanel(
@@ -190,18 +199,20 @@ ui <- fluidPage(
                                 step = 0.1
                               )
                             ),
+                            HTML('<details><summary>Advanced</summary>'),
                             div(
-                              id = "exploration_dataset_div",
-                              HTML('<details><summary>Advanced filters</summary>'),
+                              id = "exploration_dataset_div",  
                               selectInput(
                                 inputId = "exploration_dataset",
                                 label = "Dataset: ",
                                 multiple = FALSE,
                                 choices = NULL
                               ),
-                              br(),br(),br(),br(),
-                              HTML('</details><br>')
-                            )
+                            ),
+                            actionButton(inputId = "exploration_button_download", 
+                                         label = "Download the plot"),
+                            br(),
+                            HTML('</details><br>')
                           ),
                           
                           mainPanel(
@@ -215,7 +226,9 @@ ui <- fluidPage(
                         )),
                
                HTML("<div><h5>2. Site selection</h5></div>"),
-               
+
+# filtering page ----------------------------------------------------------
+
                tabPanel(title = HTML("&nbsp &nbsp Filtering"),
                         
                         sidebarLayout(
@@ -250,7 +263,9 @@ ui <- fluidPage(
                           )
                         )
                ),
-               
+
+# sampling page -----------------------------------------------------------
+
                tabPanel(title = HTML("&nbsp &nbsp Sampling"),
                         sidebarLayout(
                           sidebarPanel(width = 4,
@@ -343,7 +358,9 @@ ui <- fluidPage(
                #            )
                #          )
                # ),
-               
+
+# manual exclusions page --------------------------------------------------
+
                tabPanel(title = HTML("&nbsp &nbsp Manual exclusions"),
                         
                         sidebarLayout(
@@ -380,7 +397,9 @@ ui <- fluidPage(
                                     )
                           )
                         )),
-               
+
+# send invitations page ---------------------------------------------------
+
                tabPanel(title = "3. Send invitations",
                         sidebarLayout(
                           sidebarPanel(width = 4,

@@ -135,6 +135,24 @@ within the selectize dropdowns */
 }
 
 /* specfic ids to modify */
+#exploration_button_download_plot{
+  width: 120px; 
+  height: 43px;
+  border-radius: 5px;
+  vertical-align: middle; 
+}
+
+#inline label{
+  display: table-cell;
+  text-align: left; 
+  vertical-align: middle; 
+  padding: 10px 50px 10px 10px;
+  font-weight: 300;
+} 
+#inline .form-group {
+  display: table-row;
+}
+
 #invitations_button_send {
   height: 70px;
   font-size: 1.35em;
