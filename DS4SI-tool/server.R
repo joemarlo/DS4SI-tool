@@ -1305,22 +1305,20 @@ server <- function(input, output, session) {
     # remove button
     removeUI(selector = "#results_button_run_simulation")
     
-    # run the simulation
+    # show notification to user
+    showNotification("One moment while the simulation runs ...", 
+                     duration = 10)
+    
+    # run the simulation and save as global variable so multiple plots can access the results
     sim_results <<- run_simulation(data = get_dataset("stacked_results", datasets_available))
     
     # insert the tabs
     appendTab(inputId = "results_tabs",
               tabPanel("Expected attributes",
-                       absolutePanel("One moment while the simulation runs ...",
-                                     top = 100, left = 30, right = 'auto', bottom = 'auto',
-                                     style = "z-index: -2;"),
                        plotOutput("results_plot_expected_attributes", height = 650)),
               select = TRUE)
     appendTab(inputId = "results_tabs",
               tabPanel("Expected metrics",
-                       absolutePanel("One moment while the simulation runs ...",
-                                     top = 100, left = 30, right = 'auto', bottom = 'auto',
-                                     style = "z-index: -2;"),
                        plotOutput("results_plot_expected_attributes_metrics", height = 433),
                        absolutePanel(id = "floating_window", 
                                      top = 340, left = "auto", right = 50, bottom = "auto",
