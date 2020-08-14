@@ -99,6 +99,9 @@ numeric_popover_messages <- list(
 # message for sampling tooltip
 sampling_message <- "A simple random sample is an unbiased surveying technique and, in expectation, retains the characteristics of the population. Stratified sampling enables you to partition subpopulations by variables and then sample the subpopulations separately."
 
+# message for run simulation button
+results_message_sim_button <- "Resend the invitations 250 times and see how the distribution of these results compare to your final sample"
+
 # message for floating window on results page
 results_message_float <- list(
   strong("This is how your final sample compares to 250 random draws"),

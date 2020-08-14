@@ -931,6 +931,13 @@ server <- function(input, output, session) {
         content = 'Be sure to download your data for future assignments',
         placement = 'left'
       )
+      addPopover(
+        session = session,
+        id = 'results_button_run_simulation',
+        title = "See how your results compare to the expected outcome",
+        content = results_message_sim_button,
+        placement = 'left'
+      )
       # force the popover to show itself on load
       runjs("$('#exploration_tab_name').popover('show')")
       
@@ -1302,8 +1309,9 @@ server <- function(input, output, session) {
              where = "afterEnd",
              ui = h4("One moment ... Simulation results will appear on the 'Expected ...' tabs"))
     
-    # remove button
+    # remove button and its popover
     removeUI(selector = "#results_button_run_simulation")
+    runjs("$('#results_button_run_simulation').popover('destroy')")
     
     # show notification to user
     showNotification("One moment while the simulation runs ...", 
