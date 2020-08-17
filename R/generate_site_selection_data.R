@@ -91,4 +91,3 @@ write.table(
   row.names = FALSE,
   sep = ","
 )
-#write.table(data, file="jpta.csv",col.names=TRUE,sep=",")

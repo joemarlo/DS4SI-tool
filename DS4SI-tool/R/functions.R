@@ -136,22 +136,18 @@ show_alert_min_sites <- function(session = session) {
   )
 }
 
-# get_dataset <- function(dataset_name, list_of_datasets){
-#   # function returns a dataset based on its name from the 
-#     # pre-defined reactiveList
-#   
-#   list_of_datasets$data[[match(dataset_name, list_of_datasets$data_names)]]
-# }
-
 get_dataset <- function(dataset_name, list_of_datasets){
   # function returns a dataset based on its name from the 
-  # pre-defined reactiveList
+    # pre-defined reactiveList
+  # the function is only (currently) used to access 2. dataframes saved by the user
+    # and 2. the 'stacked_results' dataframe
   
   # get list of site_ids
   site_ids <- list_of_datasets$data[[match(dataset_name, list_of_datasets$data_names)]]
   
-  # if the input name is "stacked_results" then return back the object as this is a dataframe
-    # This dataset is created when the user clicks input$invitations_popup_confirm
+  # if the input name is "stacked_results" then return back the object as this 
+    # is a dataframe, not just site_ids like all other items stored in the list
+  # "stacked_results" is created when the user clicks input$invitations_popup_confirm
   if (dataset_name == "stacked_results"){
     return(site_ids)
   }
@@ -162,9 +158,12 @@ get_dataset <- function(dataset_name, list_of_datasets){
   return(data)
 }
 
-# flip a coin with prob = comfort to see which sites accepted
-
 run_simulation <- function(data){
+  # function re-simulates the acceptance of the invitations
+    # and returns a list of dataframes, each representing one simulation and containing
+    # the sites that accepted the invitation
+  # it also returns a list of the scores (n, cost, generalizbility and causality scores) 
+   # per each simulation
   
   # get datasets from the list
   sent_invitations_data <- data[data$site_group == 'Sent_invitation',]
