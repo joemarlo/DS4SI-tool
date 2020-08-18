@@ -539,7 +539,7 @@ server <- function(input, output, session) {
   })
   
   # determine which tooltip message to display above sampling_select_simple_or_stratified
-  message <- reactive({
+  sampling_tooltip_message <- reactive({
     if (is.null(input$sampling_select_simple_or_stratified)) {
       return("nope")
     } else {
@@ -551,7 +551,10 @@ server <- function(input, output, session) {
     }
   })
   
-  # render sampling_select_simple_or_stratified and its tooltip with the appropriate message
+  # render sampling_select_simple_or_stratified dropdown and its tooltip 
+    # with the appropriate message
+  # this method is necessary b/c the tooltip needs to be regenerated when the user 
+    # changes sampling_select_simple_or_stratified
   output$sampling_select_simple_or_stratified <- renderUI({
     selectInput(inputId = "sampling_select_simple_or_stratified",
                 label = "Simple or stratified sample: ",
@@ -561,7 +564,7 @@ server <- function(input, output, session) {
       # add the tooltip element
       tipify(
         el = .,
-        title = message(), #sampling_simple_message,
+        title = sampling_tooltip_message(),
         placement = 'top'
       )
   })
@@ -966,14 +969,14 @@ server <- function(input, output, session) {
         id = 'results_button_download_data',
         title = "Download your data",
         content = 'Be sure to download your data for future assignments',
-        placement = 'left'
+        placement = 'right'
       )
       addPopover(
         session = session,
         id = 'results_button_run_simulation',
         title = "See how your results compare to the expected outcome",
         content = results_message_sim_button,
-        placement = 'left'
+        placement = 'right'
       )
       # force the popover to show itself on load
       runjs("$('#exploration_tab_name').popover('show')")
@@ -1117,6 +1120,64 @@ server <- function(input, output, session) {
   
   # plots on send invitations page
   output$invitations_plots <- renderPlot(draw_histograms(sent_invitations_data()))
+  
+  
+  # sites to send invitations vs population plots
+  output$invitations_plot_sites_v_pop <- renderPlot({
+    
+    # get stacked dataset from list 
+    selected_sites <- sent_invitations_data()
+    selected_sites$site_group <- "Sites_to_send_invitations"
+    pop <- population_dataset
+    pop$site_group <- "Population"
+    data_for_plot <- rbind(selected_sites, pop)
+    
+    # barplots
+    p1 <- data_for_plot %>% 
+      select(site_group, all_of(categorical_vars)) %>% 
+      mutate_at(categorical_vars, as.character) %>% 
+      pivot_longer(cols = -c("site_group")) %>%
+      group_by(site_group, name, value) %>%
+      tally() %>%
+      group_by(site_group, name) %>% 
+      mutate(prop = n / sum(n),
+             name = factor(name, levels = categorical_vars)) %>% 
+      ggplot(aes(x = value, y = prop, group = site_group, fill = site_group)) +
+      geom_col(position = 'dodge', color = 'white', alpha = 0.6) +
+      scale_fill_viridis_d() +
+      facet_wrap(~name, scales = 'free_x') +
+      labs(x = NULL,
+           y = NULL) +
+      theme(legend.position = 'none',
+            axis.text.x = element_text(angle = 40, hjust = 1))
+    
+    # density plots
+    p2 <- data_for_plot %>% 
+      select(site_group, all_of(numeric_vars)) %>% 
+      pivot_longer(cols = -c("site_group")) %>% 
+      ggplot(aes(x = value, group = site_group, fill = site_group)) +
+      geom_density(alpha = 0.24) +
+      facet_wrap(~name, scales = 'free') +
+      scale_fill_viridis_d() +
+      labs(x = NULL,
+           y = NULL) +
+      theme(legend.title = element_blank(),
+            legend.position = c(0.82, 0.25))
+    
+    # render both plots vertically
+    grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+    
+  })
+  
+  
+  # table of sites to send invitations to
+  output$invitations_table_send <- DT::renderDataTable({
+    custom_datatable(sent_invitations_data(), 
+                     selection = 'none') %>%
+      formatRound(5:8, 2) %>%
+      formatRound(9, 0)
+  })
+  
   
   
   # results page ------------------------------------------------------------
@@ -1280,7 +1341,7 @@ server <- function(input, output, session) {
   })
   
   # sample vs population plots
-  output$results_plot_samp_v_pop_ <- renderPlot({
+  output$results_plot_samp_v_pop <- renderPlot({
     
     # get stacked dataset from list 
     data_for_plot <- get_dataset("stacked_results", datasets_available)

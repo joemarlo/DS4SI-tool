@@ -83,22 +83,22 @@ score_causality <- function(data, scores_df = causal_scores){
 
 # order must match order of categorical_vars
 categorical_popover_messages <- list(
-  "Think about how the existence or absence of another jobs training program could impact the size of the treatment effect.",
-  "How will excluding regions affect the generalizability?",
+  "Think about how the existence or absence of another jobs training program could impact the size of the treatment effect. If there is a competing program, we expect the effect to be much smaller.",
+  "How will excluding regions affect generalizability?",
   "How will excluding urban or rural sites affect generalizability?"
 )
 # order must match order of numeric_vars
 numeric_popover_messages <- list(
   "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if average comfort is low.",
   "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low).",
-  "How does excluding low or high income sites affect the generalizability?",
+  "How does excluding low or high income sites affect generalizability?",
   "How does excluding low or high high school graduation rates sites affect generalizability?",
   "How does excluding low or high unemployment sites affect generalizability?"
 )
 
 # message for sampling tooltip
 sampling_simple_message <- "A simple random sample from the population should, on average, retain the characteristics of the population."
-sampling_stratified_message <- "Stratified sampling allows you to control the probability of being selected seperately within different groups of sites. This may be helpful if the probability of accepting the invitation varies across your strata."
+sampling_stratified_message <- "Stratified sampling allows you to control the probability of being selected within different groups of sites. This may be helpful if the probability of accepting the invitation varies across your strata."
 
 # message for run simulation button
 results_message_sim_button <- "Resend the invitations 250 times and see how the distribution of these results compare to your final sample"

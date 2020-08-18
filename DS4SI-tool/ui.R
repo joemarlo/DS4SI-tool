@@ -44,7 +44,7 @@ ui <- fluidPage(
                           sidebarPanel(
                             width = 4,
                             htmlOutput("results_text_summary"),
-                            tableOutput("results_table_scores"),
+                            # tableOutput("results_table_scores"),
                             br(),br(),
                             downloadButton("results_button_download_data", "Download the data"),
                             br(),br(),
@@ -64,7 +64,7 @@ ui <- fluidPage(
                               tabPanel("Plots",
                                        plotOutput("results_plot_hist", height = 650)),
                               tabPanel("Sampled vs. population",
-                                       plotOutput("results_plot_samp_v_pop_", height = 650)),
+                                       plotOutput("results_plot_samp_v_pop", height = 650)),
                               tabPanel("Sites that accepted",
                                        DT::dataTableOutput('results_table_accepted'))
                             )
@@ -403,11 +403,29 @@ ui <- fluidPage(
                                                  placement = 'top'),
                                        htmlOutput("invitations_text_summary"),
                                        br(),
+                                       actionButton(inputId = "invitations_button_run_simulation",
+                                                    label = 'What is the expected outcome of this selection?'),
+                                       br(),br(),
                                        uiOutput("invitations_table_button"),
                                        br()
                           ),
-                          mainPanel(width = 6,
-                                    plotOutput("invitations_plots", height = 650)
+                          # mainPanel(width = 6,
+                          #           plotOutput("invitations_plots", height = 650)
+                          # )
+                          mainPanel(
+                            width = 6,
+                            tabsetPanel(
+                              id = "invitations_tabs",
+                              type = "tabs",
+                              # tabPanel("Summary metrics and attributes",
+                              #          tableOutput("results_table_summary")),
+                              tabPanel("Plots",
+                                       plotOutput("invitations_plots", height = 650)),
+                              tabPanel("Sites vs. population",
+                                       plotOutput("invitations_plot_sites_v_pop", height = 650)),
+                              tabPanel("Sites to send invitations",
+                                       DT::dataTableOutput('invitations_table_send'))
+                            )
                           )
                         )
                )
