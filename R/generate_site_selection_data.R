@@ -73,7 +73,7 @@ data$urban <- as.logical(data$urban)
 data$other_prog <- as.logical(data$other_prog)
 
 # convert distance to cost
-data$cost <- round(1000 + (data$distance * 500), 0)
+data$cost <- round(1000 + (data$distance * 500), 0) / 1000
 data <- data[, setdiff(colnames(data), "distance")]
 
 # round the numerics to three digits

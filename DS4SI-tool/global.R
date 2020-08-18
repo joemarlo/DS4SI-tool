@@ -57,17 +57,17 @@ score_causality <- function(data, scores_df = causal_scores){
   
   # define the best possible and worst possible scores as the means of the 
     # top 100 and bottom 100 site scores
-  best_sites <- scores_df[order(-scores_df$causal_score),][1:min_sites_to_approach,]
-  best_score <- mean(best_sites$causal_score)
-  worst_sites <- scores_df[order(scores_df$causal_score),][1:min_sites_to_approach,]
-  worst_score <- mean(worst_sites$causal_score)
+  # best_sites <- scores_df[order(-scores_df$causal_score),][1:min_sites_to_approach,]
+  # best_score <- mean(best_sites$causal_score)
+  # worst_sites <- scores_df[order(scores_df$causal_score),][1:min_sites_to_approach,]
+  # worst_score <- mean(worst_sites$causal_score)
   
   # define the user's score by taking the average score and then
     # scaling it between the top and worst scores
   score <- mean(selected_sites$causal_score)
-  scaled_score <- (score - worst_score) / (best_score - worst_score)
+  # scaled_score <- (score - worst_score) / (best_score - worst_score)
   
-  return(scaled_score)
+  return(score)
 }
 
 # testing
@@ -83,21 +83,22 @@ score_causality <- function(data, scores_df = causal_scores){
 
 # order must match order of categorical_vars
 categorical_popover_messages <- list(
-  "Think about how the existence or absence of another jobs training program will impact the counterfactual and generalizability",
-  "How will excluding regions affect the counterfactual and generalizability?",
-  "How will excluding urban or rural sites affect the counterfactual and generalizability?"
+  "Think about how the existence or absence of another jobs training program could impact the size of the treatment effect.",
+  "How will excluding regions affect the generalizability?",
+  "How will excluding urban or rural sites affect generalizability?"
 )
 # order must match order of numeric_vars
 numeric_popover_messages <- list(
-  "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if comfort is low",
-  "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low)",
-  "How does excluding low or high income sites affect the counterfactual and generalizability?",
-  "How does excluding low or high high school graduation rates sites affect the counterfactual and generalizability?",
-  "How does excluding low or high unemployment sites affect the counterfactual and generalizability?"
+  "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if average comfort is low.",
+  "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low).",
+  "How does excluding low or high income sites affect the generalizability?",
+  "How does excluding low or high high school graduation rates sites affect generalizability?",
+  "How does excluding low or high unemployment sites affect generalizability?"
 )
 
 # message for sampling tooltip
-sampling_message <- "A simple random sample is an unbiased surveying technique and, in expectation, retains the characteristics of the population. Stratified sampling enables you to partition subpopulations by variables and then sample the subpopulations separately."
+sampling_simple_message <- "A simple random sample from the population should, on average, retain the characteristics of the population."
+sampling_stratified_message <- "Stratified sampling allows you to control the probability of being selected seperately within different groups of sites. This may be helpful if the probability of accepting the invitation varies across your strata."
 
 # message for run simulation button
 results_message_sim_button <- "Resend the invitations 250 times and see how the distribution of these results compare to your final sample"

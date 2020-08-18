@@ -529,6 +529,43 @@ server <- function(input, output, session) {
     get_dataset(input$sampling_dataset, datasets_available)
   })
   
+  # capture the user selection in the sampling_select_simple_or_stratified dropdown
+  user_selected <- reactive({
+    if(is.null(input$sampling_select_simple_or_stratified)){
+      return("simple")
+    } else {
+      return(input$sampling_select_simple_or_stratified)
+    }
+  })
+  
+  # determine which tooltip message to display above sampling_select_simple_or_stratified
+  message <- reactive({
+    if (is.null(input$sampling_select_simple_or_stratified)) {
+      return("nope")
+    } else {
+      if (input$sampling_select_simple_or_stratified == "simple") {
+        return(sampling_simple_message)
+      } else {
+        return(sampling_stratified_message)
+      }
+    }
+  })
+  
+  # render sampling_select_simple_or_stratified and its tooltip with the appropriate message
+  output$sampling_select_simple_or_stratified <- renderUI({
+    selectInput(inputId = "sampling_select_simple_or_stratified",
+                label = "Simple or stratified sample: ",
+                multiple = FALSE,
+                selected = user_selected(),
+                choices = c("simple", "stratified")) %>%
+      # add the tooltip element
+      tipify(
+        el = .,
+        title = message(), #sampling_simple_message,
+        placement = 'top'
+      )
+  })
+  
   # update sampling_slider_simple_n slider max so it's not larger than the dataset
   observeEvent(nrow(sampling_selected_data()), {
     updateSliderInput(session = session, 

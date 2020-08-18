@@ -40,7 +40,6 @@ ui <- fluidPage(
 # results page ------------------------------------------------------------
 
                tabPanel(title = "4. Results",
-                        
                         sidebarLayout(
                           sidebarPanel(
                             width = 4,
@@ -55,7 +54,6 @@ ui <- fluidPage(
                             actionButton(inputId = "results_button_restart",
                                          label = 'Erase these data and restart the selection process')
                           ),
-                          
                           mainPanel(
                             width = 6,
                             tabsetPanel(
@@ -65,7 +63,7 @@ ui <- fluidPage(
                                        tableOutput("results_table_summary")),
                               tabPanel("Plots",
                                        plotOutput("results_plot_hist", height = 650)),
-                              tabPanel("Sample vs. population",
+                              tabPanel("Sampled vs. population",
                                        plotOutput("results_plot_samp_v_pop_", height = 650)),
                               tabPanel("Sites that accepted",
                                        DT::dataTableOutput('results_table_accepted'))
@@ -230,7 +228,6 @@ ui <- fluidPage(
 # filtering page ----------------------------------------------------------
 
                tabPanel(title = HTML("&nbsp &nbsp Filtering"),
-                        
                         sidebarLayout(
                           sidebarPanel(width = 4,
                                        
@@ -250,7 +247,6 @@ ui <- fluidPage(
                                        actionButton(inputId = "filtering_data_save_button", 
                                                     label = "Save my_dataset")
                           ),
-                          
                           mainPanel(width = 6,
                                     
                                     tabsetPanel(
@@ -269,17 +265,17 @@ ui <- fluidPage(
                tabPanel(title = HTML("&nbsp &nbsp Sampling"),
                         sidebarLayout(
                           sidebarPanel(width = 4,
-                                       
-                                       h4("Create simple and stratified random samples"),
+                                       h4("Create simple or stratified random samples"),
                                        br(),
                                        selectInput(inputId = "sampling_dataset", 
                                                    label = "Dataset to sample: ", 
                                                    multiple = FALSE,
                                                    choices = NULL),
-                                       selectInput(inputId = "sampling_select_simple_or_stratified", 
-                                                   label = "Simple or stratified sample: ", 
-                                                   multiple = FALSE,
-                                                   choices = c("simple", "stratified")),
+                                       # selectInput(inputId = "sampling_select_simple_or_stratified",
+                                       #             label = "Simple or stratified sample: ",
+                                       #             multiple = FALSE,
+                                       #             choices = c("simple", "stratified")),
+                                       uiOutput("sampling_select_simple_or_stratified"),
                                        conditionalPanel(
                                          condition = "input.sampling_select_simple_or_stratified == 'stratified'",
                                          selectizeInput(inputId = "strata_variables", 
@@ -312,12 +308,8 @@ ui <- fluidPage(
                                        # save dataset
                                        br(), br(),
                                        textInput("sampling_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
-                                       actionButton("sampling_data_save_button", label = "Save my_dataset"),
-                                       bsTooltip(id = "sampling_select_simple_or_stratified",
-                                                 title = sampling_message,
-                                                 placement = 'top')
+                                       actionButton("sampling_data_save_button", label = "Save my_dataset")
                           ),
-                          
                           mainPanel(width = 6,
                                     
                                     tabsetPanel(
@@ -362,10 +354,8 @@ ui <- fluidPage(
 # manual exclusions page --------------------------------------------------
 
                tabPanel(title = HTML("&nbsp &nbsp Manual exclusions"),
-                        
                         sidebarLayout(
                           sidebarPanel(width = 4,
-                                       
                                        h4("Manually exclude sites by their site ID"),
                                        br(),
                                        selectInput(inputId = "manual_dataset", 
@@ -388,7 +378,6 @@ ui <- fluidPage(
                                        actionButton(inputId = "manual_data_save_button", 
                                                     label = "Save my_dataset")
                           ),
-                          
                           mainPanel(width = 6,
                                     tabsetPanel(
                                       type = "tabs",
