@@ -101,13 +101,13 @@ sampling_simple_message <- "A simple random sample from the population should, o
 sampling_stratified_message <- "Stratified sampling allows you to control the probability of being selected within different groups of sites. This may be helpful if the probability of accepting the invitation varies across your strata."
 
 # message for run simulation button
-results_message_sim_button <- "Resend the invitations 250 times and see how the distribution of these results compare to your final sample"
+results_message_sim_button <- "Resend the invitations 200 times and see how the distribution of these results compare to your final sample"
 
 # message for floating window on results page
 results_message_float <- list(
-  strong("This is how your final sample compares to 250 random draws"),
+  strong("This is how your final sample compares to 200 random draws"),
   br(),br(),
-  HTML("If you resent the invitations 250 times, these are the distributions of those outcomes. The vertical line represents your final sample.")
+  HTML("If you resent the invitations 200 times, these are the distributions of those outcomes")
 )
 
 # misc variables ----------------------------------------------------------

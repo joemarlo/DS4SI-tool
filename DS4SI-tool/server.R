@@ -874,18 +874,6 @@ server <- function(input, output, session) {
     mean_acceptance <- mean(data$comfort)
     expected_cost <- sum(data$comfort * data$cost)
     
-    # return a red error message if n sites is less than 100
-    if (n_sites < min_sites_to_approach){
-      error_message <- paste0(
-        '<h4 style="color:#c92626">',
-        paste0('You must approach at least ', min_sites_to_approach, ' sites. Your selected dataset contains only '),
-        scales::comma_format()(n_sites),
-        ' sites.',
-        '</h4>'
-      )
-      return(error_message)
-    }
-    
     final_HTML <- paste0(
       '<h4>',
       scales::comma_format()(n_sites),
@@ -895,26 +883,6 @@ server <- function(input, output, session) {
     )
     
     return(final_HTML)
-  })
-  
-  # render invitations_table_scores and invitations_button_send
-   # only if selected dataset contains >=100 sites
-  output$invitations_table_button <- renderUI({
-    
-    # only render the table and send invitations button if the selected
-      # dataset contains 100 or more sites
-    validate(
-      need(nrow(sent_invitations_data()) >= min_sites_to_approach,
-           "")
-    )
-    
-    tagList(
-      tableOutput("invitations_table_scores"),
-      br(),
-      actionButton(inputId = "invitations_button_send",
-                   label = HTML(invitations_HTML_send)
-      )
-    )
   })
   
   # table of key metrics for the send invitations page
@@ -969,15 +937,15 @@ server <- function(input, output, session) {
         id = 'results_button_download_data',
         title = "Download your data",
         content = 'Be sure to download your data for future assignments',
-        placement = 'right'
+        placement = 'bottom'
       )
-      addPopover(
-        session = session,
-        id = 'results_button_run_simulation',
-        title = "See how your results compare to the expected outcome",
-        content = results_message_sim_button,
-        placement = 'right'
-      )
+      # addPopover(
+      #   session = session,
+      #   id = 'results_button_run_simulation',
+      #   title = "See how your results compare to the expected outcome",
+      #   content = results_message_sim_button,
+      #   placement = 'right'
+      # )
       # force the popover to show itself on load
       runjs("$('#exploration_tab_name').popover('show')")
       
@@ -1131,6 +1099,9 @@ server <- function(input, output, session) {
     pop <- population_dataset
     pop$site_group <- "Population"
     data_for_plot <- rbind(selected_sites, pop)
+    data_for_plot$site_group <- factor(data_for_plot$site_group,
+                                       levels = c("Sites_to_send_invitations",
+                                                  "Population"))
     
     # barplots
     p1 <- data_for_plot %>% 
@@ -1169,7 +1140,6 @@ server <- function(input, output, session) {
     
   })
   
-  
   # table of sites to send invitations to
   output$invitations_table_send <- DT::renderDataTable({
     custom_datatable(sent_invitations_data(), 
@@ -1178,6 +1148,154 @@ server <- function(input, output, session) {
       formatRound(9, 0)
   })
   
+  
+  sim_results <- reactive({
+    # function re-simulates the acceptance of the invitations
+    # and returns a list of dataframes, each representing one simulation and containing
+    # the sites that accepted the invitation
+    # it also returns a list of the scores (n, cost, generalizbility and causality scores) 
+    # per each simulation
+    
+    data <- sent_invitations_data() 
+    
+    list_of_accepted_dataframes <- list()
+    nsims <- 200
+    scores <- data.frame(sample_size = NA, total_cost = NA, generalizability_index = NA, causality_index = NA)
+    for (i in 1:nsims){
+      # sample the data and return T/F for indices that accepted
+      accepted_boolean <- rbinom(n = nrow(data),
+                                 size = 1,
+                                 prob = data$comfort) == 1
+      
+      # subset the data based on the indices
+      accepted_data <- data[accepted_boolean,]
+      
+      # add identifier for use in plotting
+      accepted_data$sim <- i
+      
+      # add dataframe to list of total dataframes
+      list_of_accepted_dataframes[[i]] <- accepted_data
+      
+      # create dataframe of scores
+      scores[i, 'sample_size'] <- sum(accepted_boolean)
+      scores[i, 'total_cost'] <- sum(accepted_data$cost)
+      scores[i, 'generalizability_index'] <- score_generalizability(accepted_data)
+      scores[i, 'causality_index'] <- score_causality(accepted_data)
+    }
+    
+    return(list(list_of_accepted_dataframes, scores))
+    
+  })
+  
+  # expected attributes plots
+  output$invitations_plot_expected_attributes <- renderPlot({
+    
+    # get the sim results
+    data <- sim_results()
+    list_of_accepted_dataframes <- data[[1]]
+    scores <- data[[2]]
+    
+    # data <- get_dataset("stacked_results", datasets_available)
+    sites_that_accepted <- sent_invitations_data() #data[data$site_group == 'Accepted_invitation',]
+    
+    # convert sites_that_accepted to long format - categoricals only
+    sites_that_accepted_categorical <- sites_that_accepted %>% 
+      mutate(sim = "Actual") %>% 
+      select(sim, all_of(categorical_vars)) %>% 
+      mutate_all(as.character) %>% 
+      pivot_longer(cols = -c("sim")) %>% 
+      group_by(sim, name, value) %>% 
+      tally() %>%
+      mutate(prop = n / sum(n),
+             x_pos = determine_x_pos(value),
+             name = factor(name, categorical_vars))
+    
+    # combine and plot - categoricals only
+    p1 <- bind_rows(list_of_accepted_dataframes) %>%
+      select(sim, all_of(categorical_vars)) %>%
+      mutate_all(as.character) %>%
+      pivot_longer(cols = -c("sim")) %>%
+      group_by(sim, name, value) %>%
+      tally() %>%
+      mutate(prop = n / sum(n),
+             x_pos = determine_x_pos(value),
+             name = factor(name, categorical_vars)) %>% 
+      ggplot(aes(x = value, y = prop, group = sim)) +
+      geom_jitter(alpha = 0) + # this for some reason allows us to retain the x labels
+      geom_segment(aes(x = x_pos - 0.25, xend = x_pos + 0.25,
+                       y = prop, yend = prop), alpha = 0.025) +
+      # geom_segment(data = sites_that_accepted_categorical,
+      #              aes(x = x_pos - 0.25, xend = x_pos + 0.25,
+      #                  y = prop, yend = prop),
+      #              color = "white", size = 1.1) +
+      # geom_segment(data = sites_that_accepted_categorical,
+      #              aes(x = x_pos - 0.25, xend = x_pos + 0.25,
+      #                  y = prop, yend = prop), color = "#302f42",
+      #              size = 1.3, linetype = "dotted") +
+      facet_wrap(~name, scales = 'free_x') +
+      labs(x = NULL,
+           y = NULL) +
+      theme(axis.text.x = element_text(angle = 40, hjust = 1))
+    
+    # convert sites_that_accepted to long format - numerics only
+    sites_that_accepted_numeric <- sites_that_accepted %>%
+      mutate(sim = "Actual") %>%
+      select(sim, all_of(numeric_vars)) %>%
+      pivot_longer(cols = -c("sim"))
+    
+    # combine and plot - numerics only
+    p2 <- bind_rows(list_of_accepted_dataframes) %>%
+      select(sim, all_of(numeric_vars)) %>%
+      pivot_longer(cols = -c("sim")) %>%
+      ggplot(aes(x = value, group = sim)) +
+      geom_line(stat = "density", alpha = 0.025, color = 'black') +
+      # geom_density(data = sites_that_accepted_numeric, 
+      #              color = "white", size = 1.1) +
+      # geom_density(data = sites_that_accepted_numeric, 
+      #              color = "#302f42", size = 1.3, linetype = "dotted") +
+      facet_wrap(~name, scales = 'free') +
+      labs(x = NULL,
+           y = NULL)
+    
+    # render both plots vertically
+    grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
+  })
+  
+  # expected metrics plots  
+  output$invitations_plot_expected_attributes_metrics <- renderPlot({
+    
+    # get the sim results
+    data <- sim_results()
+    list_of_accepted_dataframes <- data[[1]]
+    scores <- data[[2]]
+    
+    # data <- get_dataset("stacked_results", datasets_available)
+    sites_that_accepted <- sent_invitations_data() #data[data$site_group == 'Accepted_invitation',]
+    
+    # create dataframe of scores of the sites that accepted
+    # actual_scores <- tibble(
+    #   sample_size = nrow(sites_that_accepted),
+    #   total_cost = sum(sites_that_accepted$cost),
+    #   generalizability_index = score_generalizability(sites_that_accepted),
+    #   causality_index = score_causality(sites_that_accepted)
+    # ) %>%
+    #   pivot_longer(cols = everything()) %>% 
+    #   mutate(name = factor(name, levels = metrics_order))
+    
+    # plot it
+    scores %>%
+      pivot_longer(cols = everything()) %>%
+      mutate(name = factor(name, levels = metrics_order)) %>% 
+      ggplot(aes(x = value)) +
+      geom_density(fill = violet_col, alpha = 0.5) +
+      # geom_vline(data = actual_scores, aes(xintercept = value),
+      #            color = "white", size = 1.1) +
+      # geom_vline(data = actual_scores, aes(xintercept = value),
+      #            color = "#302f42", size = 1.3, linetype = "dotted") +
+      facet_wrap(~name, scales = 'free', ncol = 3) +
+      labs(x = NULL,
+           y = NULL)
+  })
   
   
   # results page ------------------------------------------------------------
@@ -1399,149 +1517,7 @@ server <- function(input, output, session) {
       formatRound(9, 0)
   })
   
-  # insert tab after running simulation
-  observeEvent(input$results_button_run_simulation, {
-    
-    # add text indicating to user that results will appear on a new tab
-    insertUI(selector = "#results_button_run_simulation",
-             where = "afterEnd",
-             ui = h4("One moment ... Simulation results will appear on the 'Expected ...' tabs"))
-    
-    # remove button and its popover
-    removeUI(selector = "#results_button_run_simulation")
-    runjs("$('#results_button_run_simulation').popover('destroy')")
-    
-    # show notification to user
-    showNotification("One moment while the simulation runs ...", 
-                     duration = 10)
-    
-    # run the simulation and save as global variable so multiple plots can access the results
-    sim_results <<- run_simulation(data = get_dataset("stacked_results", datasets_available))
-    
-    # insert the tabs
-    appendTab(inputId = "results_tabs",
-              tabPanel("Expected attributes",
-                       plotOutput("results_plot_expected_attributes", height = 650)),
-              select = TRUE)
-    appendTab(inputId = "results_tabs",
-              tabPanel("Expected metrics",
-                       plotOutput("results_plot_expected_attributes_metrics", height = 433),
-                       absolutePanel(id = "floating_window", 
-                                     top = 340, left = "auto", right = 50, bottom = "auto",
-                                     width = 250, height = "auto",
-                                     results_message_float)
-                       ),
-              select = TRUE)
-  })
 
-  # expected attributes plots
-  output$results_plot_expected_attributes <- renderPlot({
-   
-    # get the sim results
-    list_of_accepted_dataframes <- sim_results[[1]]
-    scores <- sim_results[[2]]
-    
-    data <- get_dataset("stacked_results", datasets_available)
-    sites_that_accepted <- data[data$site_group == 'Accepted_invitation',]
-    
-    # convert sites_that_accepted to long format - categoricals only
-    sites_that_accepted_categorical <- sites_that_accepted %>% 
-      mutate(sim = "Actual") %>% 
-      select(sim, all_of(categorical_vars)) %>% 
-      mutate_all(as.character) %>% 
-      pivot_longer(cols = -c("sim")) %>% 
-      group_by(sim, name, value) %>% 
-      tally() %>%
-      mutate(prop = n / sum(n),
-             x_pos = determine_x_pos(value),
-             name = factor(name, categorical_vars))
-    
-    # combine and plot - categoricals only
-    p1 <- bind_rows(list_of_accepted_dataframes) %>%
-      select(sim, all_of(categorical_vars)) %>%
-      mutate_all(as.character) %>%
-      pivot_longer(cols = -c("sim")) %>%
-      group_by(sim, name, value) %>%
-      tally() %>%
-      mutate(prop = n / sum(n),
-             x_pos = determine_x_pos(value),
-             name = factor(name, categorical_vars)) %>% 
-      ggplot(aes(x = value, y = prop, group = sim)) +
-      geom_jitter(alpha = 0) + # this for some reason allows us to retain the x labels
-      geom_segment(aes(x = x_pos - 0.25, xend = x_pos + 0.25,
-                       y = prop, yend = prop), alpha = 0.025) +
-      geom_segment(data = sites_that_accepted_categorical,
-                   aes(x = x_pos - 0.25, xend = x_pos + 0.25,
-                       y = prop, yend = prop),
-                   color = "white", size = 1.1) +
-      geom_segment(data = sites_that_accepted_categorical,
-                   aes(x = x_pos - 0.25, xend = x_pos + 0.25,
-                       y = prop, yend = prop), color = "#302f42",
-                   size = 1.3, linetype = "dotted") +
-      facet_wrap(~name, scales = 'free_x') +
-      labs(x = NULL,
-           y = NULL) +
-      theme(axis.text.x = element_text(angle = 40, hjust = 1))
-    
-    # convert sites_that_accepted to long format - numerics only
-    sites_that_accepted_numeric <- sites_that_accepted %>%
-      mutate(sim = "Actual") %>%
-      select(sim, all_of(numeric_vars)) %>%
-      pivot_longer(cols = -c("sim"))
-    
-    # combine and plot - numerics only
-    p2 <- bind_rows(list_of_accepted_dataframes) %>%
-      select(sim, all_of(numeric_vars)) %>%
-      pivot_longer(cols = -c("sim")) %>%
-      ggplot(aes(x = value, group = sim)) +
-      geom_line(stat = "density", alpha = 0.025, color = 'black') +
-      geom_density(data = sites_that_accepted_numeric, 
-                   color = "white", size = 1.1) +
-      geom_density(data = sites_that_accepted_numeric, 
-                   color = "#302f42", size = 1.3, linetype = "dotted") +
-      facet_wrap(~name, scales = 'free') +
-      labs(x = NULL,
-           y = NULL)
-    
-    # render both plots vertically
-    grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
-  })
-  
-  # expected metrics plots  
-  output$results_plot_expected_attributes_metrics <- renderPlot({
-    
-    # get the sim results
-    list_of_accepted_dataframes <- sim_results[[1]]
-    scores <- sim_results[[2]]
-    
-    data <- get_dataset("stacked_results", datasets_available)
-    sites_that_accepted <- data[data$site_group == 'Accepted_invitation',]
-    
-    # create dataframe of scores of the sites that accepted
-    actual_scores <- tibble(
-      sample_size = nrow(sites_that_accepted),
-      total_cost = sum(sites_that_accepted$cost),
-      generalizability_index = score_generalizability(sites_that_accepted),
-      causality_index = score_causality(sites_that_accepted)
-    ) %>%
-      pivot_longer(cols = everything()) %>% 
-      mutate(name = factor(name, levels = metrics_order))
-    
-    # plot it
-    scores %>%
-      pivot_longer(cols = everything()) %>%
-      mutate(name = factor(name, levels = metrics_order)) %>% 
-      ggplot(aes(x = value)) +
-      geom_density(fill = violet_col, alpha = 0.5) +
-      geom_vline(data = actual_scores, aes(xintercept = value),
-                 color = "white", size = 1.1) +
-      geom_vline(data = actual_scores, aes(xintercept = value),
-                 color = "#302f42", size = 1.3, linetype = "dotted") +
-      facet_wrap(~name, scales = 'free', ncol = 3) +
-      labs(x = NULL,
-           y = NULL)
-    })
-  
   # download button
   output$results_button_download_data <- downloadHandler(
     filename <- "DS4SI_sites.csv",

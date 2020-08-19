@@ -48,9 +48,6 @@ ui <- fluidPage(
                             br(),br(),
                             downloadButton("results_button_download_data", "Download the data"),
                             br(),br(),
-                            actionButton(inputId = "results_button_run_simulation",
-                                         label = 'How does your random draw compare to 250 simulated draws?'),
-                            br(),br(),
                             actionButton(inputId = "results_button_restart",
                                          label = 'Erase these data and restart the selection process')
                           ),
@@ -284,7 +281,7 @@ ui <- fluidPage(
                                                         options = list(maxItems = 2),
                                                         choices = categorical_vars,
                                                         selected = categorical_vars[2]),
-                                         HTML("<strong>Sample size per strata:</strong>"),
+                                         HTML("<strong>Sample size per stratum:</strong>"),
                                          uiOutput("sampling_strata_sliders"),
                                          br(),
                                        ),
@@ -403,28 +400,36 @@ ui <- fluidPage(
                                                  placement = 'top'),
                                        htmlOutput("invitations_text_summary"),
                                        br(),
-                                       actionButton(inputId = "invitations_button_run_simulation",
-                                                    label = 'What is the expected outcome of this selection?'),
+                                       tableOutput("invitations_table_scores"),
                                        br(),br(),
-                                       uiOutput("invitations_table_button"),
+                                       actionButton(inputId = "invitations_button_send",
+                                                    label = HTML(invitations_HTML_send)),
                                        br()
                           ),
-                          # mainPanel(width = 6,
-                          #           plotOutput("invitations_plots", height = 650)
-                          # )
                           mainPanel(
                             width = 6,
                             tabsetPanel(
                               id = "invitations_tabs",
                               type = "tabs",
-                              # tabPanel("Summary metrics and attributes",
-                              #          tableOutput("results_table_summary")),
                               tabPanel("Plots",
                                        plotOutput("invitations_plots", height = 650)),
                               tabPanel("Sites vs. population",
                                        plotOutput("invitations_plot_sites_v_pop", height = 650)),
                               tabPanel("Sites to send invitations",
-                                       DT::dataTableOutput('invitations_table_send'))
+                                       DT::dataTableOutput('invitations_table_send')),
+                              tabPanel(title = "Expected attributes",
+                                       absolutePanel("One moment while the simulation runs",
+                                                     style = "z-index: -2;"),
+                                       plotOutput("invitations_plot_expected_attributes", height = 650)),
+                              tabPanel(title = "Expected metrics",
+                                       absolutePanel("One moment while the simulation runs",
+                                                     style = "z-index: -2;"),
+                                       plotOutput("invitations_plot_expected_attributes_metrics", height = 433),
+                                       absolutePanel(id = "floating_window", 
+                                                     top = "auto", left = "auto", right = 50, bottom = 25,
+                                                     width = 250, height = "auto",
+                                                     results_message_float)
+                              )
                             )
                           )
                         )
