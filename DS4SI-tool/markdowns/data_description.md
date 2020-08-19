@@ -1,4 +1,4 @@
-# The data
+### The data
 
 The data consists of 1,000 sites measured across eight variables:
 - `other_prog`: are there other training programs available in the same county

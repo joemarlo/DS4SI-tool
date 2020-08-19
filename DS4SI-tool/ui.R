@@ -44,9 +44,10 @@ ui <- fluidPage(
                           sidebarPanel(
                             width = 4,
                             htmlOutput("results_text_summary"),
-                            # tableOutput("results_table_scores"),
-                            br(),br(),
-                            downloadButton("results_button_download_data", "Download the data"),
+                            br(),
+                            includeMarkdown("markdowns/results_next_steps.md"),
+                            br(),
+                            downloadButton("results_button_download", "Download the tables, plots, and site data"),
                             br(),br(),
                             actionButton(inputId = "results_button_restart",
                                          label = 'Erase these data and restart the selection process')

@@ -847,7 +847,7 @@ server <- function(input, output, session) {
       )
       addPopover(
         session = session,
-        id = 'results_button_download_data',
+        id = 'results_button_download',
         title = "Download your data",
         content = 'Be sure to download your data for future assignments',
         placement = 'bottom'
@@ -1196,8 +1196,8 @@ server <- function(input, output, session) {
   rownames = TRUE, align = 'r'
   )
   
-  # summary table for the Results page
-  output$results_table_summary <- renderTable({
+  # function to return summary table for the Results page
+  results_table <- reactive({
     
     # get the dataset
     data <- get_dataset("stacked_results", datasets_available)
@@ -1253,7 +1253,7 @@ server <- function(input, output, session) {
     
     # create shell of the summary table
     # this ensures that any NAs in the previous calculations (e.g. a region is missing)
-      # won't affect the structure of the table
+    # won't affect the structure of the table
     # 'row_name' matches the natural output of the above apply functions
     # 'clean_row_name' is what we want the table to eventually display
     shell_table <- data.frame(
@@ -1306,14 +1306,15 @@ server <- function(input, output, session) {
     rownames(scores_char) <- rownames(scores)
     colnames(scores_char) <- colnames(final_table)
     final_table <- rbind(scores_char, round(final_table, 2))
-  
-    return(final_table)
     
-  }, rownames = TRUE
-  )
+    return(final_table)
+  })
   
-  # the histograms
-  output$results_plot_hist <- renderPlot({
+  # render the summary table for the Results page
+  output$results_table_summary <- renderTable(results_table(), rownames = TRUE)
+  
+  # function to return the histograms
+  results_hist <- reactive({
     
     # get the data
     data <- get_dataset("stacked_results", datasets_available)
@@ -1322,8 +1323,11 @@ server <- function(input, output, session) {
     draw_histograms(data)
   })
   
-  # sample vs population plots
-  output$results_plot_samp_v_pop <- renderPlot({
+  # render the histograms
+  output$results_plot_hist <- renderPlot(results_hist())
+  
+  # function to return sample vs population plots
+  results_samp_v_pop <- reactive({
     
     # get stacked dataset from list 
     data_for_plot <- get_dataset("stacked_results", datasets_available)
@@ -1362,9 +1366,11 @@ server <- function(input, output, session) {
     
     # render both plots vertically
     grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
-    
   })
   
+  # render the plot
+  output$results_plot_samp_v_pop <- renderPlot(results_samp_v_pop())
+
   # table of sites that accepted for the Results table
   output$results_table_accepted <- DT::renderDataTable({
     
@@ -1381,22 +1387,52 @@ server <- function(input, output, session) {
       formatRound(9, 0)
   })
   
-
-  # download button
-  output$results_button_download_data <- downloadHandler(
-    filename <- "DS4SI_sites.csv",
-    content <- function(file) {
+  # download the table, plots, and sites dataframe
+  output$results_button_download <- downloadHandler(
+    filename = function(){"DS4SI.zip"},
+    content = function(file){
+      
+      # go to a temp dir to avoid permission issues
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      files <- NULL;
       
       # create data frame of all sites indicator columns 
-        # if site was sent invitation and if accepted
+       # if site was sent invitation and if accepted
       data <- get_dataset("stacked_results", datasets_available)
       population_dataset$sent_invitation <-
         population_dataset$site_id %in% data$site_id[data$site_group == "Sent_invitation"]
       population_dataset$accepted <-
         population_dataset$site_id %in% data$site_id[data$site_group == "Accepted_invitation"]
-
-      # download the data
-      write.csv(population_dataset, file, row.names = FALSE)
+      
+      # write out the dataframe containing every site and its status
+      write.csv(population_dataset, "sites.csv", row.names = FALSE)
+      files <- "sites.csv"
+      
+      # write out the summary metrics and attributes table
+      write.csv(results_table(), "summary.csv", row.names = TRUE)
+      files <- c("summary.csv", files)
+      
+      # save the histograms
+      ggsave("plots.png",
+             plot = results_hist(),
+             device = "png",
+             width = 25,
+             height = 25,
+             units = "cm")
+      files <- c("plots.png", files)
+      
+      # save the sampled vs. population
+      ggsave("sampled_v_population.png",
+             plot = results_samp_v_pop(),
+             device = "png",
+             width = 25,
+             height = 25,
+             units = "cm")
+      files <- c("sampled_v_population.png", files)
+      
+      # create the zip file
+      zip(file, files)
     }
   )
   
