@@ -79,6 +79,7 @@ score_causality <- function(data, scores_df = causal_scores){
 # summary(scores)
 # plot(density(scores))
 
+
 # # messages for tooltips and popovers ------------------------------------
 
 # order must match order of categorical_vars
@@ -109,6 +110,7 @@ results_message_float <- list(
   br(),br(),
   HTML("If you resent the invitations 200 times, these are the distributions of those outcomes")
 )
+
 
 # misc variables ----------------------------------------------------------
 

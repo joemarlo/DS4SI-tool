@@ -24,7 +24,6 @@ server <- function(input, output, session) {
     dataset_selector_ids <- c(
       "filtering_dataset", 
       "sampling_dataset", 
-      # "weighting_dataset",
       "manual_dataset",
       "invitations_dataset",
       "exploration_dataset"
@@ -43,7 +42,6 @@ server <- function(input, output, session) {
   data_save_name_prefixes <- c(
     "filtering_data_save",
     "sampling_data_save",
-    # "weighting_data_save",
     "manual_data_save"
   )
   
@@ -94,8 +92,6 @@ server <- function(input, output, session) {
         id,
         "filtering_data_save" = filtering_data(),
         "sampling_data_save" = sampling_data(),
-        # remove site_score column before saving
-        # "weighting_data_save" = weighting_data()[, setdiff(colnames(weighting_data()), 'site_score')],
         "manual_data_save" = manual_selected_data()
       )
       
@@ -715,90 +711,7 @@ server <- function(input, output, session) {
       formatRound(5:8, 2) %>%
       formatRound(9, 0)
   )
-  
-  
-  # weighting page ----------------------------------------------------------
-  
-  # select which dataset to use on weighting page
-  # weighting_selected_data <- reactive({
-  #   datasets_available$data[[match(input$weighting_dataset, datasets_available$data_names)]]
-  # })
-  # 
-  # # update weighting_slider_n slider max so it's not larger than the dataset
-  # observeEvent(nrow(weighting_selected_data()), {
-  #   updateSliderInput(session, "weighting_slider_n",
-  #                     value = nrow(weighting_selected_data()),
-  #                     max = nrow(weighting_selected_data())
-  #   )
-  # })
-  # 
-  # # generate sliders for each variable
-  # output$weighting_sliders <- renderUI({
-  #   tagList(
-  #     lapply(numeric_vars, function(variable) {
-  #       sliderInput(
-  #         inputId = paste0("weighting_slider_", variable),
-  #         label = paste0(variable, ": "),
-  #         min = 1,
-  #         max = 100,
-  #         value = 50
-  #       )
-  #     }
-  #     ))
-  # })
-  # 
-  # # current weighted dataset based on inputs
-  # weighting_data <- reactive({
-  #   
-  #   data <- weighting_selected_data()
-  #   
-  #   # scale the variables
-  #   numeric_vars_scaled <- data[, numeric_vars]
-  #   numeric_vars_scaled <- apply(numeric_vars_scaled, MARGIN = 2, scale_01)
-  #   
-  #   # vector of weights (ordering must match the numeric_vars_scaled column order)
-  #   weights <- c(input$weighting_slider_comfort, input$weighting_slider_cost, 
-  #                input$weighting_slider_income, input$weighting_slider_pct_hs,
-  #                input$weighting_slider_unemp)
-  #   
-  #   # calculate score per each row
-  #   data$site_score <- apply(numeric_vars_scaled, MARGIN = 1, function(row) sum(row * weights))
-  #   
-  #   # filter to just the top rows selected by the user based on site_score
-  #   data <- data[order(-data$site_score), ][1:input$weighting_slider_n,]
-  #   
-  #   # make site_score as first column in dataframe
-  #   data <- data[, c('site_score', setdiff(colnames(data), "site_score"))]
-  #   
-  #   # round the score
-  #   data$site_score <- round(data$site_score, 1)
-  #   
-  #   return(data)
-  # })
-  # 
-  # # display the table in the 'table of selected sites' tab within the weighting page
-  # output$weighting_selected_table <- DT::renderDataTable(
-  #   DT::datatable(
-  #     weighting_data(),
-  #     selection = 'none',
-  #     rownames = FALSE,
-  #     options = list(
-  #       # sets n observations shown
-  #       pageLength = 20,
-  #       # removes option to change n observations shown
-  #       lengthChange = FALSE,
-  #       # removes the search bar
-  #       sDom  = '<"top">lrt<"bottom">ip',
-  #       # default sort by site score
-  #       order = list(0, 'desc'),
-  #       # enable side scroll so table doesn't overflow
-  #       scrollX = TRUE
-  #     )
-  #   ) %>%
-  #     formatRound(6:9, 2) %>%
-  #     formatRound(10, 0)
-  # )
-  
+
   
   # manual exclusions page --------------------------------------------------
   
@@ -911,7 +824,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # if the user confirms on the popup, then do the rest of these actions
+  # if the user confirms on the popup, then do the following actions
     # otherwise stop here
   observeEvent(input$invitations_popup_confirm, {
     if (isTRUE(input$invitations_popup_confirm)) {
@@ -939,13 +852,6 @@ server <- function(input, output, session) {
         content = 'Be sure to download your data for future assignments',
         placement = 'bottom'
       )
-      # addPopover(
-      #   session = session,
-      #   id = 'results_button_run_simulation',
-      #   title = "See how your results compare to the expected outcome",
-      #   content = results_message_sim_button,
-      #   placement = 'right'
-      # )
       # force the popover to show itself on load
       runjs("$('#exploration_tab_name').popover('show')")
       
@@ -967,11 +873,6 @@ server <- function(input, output, session) {
         target = HTML("&nbsp &nbsp Filtering"),
         session = session
       )
-      # hideTab(
-      #   inputId = "nav",
-      #   target = HTML("&nbsp &nbsp Weighting"),
-      #   session = session
-      # )
       hideTab(
         inputId = "nav",
         target = HTML("&nbsp &nbsp Sampling"),
@@ -1089,7 +990,6 @@ server <- function(input, output, session) {
   # plots on send invitations page
   output$invitations_plots <- renderPlot(draw_histograms(sent_invitations_data()))
   
-  
   # sites to send invitations vs population plots
   output$invitations_plot_sites_v_pop <- renderPlot({
     
@@ -1198,19 +1098,7 @@ server <- function(input, output, session) {
     # data <- get_dataset("stacked_results", datasets_available)
     sites_that_accepted <- sent_invitations_data() #data[data$site_group == 'Accepted_invitation',]
     
-    # convert sites_that_accepted to long format - categoricals only
-    sites_that_accepted_categorical <- sites_that_accepted %>% 
-      mutate(sim = "Actual") %>% 
-      select(sim, all_of(categorical_vars)) %>% 
-      mutate_all(as.character) %>% 
-      pivot_longer(cols = -c("sim")) %>% 
-      group_by(sim, name, value) %>% 
-      tally() %>%
-      mutate(prop = n / sum(n),
-             x_pos = determine_x_pos(value),
-             name = factor(name, categorical_vars))
-    
-    # combine and plot - categoricals only
+    # plot categoricals only
     p1 <- bind_rows(list_of_accepted_dataframes) %>%
       select(sim, all_of(categorical_vars)) %>%
       mutate_all(as.character) %>%
@@ -1220,39 +1108,29 @@ server <- function(input, output, session) {
       mutate(prop = n / sum(n),
              x_pos = determine_x_pos(value),
              name = factor(name, categorical_vars)) %>% 
-      ggplot(aes(x = value, y = prop, group = sim)) +
+      ggplot(aes(x = value, y = prop)) +
       geom_jitter(alpha = 0) + # this for some reason allows us to retain the x labels
       geom_segment(aes(x = x_pos - 0.25, xend = x_pos + 0.25,
-                       y = prop, yend = prop), alpha = 0.025) +
-      # geom_segment(data = sites_that_accepted_categorical,
-      #              aes(x = x_pos - 0.25, xend = x_pos + 0.25,
-      #                  y = prop, yend = prop),
-      #              color = "white", size = 1.1) +
-      # geom_segment(data = sites_that_accepted_categorical,
-      #              aes(x = x_pos - 0.25, xend = x_pos + 0.25,
-      #                  y = prop, yend = prop), color = "#302f42",
-      #              size = 1.3, linetype = "dotted") +
+                       y = prop, yend = prop, group = sim), alpha = 0.025) +
+      # this ensures the x limits do not change by building an invisible
+      # plot of the full population
+      geom_col(data = pop_data_for_categorical_limits %>% mutate(prop = 0),
+               alpha = 0) +
       facet_wrap(~name, scales = 'free_x') +
       labs(x = NULL,
            y = NULL) +
       theme(axis.text.x = element_text(angle = 40, hjust = 1))
-    
-    # convert sites_that_accepted to long format - numerics only
-    sites_that_accepted_numeric <- sites_that_accepted %>%
-      mutate(sim = "Actual") %>%
-      select(sim, all_of(numeric_vars)) %>%
-      pivot_longer(cols = -c("sim"))
-    
-    # combine and plot - numerics only
+
+    # plot numerics only
     p2 <- bind_rows(list_of_accepted_dataframes) %>%
       select(sim, all_of(numeric_vars)) %>%
       pivot_longer(cols = -c("sim")) %>%
-      ggplot(aes(x = value, group = sim)) +
-      geom_line(stat = "density", alpha = 0.025, color = 'black') +
-      # geom_density(data = sites_that_accepted_numeric, 
-      #              color = "white", size = 1.1) +
-      # geom_density(data = sites_that_accepted_numeric, 
-      #              color = "#302f42", size = 1.3, linetype = "dotted") +
+      ggplot(aes(x = value)) +
+      geom_line(stat = "density", aes(group = sim), alpha = 0.025, color = 'black') +
+      # this ensures the x limits do not change by building an invisible
+      # plot of the full population
+      geom_line(data = pop_data_for_numeric_limits,
+                stat = "density", alpha = 0) +
       facet_wrap(~name, scales = 'free') +
       labs(x = NULL,
            y = NULL)
@@ -1272,26 +1150,12 @@ server <- function(input, output, session) {
     # data <- get_dataset("stacked_results", datasets_available)
     sites_that_accepted <- sent_invitations_data() #data[data$site_group == 'Accepted_invitation',]
     
-    # create dataframe of scores of the sites that accepted
-    # actual_scores <- tibble(
-    #   sample_size = nrow(sites_that_accepted),
-    #   total_cost = sum(sites_that_accepted$cost),
-    #   generalizability_index = score_generalizability(sites_that_accepted),
-    #   causality_index = score_causality(sites_that_accepted)
-    # ) %>%
-    #   pivot_longer(cols = everything()) %>% 
-    #   mutate(name = factor(name, levels = metrics_order))
-    
     # plot it
     scores %>%
       pivot_longer(cols = everything()) %>%
       mutate(name = factor(name, levels = metrics_order)) %>% 
       ggplot(aes(x = value)) +
       geom_density(fill = violet_col, alpha = 0.5) +
-      # geom_vline(data = actual_scores, aes(xintercept = value),
-      #            color = "white", size = 1.1) +
-      # geom_vline(data = actual_scores, aes(xintercept = value),
-      #            color = "#302f42", size = 1.3, linetype = "dotted") +
       facet_wrap(~name, scales = 'free', ncol = 3) +
       labs(x = NULL,
            y = NULL)
@@ -1538,8 +1402,8 @@ server <- function(input, output, session) {
   
   # restart the session based on button click
   observeEvent(input$results_button_restart, {
-    gc()
     session$reload()
+    gc()
   } )
   
 }
