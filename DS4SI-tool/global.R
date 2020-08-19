@@ -101,14 +101,16 @@ numeric_popover_messages <- list(
 sampling_simple_message <- "A simple random sample from the population should, on average, retain the characteristics of the population."
 sampling_stratified_message <- "Stratified sampling allows you to control the probability of being selected within different groups of sites. This may be helpful if the probability of accepting the invitation varies across your strata."
 
-# message for run simulation button
-results_message_sim_button <- "Resend the invitations 200 times and see how the distribution of these results compare to your final sample"
-
 # message for floating window on results page
-results_message_float <- list(
-  strong("This is how your final sample compares to 200 random draws"),
+invitations_plot_att_box_message <- list(
+  strong("This is the expected range of outcomes for your selected sample"),
   br(),br(),
-  HTML("If you resent the invitations 200 times, these are the distributions of those outcomes")
+  HTML("If you sent the invitations 200 times, each line represents the density of one of these outcomes")
+)
+invitations_plot_metrics_box_message <- list(
+  strong("This is the expected range of outcomes for your selected sample"),
+  br(),br(),
+  HTML("If you sent the invitations 200 times, these are the distributions of those outcomes' metrics")
 )
 
 

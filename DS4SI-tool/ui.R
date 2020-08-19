@@ -420,16 +420,21 @@ ui <- fluidPage(
                               tabPanel(title = "Expected attributes",
                                        absolutePanel("One moment while the simulation runs",
                                                      style = "z-index: -2;"),
-                                       plotOutput("invitations_plot_expected_attributes", height = 650)),
+                                       plotOutput("invitations_plot_expected_attributes", height = 650),
+                                       absolutePanel(id = "invitations_plot_att_box", 
+                                                     class = "floating_message",
+                                                     top = "auto", left = "auto", right = 25, bottom = 25,
+                                                     width = "30%", height = "auto", draggable = TRUE,
+                                                     invitations_plot_att_box_message)),
                               tabPanel(title = "Expected metrics",
                                        absolutePanel("One moment while the simulation runs",
                                                      style = "z-index: -2;"),
                                        plotOutput("invitations_plot_expected_attributes_metrics", height = 433),
-                                       absolutePanel(id = "floating_window", 
+                                       absolutePanel(id = "invitations_plot_metrics_box", 
+                                                     class = "floating_message",
                                                      top = "auto", left = "auto", right = 50, bottom = 25,
-                                                     width = 250, height = "auto",
-                                                     results_message_float)
-                              )
+                                                     width = "50%", height = "auto", draggable = TRUE,
+                                                     invitations_plot_metrics_box_message))
                             )
                           )
                         )

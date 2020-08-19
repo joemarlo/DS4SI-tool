@@ -165,7 +165,7 @@ within the selectize dropdowns */
   background-color: #ab2c2c !important;
 }
 
-#floating_window {
+.floating_message {
   background-color: #5c5980;
   opacity: 0.9;
   filter: alpha(opacity=90);
