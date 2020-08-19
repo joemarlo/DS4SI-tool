@@ -74,7 +74,7 @@ score_generalizability <- function(...){
   return(score)
 }
 
-# this should ~1
+# this should be ~1
 score_generalizability(population_dataset)
 
 # see how the scores change with sample size
