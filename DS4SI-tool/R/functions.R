@@ -71,11 +71,11 @@ score_attributes <- function(data){
   # total cost, generalizability, causality, sample size
   
   # sample size
-  n_sites <- nrow(data)
+  n_sites <- round(nrow(data))
   n_sites <- scales::comma(n_sites)
   
   # total cost
-  total_cost <- sum(data$cost)
+  total_cost <- round(sum(data$cost))
   total_cost <- scales::dollar(total_cost)
   
   # generalizability score

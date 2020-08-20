@@ -371,7 +371,7 @@ ui <- fluidPage(
                                                  title = "Select your dataset here!",
                                                  content = 'These are the datasets you saved on the previous pages. Select which one contains the sites you wish to invite to participate in the trial.',
                                                  placement = 'top'),
-                                       htmlOutput("invitations_text_summary"),
+                                       h4("This selection of sites has the below metrics. Actual results may vary. Keep in mind you should aim to have 100 sites accept the invitation to participate."),
                                        br(),
                                        tableOutput("invitations_table_scores"),
                                        br(),br(),

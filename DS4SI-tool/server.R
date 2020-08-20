@@ -781,33 +781,29 @@ server <- function(input, output, session) {
     get_dataset(input$invitations_dataset, datasets_available)
   })
 
-  # text for top of send invitations page
-  output$invitations_text_summary <- renderText({
-    
-    data <- sent_invitations_data()
-    
-    n_sites <- nrow(data)
-    mean_acceptance <- mean(data$comfort)
-    expected_cost <- sum(data$comfort * data$cost)
-    
-    final_HTML <- paste0(
-      '<h4>',
-      scales::comma_format()(n_sites),
-      ' sites are currently selected to be approached. Of these, ',
-      floor(n_sites * mean_acceptance), ' sites are expected to accept the invitation, and have a total expected cost of ',
-      scales::label_dollar(accuracy = 1)(expected_cost), '.</h4>'
-    )
-    
-    return(final_HTML)
-  })
-  
   # table of key metrics for the send invitations page
-  output$invitations_table_scores <- renderTable(
-    score_attributes({
-      sent_invitations_data()
-    }), 
-    rownames = TRUE, align = 'r'
-  )
+  output$invitations_table_scores <- renderTable({
+    
+    # simulate outcomes to get 
+    sim_scores <- sim_results()[[2]]
+    sim_scores <- as.matrix(apply(sim_scores, 2, function(col) round(mean(col), 2)))
+    sim_scores[1,] <- floor(sim_scores[1,])
+    sim_scores[2,] <- scales::dollar(round(sim_scores[2,]))
+    
+    # calculate the metrics for the population
+    pop_scores <- score_attributes(sent_invitations_data())
+    
+    # combine scores into one matrix
+    scores <- cbind(sim_scores,pop_scores)
+    
+    # set col and row names
+    colnames(scores) <- c("Expected", "Total")
+    rownames(scores) <- rownames(pop_scores)
+    
+    # return the matrix
+    scores
+    
+  }, rownames = TRUE, align = 'r')
   
   # take action when the submit invitations button is clicked
   observeEvent(input$invitations_button_send, {
@@ -1054,10 +1050,10 @@ server <- function(input, output, session) {
   
   sim_results <- reactive({
     # function re-simulates the acceptance of the invitations
-    # and returns a list of dataframes, each representing one simulation and containing
-    # the sites that accepted the invitation
+      # and returns a list of dataframes, each representing one simulation and containing
+      # the sites that accepted the invitation
     # it also returns a list of the scores (n, cost, generalizbility and causality scores) 
-    # per each simulation
+      # per each simulation
     
     data <- sent_invitations_data() 
     
@@ -1094,12 +1090,7 @@ server <- function(input, output, session) {
   output$invitations_plot_expected_attributes <- renderPlot({
     
     # get the sim results
-    data <- sim_results()
-    list_of_accepted_dataframes <- data[[1]]
-    scores <- data[[2]]
-    
-    # data <- get_dataset("stacked_results", datasets_available)
-    sites_that_accepted <- sent_invitations_data() #data[data$site_group == 'Accepted_invitation',]
+    list_of_accepted_dataframes <- sim_results()[[1]]
     
     # plot categoricals only
     p1 <- bind_rows(list_of_accepted_dataframes) %>%
@@ -1146,12 +1137,7 @@ server <- function(input, output, session) {
   output$invitations_plot_expected_attributes_metrics <- renderPlot({
     
     # get the sim results
-    data <- sim_results()
-    list_of_accepted_dataframes <- data[[1]]
-    scores <- data[[2]]
-    
-    # data <- get_dataset("stacked_results", datasets_available)
-    sites_that_accepted <- sent_invitations_data() #data[data$site_group == 'Accepted_invitation',]
+    scores <- sim_results()[[2]]
     
     # plot it
     scores %>%
