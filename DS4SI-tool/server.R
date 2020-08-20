@@ -430,10 +430,11 @@ server <- function(input, output, session) {
             choices = var_choices,
             selected = var_choices
           ) %>% 
-            # add the tooltip element
-            tipify(
+            # add the popover element
+            popify(
               el = .,
-              title = popover_message
+              title = variable,
+              content = popover_message
             )
         }
       ))
@@ -452,10 +453,11 @@ server <- function(input, output, session) {
             max = var_max,
             value = c(var_min, var_max)
           ) %>%
-            # add the tooltip element
-            tipify(
+            # add the popover element
+            popify(
               el = .,
-              title = popover_message
+              title = variable,
+              content = popover_message
             )
         }
       ))
@@ -534,10 +536,10 @@ server <- function(input, output, session) {
     }
   })
   
-  # determine which tooltip message to display above sampling_select_simple_or_stratified
-  sampling_tooltip_message <- reactive({
+  # determine which popover message to display above sampling_select_simple_or_stratified
+  sampling_popover_message <- reactive({
     if (is.null(input$sampling_select_simple_or_stratified)) {
-      return("nope")
+      return("Error in message rendering")
     } else {
       if (input$sampling_select_simple_or_stratified == "simple") {
         return(sampling_simple_message)
@@ -547,9 +549,9 @@ server <- function(input, output, session) {
     }
   })
   
-  # render sampling_select_simple_or_stratified dropdown and its tooltip 
+  # render sampling_select_simple_or_stratified dropdown and its popover 
     # with the appropriate message
-  # this method is necessary b/c the tooltip needs to be regenerated when the user 
+  # this method is necessary b/c the popover needs to be regenerated when the user 
     # changes sampling_select_simple_or_stratified
   output$sampling_select_simple_or_stratified <- renderUI({
     selectInput(inputId = "sampling_select_simple_or_stratified",
@@ -557,10 +559,11 @@ server <- function(input, output, session) {
                 multiple = FALSE,
                 selected = user_selected(),
                 choices = c("simple", "stratified")) %>%
-      # add the tooltip element
-      tipify(
+      # add the popover element
+      popify(
         el = .,
-        title = sampling_tooltip_message(),
+        title = "Sampling method",
+        content = sampling_popover_message(),
         placement = 'top'
       )
   })
@@ -1389,7 +1392,7 @@ server <- function(input, output, session) {
   
   # download the table, plots, and sites dataframe
   output$results_button_download <- downloadHandler(
-    filename = function(){"DS4SI.zip"},
+    filename = function() "DS4SI_site_selection_results.zip",
     content = function(file){
       
       # go to a temp dir to avoid permission issues
@@ -1414,22 +1417,22 @@ server <- function(input, output, session) {
       files <- c("summary.csv", files)
       
       # save the histograms
-      ggsave("plots.png",
+      ggsave("sampled_plots.png",
              plot = results_hist(),
              device = "png",
              width = 25,
              height = 25,
              units = "cm")
-      files <- c("plots.png", files)
+      files <- c("sampled_plots.png", files)
       
       # save the sampled vs. population
-      ggsave("sampled_v_population.png",
+      ggsave("sampled_v_population_plots.png",
              plot = results_samp_v_pop(),
              device = "png",
              width = 25,
              height = 25,
              units = "cm")
-      files <- c("sampled_v_population.png", files)
+      files <- c("sampled_v_population_plots.png", files)
       
       # create the zip file
       zip(file, files)

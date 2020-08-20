@@ -84,7 +84,7 @@ score_causality <- function(data, scores_df = causal_scores){
 
 # order must match order of categorical_vars
 categorical_popover_messages <- list(
-  "Think about how the existence or absence of another jobs training program could impact the size of the treatment effect. If there is a competing program, we expect the effect to be much smaller.",
+  "Think about how the existence or absence of another jobs training program could impact the size of the treatment effect (i.e. causality). If there is a competing program, we expect the effect to be much smaller.",
   "How will excluding regions affect generalizability?",
   "How will excluding urban or rural sites affect generalizability?"
 )
