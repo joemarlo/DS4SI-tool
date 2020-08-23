@@ -273,10 +273,6 @@ server <- function(input, output, session) {
     }
   )
   
-
-  # render site exploration plots
-  output$exploration_plot <- renderPlot(exploration_plot())
-  
   # build the exploration plots
   exploration_plot <- reactive({
     
@@ -372,6 +368,8 @@ server <- function(input, output, session) {
     return(p)
   })
   
+  # render site exploration plots
+  output$exploration_plot <- renderPlot(exploration_plot())
   
   # text above the brush table
   output$brush_text <- renderText({

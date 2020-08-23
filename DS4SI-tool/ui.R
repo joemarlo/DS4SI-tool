@@ -145,7 +145,11 @@ ui <- fluidPage(
                                 multiple = FALSE,
                                 choices = c('none', 'include'),
                                 selected = 'none'
-                              )
+                              ),
+                              bsPopover(id = 'exploration_variable_regression',
+                                        title = "Linear regression",
+                                        content = 'Apply a linear regression (y ~ x) to each subgroup of your plot. If you facet on a variable, then the regressions will be calculated per each facet group.',
+                                        placement = 'top'),
                             ), 
                             conditionalPanel(
                               condition = "input.exploration_select_plot_type == 'Histogram'",
@@ -174,6 +178,10 @@ ui <- fluidPage(
                               choices = c("none", categorical_vars),
                               selected = "none"
                             ),
+                            bsPopover(id = 'exploration_variable_facet',
+                                      title = "Facet variable",
+                                      content = 'Faceting splits the data by one or more variables and then plots these subsets.',
+                                      placement = 'top'),
                             conditionalPanel(
                               condition = "input.exploration_variable_facet != 'none'",
                               selectInput(
