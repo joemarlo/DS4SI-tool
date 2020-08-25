@@ -19,7 +19,7 @@ There's four main metrics that summarize your selected sample of sites:
 - Causality index: an estimate of how the results of the trial conducted at the selected sites can be interpreted causally  
 - Sample size: the number of sites
 
-You will not be graded based on the metric scores, however it is important to be able to interpret and communicate how these metrics impact the results of the trial.
+You will not be graded based on the metric scores, however you will be graded on how well you interpret and communicate how these metrics impact the results of the trial.
 
 ### Tips: 
 - It's suggested to use your desktop or laptop. The tool does work on mobile but the experience is not optimized

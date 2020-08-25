@@ -100,7 +100,7 @@ summary{
   box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(92, 89, 128, 0.6);
 }
 
-/* the little 'pills' when mulitple items are selected 
+/* the little 'pills' when multiple items are selected 
 within the selectize dropdowns */
 .item {
   -webkit-border-radius: 0 0 0 0 !important;
@@ -108,9 +108,8 @@ within the selectize dropdowns */
   border-radius: 0 0 0 0 !important;
 }
 
-.item:hover {
-  background-color: #dbdbdb !important;
-  color: #636363 !important;
+.item:hover, item:active, .item:focus, .item:selected {
+  background-color: #eeefef !important; 
 }
 
 /* buttons */

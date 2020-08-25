@@ -143,9 +143,9 @@ violet_col <- "#5c5980"
 # choices for categorical selectInput
 # order must match order of categorical_vars
 categorical_choices <- list(
-  rev(unique(as.character(population_dataset$other_prog))),
-  unique(as.character(population_dataset$region)),
-  rev(unique(as.character(population_dataset$urban)))
+  sort(unique(as.character(population_dataset$other_prog))),
+  sort(unique(as.character(population_dataset$region))),
+  sort(unique(as.character(population_dataset$urban)))
 )
 
 # create dataframe of min and maxes to use in slider calculations

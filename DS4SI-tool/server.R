@@ -80,10 +80,10 @@ server <- function(input, output, session) {
         )
       }
       
-      # stop here if dataset name is taken
+      # stop here if dataset name is taken or if no text is entered in the field
       validate(
         need(!(clean_save_name %in% str_to_lower(c(datasets_available$data_names, "stacked_results"))) &
-               length(clean_save_name) > 0,
+               nchar(clean_save_name) > 0,
              "Dataset name already taken")
       )
       
@@ -141,13 +141,16 @@ server <- function(input, output, session) {
       }
       
       # if the user is saving the manual exclusions dataset then
-        # destroy the user input saved IDs after the dataset is saved 
+        # destroy the user input saved IDs after the dataset is saved and
+        # insert text below the save button reminding the user of implications
       if (id == 'manual_data_save') {
         updateSelectInput(session = session,
                           inputId = "manual_select_sites_excl",
                           selected = NA)
-      }
       
+        output$manual_text_reminder <- renderUI(HTML('<p style="font-style: italic;">Don’t forget to justify your decision to exclude certain sites within your paper.</p>'))
+      }
+        
     })
     
     # make save_name text red if its a duplicate of a name
@@ -184,6 +187,19 @@ server <- function(input, output, session) {
   
   # render plots on data description page
   output$description_plots <- renderPlot(draw_histograms(population_dataset))
+  
+  # add popovers
+  map2(.x = paste0("description_text_", c(categorical_vars, numeric_vars)),
+       .y = c(categorical_popover_messages, numeric_popover_messages),
+       .f = function(id, message){
+        addPopover(
+          session = session,
+          id = id,
+          title = "Hint!",
+          content = message,
+          placement = 'bottom'
+        )
+      })
   
   
   # exploration page --------------------------------------------------------
@@ -421,19 +437,20 @@ server <- function(input, output, session) {
       pmap(
         .l = list(categorical_vars, categorical_choices, categorical_popover_messages),
         .f = function(variable, var_choices, popover_message) {
-          selectInput(
+          checkboxGroupInput(
             inputId = paste0("filtering_select_", variable),
             label = paste0(variable, ": "),
-            multiple = TRUE,
+            # multiple = TRUE,
+            inline = TRUE,
             choices = var_choices,
             selected = var_choices
-          ) %>% 
+          ) #%>% 
             # add the popover element
-            popify(
-              el = .,
-              title = variable,
-              content = popover_message
-            )
+            # popify(
+            #   el = .,
+            #   title = variable,
+            #   content = popover_message
+            # )
         }
       ))
   })    

@@ -277,10 +277,6 @@ ui <- fluidPage(
                                                    label = "Dataset to sample: ", 
                                                    multiple = FALSE,
                                                    choices = NULL),
-                                       # selectInput(inputId = "sampling_select_simple_or_stratified",
-                                       #             label = "Simple or stratified sample: ",
-                                       #             multiple = FALSE,
-                                       #             choices = c("simple", "stratified")),
                                        uiOutput("sampling_select_simple_or_stratified"),
                                        conditionalPanel(
                                          condition = "input.sampling_select_simple_or_stratified == 'stratified'",
@@ -311,7 +307,6 @@ ui <- fluidPage(
                                                      step = 1)
                                        ),
                                        actionButton(inputId = "sampling_button_run_sampling", label = "Sample the data"),
-                                       # save dataset
                                        br(), br(),
                                        textInput("sampling_data_save_name", value = "my_dataset", label = "Name and save your dataset"),
                                        actionButton("sampling_data_save_button", label = "Save my_dataset")
@@ -354,7 +349,9 @@ ui <- fluidPage(
                                                  label = "Name and save your dataset", 
                                                  value = "my_dataset", ),
                                        actionButton(inputId = "manual_data_save_button", 
-                                                    label = "Save my_dataset")
+                                                    label = "Save my_dataset"),
+                                       br(), br(),
+                                       htmlOutput(outputId = "manual_text_reminder")
                           ),
                           mainPanel(width = 6,
                                     tabsetPanel(
