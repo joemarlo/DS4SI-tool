@@ -92,6 +92,7 @@ categorical_popover_messages <- list(
 numeric_popover_messages <- list(
   "Comfort is a proxy for `probability of accepting the invitation` so you will have to approach more sites if average comfort is low.",
   "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low).",
+  "It is important to balance the goals of the evaluators along with the goals of the funders (i.e. keeping costs low).",
   "How does excluding low or high income sites affect generalizability?",
   "How does excluding low or high high school graduation rates sites affect generalizability?",
   "How does excluding low or high unemployment sites affect generalizability?"
@@ -104,13 +105,15 @@ sampling_stratified_message <- "Stratified sampling allows you to control the pr
 # message for floating window on results page
 invitations_plot_att_box_message <- list(
   strong("This is the expected range of outcomes for your selected sample"),
-  br(),br(),
-  HTML("If you sent the invitations 200 times, each line represents the density of one of these outcomes")
+  br(), br(),
+  HTML("If you sent the invitations 200 times, each line represents the density of one of these outcomes"),
+  br(), br()
 )
 invitations_plot_metrics_box_message <- list(
   strong("This is the expected range of outcomes for your selected sample"),
-  br(),br(),
-  HTML("If you sent the invitations 200 times, these are the distributions of those outcomes' metrics")
+  br(), br(),
+  HTML("If you sent the invitations 200 times, these are the distributions of those outcomes' metrics"),
+  br(), br()
 )
 
 
@@ -118,7 +121,7 @@ invitations_plot_metrics_box_message <- list(
 
 # preset numeric and categorical variables; this is used widely in ui.R
   # and server.R; its important they remain alphabetical
-numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
+numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost_to_approach", "cost_to_execute"))
 categorical_vars <- sort(c('region', 'urban', 'other_prog'))
 
 # set order of metrics (used for plots)
@@ -164,7 +167,7 @@ min_max_df <- as.data.frame(min_max_df)
   # observations. Then we pass this to ggplot as another layer that's invisible,
   # otherwise, setting limits on individual facets is a huge pain
 pop_data_for_numeric_limits <- population_dataset %>% 
-  select(unemp, pct_hs, income, comfort, cost) %>%
+  select(all_of(numeric_vars)) %>%
   pivot_longer(cols = everything()) %>%
   mutate(name = factor(name, levels = numeric_vars)) %>%
   group_by(name) %>% 

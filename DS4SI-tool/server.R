@@ -494,8 +494,12 @@ server <- function(input, output, session) {
                    data$income <= input$filtering_slider_income[2],]
     data <- data[data$comfort >= input$filtering_slider_comfort[1] & 
                    data$comfort <= input$filtering_slider_comfort[2],]
-    data <- data[data$cost >= input$filtering_slider_cost[1] & 
-                   data$cost <= input$filtering_slider_cost[2],]
+    # data <- data[data$cost >= input$filtering_slider_cost[1] & 
+    #                data$cost <= input$filtering_slider_cost[2],]
+    data <- data[data$cost_to_approach >= input$filtering_slider_cost_to_approach[1] & 
+                   data$cost_to_approach <= input$filtering_slider_cost_to_approach[2],]
+    data <- data[data$cost_to_execute >= input$filtering_slider_cost_to_execute[1] & 
+                   data$cost_to_execute <= input$filtering_slider_cost_to_execute[2],]
     
     return(data)
   })
@@ -815,10 +819,14 @@ server <- function(input, output, session) {
     colnames(scores) <- c("Expected", "Total")
     rownames(scores) <- rownames(pop_scores)
     
+    # remove total cost as it now longer makes sense when cost is split across
+      # costs to approach and cost to execute
+    scores["Total cost", "Total"] <- NA
+    
     # return the matrix
     scores
     
-  }, rownames = TRUE, align = 'r')
+  }, rownames = TRUE, align = 'lrr')
   
   # take action when the submit invitations button is clicked
   observeEvent(input$invitations_button_send, {
@@ -1047,7 +1055,7 @@ server <- function(input, output, session) {
       labs(x = NULL,
            y = NULL) +
       theme(legend.title = element_blank(),
-            legend.position = c(0.82, 0.25))
+            legend.position = 'bottom')
     
     # render both plots vertically
     grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))
@@ -1092,7 +1100,7 @@ server <- function(input, output, session) {
       
       # create dataframe of scores
       scores[i, 'sample_size'] <- sum(accepted_boolean)
-      scores[i, 'total_cost'] <- sum(accepted_data$cost)
+      scores[i, 'total_cost'] <- sum(data$cost_to_approach, accepted_data$cost_to_execute)
       scores[i, 'generalizability_index'] <- score_generalizability(accepted_data)
       scores[i, 'causality_index'] <- score_causality(accepted_data)
     }
@@ -1165,6 +1173,14 @@ server <- function(input, output, session) {
            y = NULL)
   })
   
+  # on button click, remove the floating dialog box on the plots
+  observeEvent(input$invitations_button_exit_att_box, {
+    removeUI(selector = "#invitations_plot_att_box")
+  })
+  observeEvent(input$invitations_button_exit_metrics_box, {
+    removeUI(selector = "#invitations_plot_metrics_box")
+  })
+  
   
   # results page ------------------------------------------------------------
   
@@ -1177,7 +1193,6 @@ server <- function(input, output, session) {
     
     # calculate summary stats
     n_sites <- nrow(data)
-    expected_cost <- sum(data$comfort * data$cost)
     
     # paste together the sentence
     sentence <- paste0(
@@ -1186,19 +1201,6 @@ server <- function(input, output, session) {
     
     return(sentence)
   })
-  
-  # table of key metrics for the Results page
-  output$results_table_scores <- renderTable({
-    
-    # get the data
-    data <- get_dataset("stacked_results", datasets_available)
-    data <- data[data$site_group == 'Accepted_invitation', ]
-    
-    # calculate the scores
-    score_attributes(data)
-  },
-  rownames = TRUE, align = 'r'
-  )
   
   # function to return summary table for the Results page
   results_table <- reactive({
@@ -1311,11 +1313,19 @@ server <- function(input, output, session) {
     colnames(scores_char) <- colnames(final_table)
     final_table <- rbind(scores_char, round(final_table, 2))
     
+    # replace cost estimates so cost to approach comes from all sites the user approached
+      # and cost to execute comes from just the sites that accepted
+    accepted_df <- data[data$site_group == 'Accepted_invitation',]
+    sent_invitation_df <- data[data$site_group == 'Sent_invitation',]
+    final_table['Total cost', 1] <- scales::dollar_format()(round(sum(sent_invitation_df$cost_to_approach, accepted_df$cost_to_execute), 0))
+    final_table['Total cost', 2:3] <- NA
+    
+    
     return(final_table)
   })
   
   # render the summary table for the Results page
-  output$results_table_summary <- renderTable(results_table(), rownames = TRUE)
+  output$results_table_summary <- renderTable(results_table(), rownames = TRUE, align = 'lrrr')
   
   # function to return the histograms
   results_hist <- reactive({
@@ -1366,7 +1376,7 @@ server <- function(input, output, session) {
       labs(x = NULL,
            y = NULL) +
       theme(legend.title = element_blank(),
-            legend.position = c(0.82, 0.25))
+            legend.position = 'bottom')
     
     # render both plots vertically
     grid.arrange(p1, p2, ncol = 1, heights = c(1, 2))

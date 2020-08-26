@@ -29,7 +29,7 @@ draw_histograms <- function(data){
   
   # bar plot of categorical variables
   p1 <- data %>%
-    select(region, urban, other_prog) %>%
+    select(all_of(categorical_vars)) %>%
     mutate(urban = as.character(urban),
            other_prog = as.character(other_prog)) %>%
     pivot_longer(cols = everything()) %>%
@@ -47,7 +47,7 @@ draw_histograms <- function(data){
   
   # histograms plot of numeric variables
   p2 <- data %>%
-    select(unemp, pct_hs, income, comfort, cost) %>%
+    select(all_of(numeric_vars)) %>%
     pivot_longer(cols = everything()) %>%
     mutate(name = factor(name, levels = numeric_vars)) %>%
     ggplot(aes(x = value)) +
@@ -75,7 +75,7 @@ score_attributes <- function(data){
   n_sites <- scales::comma(n_sites)
   
   # total cost
-  total_cost <- round(sum(data$cost))
+  total_cost <- round(sum(data$cost_to_approach, data$cost_to_execute))
   total_cost <- scales::dollar(total_cost)
   
   # generalizability score

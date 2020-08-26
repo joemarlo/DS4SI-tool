@@ -402,8 +402,10 @@ ui <- fluidPage(
                                        absolutePanel(id = "invitations_plot_att_box", 
                                                      class = "floating_message",
                                                      top = "auto", left = "auto", right = 25, bottom = 25,
-                                                     width = "30%", height = "auto", draggable = TRUE,
-                                                     invitations_plot_att_box_message)),
+                                                     width = "30%", height = "auto", draggable = FALSE,
+                                                     invitations_plot_att_box_message,
+                                                     actionButton(inputId = 'invitations_button_exit_att_box',
+                                                                  label = 'Close this box'))),
                               tabPanel(title = "Expected metrics",
                                        absolutePanel("One moment while the simulation runs",
                                                      style = "z-index: -2;"),
@@ -411,8 +413,10 @@ ui <- fluidPage(
                                        absolutePanel(id = "invitations_plot_metrics_box", 
                                                      class = "floating_message",
                                                      top = "auto", left = "auto", right = 50, bottom = 25,
-                                                     width = "50%", height = "auto", draggable = TRUE,
-                                                     invitations_plot_metrics_box_message))
+                                                     width = "50%", height = "auto", draggable = FALSE,
+                                                     invitations_plot_metrics_box_message,
+                                                     actionButton(inputId = 'invitations_button_exit_metrics_box',
+                                                                  label = 'Close this box')))
                             )
                           )
                         )

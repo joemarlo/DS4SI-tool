@@ -73,12 +73,18 @@ data$urban <- as.logical(data$urban)
 data$other_prog <- as.logical(data$other_prog)
 
 # convert distance to cost
-data$cost <- round(1000 + (data$distance * 500), 0) / 1000
-data <- data[, setdiff(colnames(data), "distance")]
+data$cost <- (1000 + (data$distance * 500)) / 1000
+
+# split cost into two variables
+data$cost_to_approach <- data$cost * 0.3
+data$cost_to_execute <- data$cost * 0.7
+
+# remove distance and cost
+data <- data[, setdiff(colnames(data), c("cost", "distance"))]
 
 # round the numerics to three digits
-data[, c("unemp", "pct_hs", "income", "comfort")] <-
-  round(data[, c("unemp", "pct_hs", "income", "comfort")] , 3)
+data[, c("unemp", "pct_hs", "income", "comfort", "cost_to_approach", "cost_to_execute")] <-
+  round(data[, c("unemp", "pct_hs", "income", "comfort", "cost_to_approach", "cost_to_execute")] , 3)
 
 
 # save the data -----------------------------------------------------------
