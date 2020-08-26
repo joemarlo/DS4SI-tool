@@ -5,9 +5,10 @@ set.seed(44)
 
 population_dataset <- read_csv('data/jpta.csv')
 numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
+population_dataset <- population_dataset[, setdiff(colnames(population_dataset), "other_prog")]
 
 # dummy code the variables
-dummies <- dummyVars(~ urban + other_prog + region, population_dataset) %>% predict(., population_dataset)
+dummies <- dummyVars(~ urban + region, population_dataset) %>% predict(., population_dataset)
 dummied_data <- cbind(dummies, population_dataset[, numeric_vars])
 
 # run PCA
@@ -46,11 +47,9 @@ calc_generalizability <- function(sample_data, pca = population_pca, population 
 nsims <- 5000
 ns <- sample(100:1000, size = nsims, replace = TRUE)
 raw_scores <- mclapply(ns, function(n){
-  boolean_other_prog <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
   boolean_urban <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
   regions <- sample(c("South", "Northeast", "South", "West"), size = runif(1, min = 1, max = 4))
-  boolean <- (population_dataset$other_prog %in% boolean_other_prog) &
-    (population_dataset$urban %in% boolean_urban) &
+  boolean <- (population_dataset$urban %in% boolean_urban) &
     (population_dataset$region %in% regions)
   my_sample <- slice_sample(population_dataset[boolean,], 
                             n = n, replace = FALSE)
@@ -80,11 +79,9 @@ score_generalizability(population_dataset)
 # see how the scores change with sample size
 ns <- rep(seq(100, 1000, by = 50), 200)
 x <- sapply(ns, function(n){
-  boolean_other_prog <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
   boolean_urban <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
   regions <- sample(c("South", "Northeast", "South", "West"), size = runif(1, min = 1, max = 4))
-  boolean <- (population_dataset$other_prog %in% boolean_other_prog) &
-    (population_dataset$urban %in% boolean_urban) &
+  boolean <- (population_dataset$urban %in% boolean_urban) &
     (population_dataset$region %in% regions)
   my_sample <- slice_sample(population_dataset[boolean,], 
                             n = n, replace = FALSE)

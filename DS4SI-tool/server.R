@@ -431,7 +431,7 @@ server <- function(input, output, session) {
     get_dataset(input$filtering_dataset, datasets_available)
   })
   
-  # generate select inputs for each categorical variable
+  # generate checkmark box inputs for each categorical variable
   output$filtering_select_categorical <- renderUI({
     tagList(
       pmap(
@@ -467,13 +467,13 @@ server <- function(input, output, session) {
             min = var_min,
             max = var_max,
             value = c(var_min, var_max)
-          ) %>%
+          ) #%>%
             # add the popover element
-            popify(
-              el = .,
-              title = variable,
-              content = popover_message
-            )
+            # popify(
+            #   el = .,
+            #   title = variable,
+            #   content = popover_message
+            # )
         }
       ))
   })
