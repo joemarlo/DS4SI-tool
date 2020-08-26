@@ -30,8 +30,8 @@ draw_histograms <- function(data){
   # bar plot of categorical variables
   p1 <- data %>%
     select(all_of(categorical_vars)) %>%
-    mutate(urban = as.character(urban),
-           other_prog = as.character(other_prog)) %>%
+    mutate(Urban = as.character(Urban),
+           `Other program at site` = as.character(`Other program at site`)) %>%
     pivot_longer(cols = everything()) %>%
     mutate(name = factor(name, levels = categorical_vars)) %>%
     ggplot(aes(x = value)) +
@@ -75,7 +75,7 @@ score_attributes <- function(data){
   n_sites <- scales::comma(n_sites)
   
   # total cost
-  total_cost <- round(sum(data$cost_to_approach, data$cost_to_execute))
+  total_cost <- round(sum(data$`Cost to approach site`, data$`Cost to run RCT`))
   total_cost <- scales::dollar(total_cost)
   
   # generalizability score
@@ -153,7 +153,7 @@ get_dataset <- function(dataset_name, list_of_datasets){
   }
   
   # filter the population dataframe to just include those site_ids
-  data <- population_dataset[population_dataset$site_id %in% site_ids,]
+  data <- population_dataset[population_dataset$`Site ID` %in% site_ids,]
   
   return(data)
 }

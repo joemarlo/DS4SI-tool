@@ -13,7 +13,7 @@ server <- function(input, output, session) {
   
   # initialize list of saved datasets
   datasets_available <- reactiveValues(data = NULL, data_names = NULL)
-  datasets_available$data <- list(population_dataset$site_id)
+  datasets_available$data <- list(population_dataset$`Site ID`)
   datasets_available$data_names <- c("Population")
   
   # update list of dataframes in the dataset dropdowns
@@ -107,7 +107,7 @@ server <- function(input, output, session) {
       )
       
       # append the selected sites as a new sublist to the master list of saved sites
-      datasets_available$data <- c(datasets_available$data, list(dataset_to_save$site_id))
+      datasets_available$data <- c(datasets_available$data, list(dataset_to_save$`Site ID`))
       
       # add input string to list of dataset names
       datasets_available$data_names <- c(datasets_available$data_names,
@@ -226,11 +226,11 @@ server <- function(input, output, session) {
   # update second facet options so user cannot double facet on the same variable
     # b/c that causes an error
   observeEvent(input$exploration_variable_facet, {
-    if (input$exploration_variable_facet != "none") {
+    if (input$exploration_variable_facet != "None") {
       updateSelectInput(
         session = session,
         inputId = "exploration_variable_facet_second",
-        choices = setdiff(c("none", categorical_vars), input$exploration_variable_facet)
+        choices = setdiff(c("None", categorical_vars), input$exploration_variable_facet)
       )
     }
   })
@@ -296,14 +296,14 @@ server <- function(input, output, session) {
     plot_data <- exploration_selected_data()
     
     # add kmeans cluster to data dataframe
-    if(input$exploration_select_plot_type == 'Scatter' & input$exploration_variable_fill == "cluster"){
+    if(input$exploration_select_plot_type == 'Scatter' & input$exploration_variable_fill == "Cluster"){
       
       # run kmeans algo
       km <- kmeans(x = plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)],
                    centers = input$n_clusters, iter.max = 50, nstart = 5)
       
       # add cluster assignment to the dataframe
-      plot_data$cluster <- as.factor(km$cluster)
+      plot_data$Cluster <- as.factor(km$cluster)
       
       # run hclust algo instead
       # dist_matrix <- dist(plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)])
@@ -313,21 +313,21 @@ server <- function(input, output, session) {
     }
     
     # create base ggplot object
-    p <- ggplot(plot_data, aes_string(x = input$exploration_variable_x))
+    p <- ggplot(plot_data, aes_string(x = sym(input$exploration_variable_x)))
     
     # scatter
     if (input$exploration_select_plot_type == 'Scatter'){
       p <- p +
-        geom_point(aes_string(y = input$exploration_variable_y,
-                              fill = input$exploration_variable_fill,
-                              size = input$exploration_variable_size,
-                              color = input$exploration_variable_fill),
+        geom_point(aes_string(y = sym(input$exploration_variable_y),
+                              fill = sym(input$exploration_variable_fill),
+                              size = sym(input$exploration_variable_size),
+                              color = sym(input$exploration_variable_fill)),
                    alpha = input$exploration_variable_alpha)
       
       # regression line
-      if(input$exploration_variable_regression == 'include'){
+      if(input$exploration_variable_regression == 'Include'){
         p <- p + geom_smooth(
-          aes_string(y = input$exploration_variable_y),
+          aes_string(y = sym(input$exploration_variable_y)),
           method = "lm",
           formula = 'y ~ x',
           color = "grey20"
@@ -335,11 +335,11 @@ server <- function(input, output, session) {
       } 
       
       # cluster centers
-      if(input$exploration_variable_fill == "cluster"){
+      if(input$exploration_variable_fill == "Cluster"){
         p <- p +
           geom_point(data = as_tibble(km$centers),
-                     aes_string(x = colnames(km$centers)[1],
-                                y = colnames(km$centers)[2]),
+                     aes_string(x = sym(colnames(km$centers)[1]),
+                                y = sym(colnames(km$centers)[2])),
                      color = violet_col,
                      shape = 4, size = 8, stroke = 1.5)
       }
@@ -363,19 +363,19 @@ server <- function(input, output, session) {
     if (input$exploration_select_plot_type == 'Boxplot'){
       p <- p + 
         geom_boxplot(fill = violet_col, alpha = 0.5,
-                     if(input$exploration_variable_group != 'none') aes_string(y = input$exploration_variable_group)
+                     if(input$exploration_variable_group != 'None') aes_string(y = input$exploration_variable_group)
         ) +
         coord_flip() +
         scale_y_discrete()
     }
     
     # add faceting
-    if (input$exploration_variable_facet != "none"){
+    if (input$exploration_variable_facet != "None"){
       
-      if (input$exploration_variable_facet_second == "none"){
-        p <- p + facet_grid(input$exploration_variable_facet, labeller = label_both)
+      if (input$exploration_variable_facet_second == "None"){
+        p <- p + facet_grid(sym(input$exploration_variable_facet), labeller = label_both)
       } else {
-        p <- p + facet_grid(list(input$exploration_variable_facet, input$exploration_variable_facet_second),
+        p <- p + facet_grid(list(sym(input$exploration_variable_facet), sym(input$exploration_variable_facet_second)),
                             labeller = label_both)
       }
     } 
@@ -390,7 +390,7 @@ server <- function(input, output, session) {
   # text above the brush table
   output$brush_text <- renderText({
     
-    if (input$exploration_variable_facet == "none" & input$exploration_select_plot_type == 'Scatter') {
+    if (input$exploration_variable_facet == "None" & input$exploration_select_plot_type == 'Scatter') {
       txt <- "<h4>Highlight data points on the above plot to view their information below</h4>"
     } else {
       txt <- NULL
@@ -404,7 +404,7 @@ server <- function(input, output, session) {
   output$brush_info <- DT::renderDataTable(
     
     # show only if there isn't faceting
-    if (input$exploration_variable_facet == "none" & input$exploration_select_plot_type == 'Scatter') {
+    if (input$exploration_variable_facet == "None" & input$exploration_select_plot_type == 'Scatter') {
       
       custom_datatable(
         brushedPoints(population_dataset, input$plot1_brush),
@@ -438,19 +438,12 @@ server <- function(input, output, session) {
         .l = list(categorical_vars, categorical_choices, categorical_popover_messages),
         .f = function(variable, var_choices, popover_message) {
           checkboxGroupInput(
-            inputId = paste0("filtering_select_", variable),
+            inputId = paste0("filtering_select_", tolower(str_replace_all(variable, " ", "_"))),
             label = paste0(variable, ": "),
-            # multiple = TRUE,
             inline = TRUE,
             choices = var_choices,
             selected = var_choices
-          ) #%>% 
-            # add the popover element
-            # popify(
-            #   el = .,
-            #   title = variable,
-            #   content = popover_message
-            # )
+          )
         }
       ))
   })    
@@ -462,18 +455,12 @@ server <- function(input, output, session) {
         .l = list(numeric_vars, min_max_df$min, min_max_df$max, numeric_popover_messages),
         .f = function(variable, var_min, var_max, popover_message) {
           sliderInput(
-            inputId = paste0("filtering_slider_", variable),
+            inputId = paste0("filtering_slider_", tolower(str_replace_all(variable, " ", "_"))),
             label = paste0(variable, ": "),
             min = var_min,
             max = var_max,
             value = c(var_min, var_max)
-          ) #%>%
-            # add the popover element
-            # popify(
-            #   el = .,
-            #   title = variable,
-            #   content = popover_message
-            # )
+          )
         }
       ))
   })
@@ -483,23 +470,25 @@ server <- function(input, output, session) {
     
     # apply user's inputted filters
     data <- filtering_selected_data()
-    data <- data[data$region %in% input$filtering_select_region,]
-    data <- data[data$urban %in% input$filtering_select_urban,]
-    data <- data[data$other_prog %in% input$filtering_select_other_prog,]
-    data <- data[data$unemp >= input$filtering_slider_unemp[1] & 
-                   data$unemp <= input$filtering_slider_unemp[2],]
-    data <- data[data$pct_hs >= input$filtering_slider_pct_hs[1] & 
-                   data$pct_hs <= input$filtering_slider_pct_hs[2],]
-    data <- data[data$income >= input$filtering_slider_income[1] & 
-                   data$income <= input$filtering_slider_income[2],]
-    data <- data[data$comfort >= input$filtering_slider_comfort[1] & 
-                   data$comfort <= input$filtering_slider_comfort[2],]
-    # data <- data[data$cost >= input$filtering_slider_cost[1] & 
+    data <- data[data$Region %in% input$filtering_select_region,]
+    data <- data[data$Urban %in% input$filtering_select_urban,]
+    data <- data[data$`Other program at site` %in% input$filtering_select_other_program_at_site,]
+    data <- data[data$`Unemployment rate` >= input$filtering_slider_unemployment_rate[1] &
+                   data$`Unemployment rate` <= input$filtering_slider_unemployment_rate[2],]
+    data <- data[data$`High school degree rate` >= input$filtering_slider_high_school_degree_rate[1] &
+                   data$`High school degree rate` <= input$filtering_slider_high_school_degree_rate[2],]
+    data <- data[data$`Mean income` >= input$filtering_slider_mean_income[1] &
+                   data$`Mean income` <= input$filtering_slider_mean_income[2],]
+    data <- data[data$`Comfort` >= input$filtering_slider_comfort[1] &
+                   data$`Comfort` <= input$filtering_slider_comfort[2],]
+    # data <- data[data$cost >= input$filtering_slider_cost[1] &
     #                data$cost <= input$filtering_slider_cost[2],]
-    data <- data[data$cost_to_approach >= input$filtering_slider_cost_to_approach[1] & 
-                   data$cost_to_approach <= input$filtering_slider_cost_to_approach[2],]
-    data <- data[data$cost_to_execute >= input$filtering_slider_cost_to_execute[1] & 
-                   data$cost_to_execute <= input$filtering_slider_cost_to_execute[2],]
+    data <- data[data$`Cost to approach site` >= input$filtering_slider_cost_to_approach_site[1] &
+                   data$`Cost to approach site` <= input$filtering_slider_cost_to_approach_site[2],]
+    data <- data[data$`Cost to approach site` >= input$filtering_slider_cost_to_approach_site[1] &
+                   data$`Cost to approach site` <= input$filtering_slider_cost_to_approach_site[2],]
+    data <- data[data$`Cost to run RCT` >= input$filtering_slider_cost_to_run_rct[1] &
+                   data$`Cost to run RCT` <= input$filtering_slider_cost_to_run_rct[2],]
     
     return(data)
   })
@@ -549,7 +538,7 @@ server <- function(input, output, session) {
   # capture the user selection in the sampling_select_simple_or_stratified dropdown
   user_selected <- reactive({
     if(is.null(input$sampling_select_simple_or_stratified)){
-      return("simple")
+      return("Simple")
     } else {
       return(input$sampling_select_simple_or_stratified)
     }
@@ -560,7 +549,7 @@ server <- function(input, output, session) {
     if (is.null(input$sampling_select_simple_or_stratified)) {
       return("Error in message rendering")
     } else {
-      if (input$sampling_select_simple_or_stratified == "simple") {
+      if (input$sampling_select_simple_or_stratified == "Simple") {
         return(sampling_simple_message)
       } else {
         return(sampling_stratified_message)
@@ -577,7 +566,7 @@ server <- function(input, output, session) {
                 label = "Simple or stratified sample: ",
                 multiple = FALSE,
                 selected = user_selected(),
-                choices = c("simple", "stratified")) %>%
+                choices = c("Simple", "Stratified")) %>%
       # add the popover element
       popify(
         el = .,
@@ -651,7 +640,7 @@ server <- function(input, output, session) {
     data <- sampling_selected_data()
     
     # if simple sampling
-    if (input$sampling_select_simple_or_stratified == "simple"){
+    if (input$sampling_select_simple_or_stratified == "Simple"){
       
       # sample the data
       indices <- sample(1:nrow(data), size = input$sampling_slider_simple_n, replace = FALSE)
@@ -742,7 +731,7 @@ server <- function(input, output, session) {
     selected_data <- get_dataset(input$manual_dataset, datasets_available)
     
     # exclude rows from manual input
-    selected_data <- selected_data[!selected_data$site_id %in% input$manual_select_sites_excl,]
+    selected_data <- selected_data[!selected_data$`Site ID` %in% input$manual_select_sites_excl,]
     
     return(selected_data)
   })
@@ -753,7 +742,7 @@ server <- function(input, output, session) {
     
     # get the site ids from the current selected rows
     # placing "_rows_selected" after the table name returns the selected rows 
-    selected_rows$current_row_selections <- manual_selected_data()$site_id[input$manual_table_selected_rows_selected]
+    selected_rows$current_row_selections <- manual_selected_data()$`Site ID`[input$manual_table_selected_rows_selected]
     
     # append selected list in the values in the user input field
     updateSelectInput(session = session, 
@@ -813,7 +802,7 @@ server <- function(input, output, session) {
     pop_scores <- score_attributes(sent_invitations_data())
     
     # combine scores into one matrix
-    scores <- cbind(sim_scores,pop_scores)
+    scores <- cbind(sim_scores, pop_scores)
     
     # set col and row names
     colnames(scores) <- c("Expected", "Total")
@@ -913,7 +902,7 @@ server <- function(input, output, session) {
       accepted_boolean <- rbinom(
         n = nrow(sent_invitations_data()),
         size = 1,
-        prob = sent_invitations_data()$comfort
+        prob = sent_invitations_data()$Comfort
       ) == 1
       sites_that_accepted <- sent_invitations_data()[accepted_boolean,]
 
@@ -951,13 +940,13 @@ server <- function(input, output, session) {
       updateSelectInput(
         session = session,
         inputId = "exploration_variable_facet",
-        choices = c("none", "site_group", categorical_vars),
+        choices = c("None", "site_group", categorical_vars),
         selected = "site_group"
       )
       updateSelectInput(
         session = session,
         inputId = "exploration_variable_group",
-        choices = c("none", "site_group", categorical_vars)
+        choices = c("None", "site_group", categorical_vars)
       )
       
       # create the three checkmark boxes on the data exploration page
@@ -1082,12 +1071,13 @@ server <- function(input, output, session) {
     
     list_of_accepted_dataframes <- list()
     nsims <- 200
-    scores <- data.frame(sample_size = NA, total_cost = NA, generalizability_index = NA, causality_index = NA)
+    scores <- data.frame("Sample size" = NA, "Total cost" = NA, "Generalizability index" = NA, "Causality index" = NA,
+                         check.names = FALSE)
     for (i in 1:nsims){
       # sample the data and return T/F for indices that accepted
       accepted_boolean <- rbinom(n = nrow(data),
                                  size = 1,
-                                 prob = data$comfort) == 1
+                                 prob = data$Comfort) == 1
       
       # subset the data based on the indices
       accepted_data <- data[accepted_boolean,]
@@ -1099,10 +1089,10 @@ server <- function(input, output, session) {
       list_of_accepted_dataframes[[i]] <- accepted_data
       
       # create dataframe of scores
-      scores[i, 'sample_size'] <- sum(accepted_boolean)
-      scores[i, 'total_cost'] <- sum(data$cost_to_approach, accepted_data$cost_to_execute)
-      scores[i, 'generalizability_index'] <- score_generalizability(accepted_data)
-      scores[i, 'causality_index'] <- score_causality(accepted_data)
+      scores[i, 'Sample size'] <- sum(accepted_boolean)
+      scores[i, 'Total cost'] <- sum(data$`Cost to approach site`, accepted_data$`Cost to run RCT`)
+      scores[i, 'Generalizability index'] <- score_generalizability(accepted_data)
+      scores[i, 'Causality index'] <- score_causality(accepted_data)
     }
     
     return(list(list_of_accepted_dataframes, scores))
@@ -1227,12 +1217,12 @@ server <- function(input, output, session) {
     categorical_proportions <- sapply(list_of_tables, simplify = FALSE, function(df) {
       
       # calculate percent other prog / urbanicity
-      prog_urban <- apply(df[, c("other_prog", "urban")], MARGIN = 2, function(col) {
+      prog_urban <- apply(df[, c("Other program at site", "Urban")], MARGIN = 2, function(col) {
         table(col)["TRUE"] / length(col)
       })
       
       # calculate proportion per region
-      regions <- apply(df[, "region"], MARGIN = 2, function(col) {
+      regions <- apply(df[, "Region"], MARGIN = 2, function(col) {
         table(col) / length(col)
       })
       
@@ -1264,13 +1254,14 @@ server <- function(input, output, session) {
     # 'clean_row_name' is what we want the table to eventually display
     shell_table <- data.frame(
       'row_name' = c(
-        "comfort",
-        "cost",
-        "income",
-        "pct_hs",
-        "unemp",
-        "other_prog",
-        "urban",
+        "Comfort",
+        "Cost to approach site",
+        "Cost to run RCT",
+        "Mean income",
+        "High school degree rate",
+        "Unemployment rate",
+        "Other program at site",
+        "Urban",
         "Northcentral",
         "Northeast",
         "South",
@@ -1278,7 +1269,8 @@ server <- function(input, output, session) {
       ),
       'clean_row_name' = c(
         "Mean comfort",
-        "Mean cost",
+        "Mean cost to approach site",
+        "Mean cost to run RCT",
         "Mean income",
         "Mean HS rate",
         "Mean unemployment",
@@ -1317,7 +1309,7 @@ server <- function(input, output, session) {
       # and cost to execute comes from just the sites that accepted
     accepted_df <- data[data$site_group == 'Accepted_invitation',]
     sent_invitation_df <- data[data$site_group == 'Sent_invitation',]
-    final_table['Total cost', 1] <- scales::dollar_format()(round(sum(sent_invitation_df$cost_to_approach, accepted_df$cost_to_execute), 0))
+    final_table['Total cost', 1] <- scales::dollar_format()(round(sum(sent_invitation_df$`Cost to approach site`, accepted_df$`Cost to run RCT`), 0))
     final_table['Total cost', 2:3] <- NA
     
     
@@ -1415,9 +1407,9 @@ server <- function(input, output, session) {
        # if site was sent invitation and if accepted
       data <- get_dataset("stacked_results", datasets_available)
       population_dataset$sent_invitation <-
-        population_dataset$site_id %in% data$site_id[data$site_group == "Sent_invitation"]
+        population_dataset$`Site ID` %in% data$`Site ID`[data$site_group == "Sent_invitation"]
       population_dataset$accepted <-
-        population_dataset$site_id %in% data$site_id[data$site_group == "Accepted_invitation"]
+        population_dataset$`Site ID` %in% data$`Site ID`[data$site_group == "Accepted_invitation"]
       
       # write out the dataframe containing every site and its status
       write.csv(population_dataset, "sites.csv", row.names = FALSE)

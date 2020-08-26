@@ -115,11 +115,11 @@ ui <- fluidPage(
                                 inputId = "exploration_variable_fill",
                                 label = "Fill color: ",
                                 multiple = FALSE,
-                                choices = c(numeric_vars, categorical_vars, "cluster"),
-                                selected = numeric_vars[2]
+                                choices = c(numeric_vars, categorical_vars, "Cluster"),
+                                selected = numeric_vars[6]
                               ),
                               conditionalPanel(
-                                condition = "input.exploration_variable_fill == 'cluster'",
+                                condition = "input.exploration_variable_fill == 'Cluster'",
                                 sliderInput(
                                   inputId = "n_clusters",
                                   label = "Number of clusters: ",
@@ -143,8 +143,8 @@ ui <- fluidPage(
                                 inputId = "exploration_variable_regression",
                                 label = "Linear regression: ",
                                 multiple = FALSE,
-                                choices = c('none', 'include'),
-                                selected = 'none'
+                                choices = c('None', 'Include'),
+                                selected = 'None'
                               ),
                               bsPopover(id = 'exploration_variable_regression',
                                         title = "Linear regression",
@@ -168,28 +168,28 @@ ui <- fluidPage(
                                 inputId = "exploration_variable_group",
                                 label = "Grouping: ",
                                 multiple = FALSE,
-                                choices = c("none", categorical_vars)
+                                choices = c("None", categorical_vars)
                               )
                             ),
                             selectInput(
                               inputId = "exploration_variable_facet",
                               label = "Facet variable: ",
                               multiple = FALSE,
-                              choices = c("none", categorical_vars),
-                              selected = "none"
+                              choices = c("None", categorical_vars),
+                              selected = "None"
                             ),
                             bsPopover(id = 'exploration_variable_facet',
                                       title = "Facet variable",
                                       content = 'Faceting splits the data by one or more variables and then plots these subsets.',
                                       placement = 'top'),
                             conditionalPanel(
-                              condition = "input.exploration_variable_facet != 'none'",
+                              condition = "input.exploration_variable_facet != 'None'",
                               selectInput(
                                 inputId = "exploration_variable_facet_second",
                                 label = "Second facet variable: ",
                                 multiple = FALSE,
-                                choices = c("none", categorical_vars),
-                                selected = "none"
+                                choices = c("None", categorical_vars),
+                                selected = "None"
                               )
                             ),
                             conditionalPanel(
@@ -279,7 +279,7 @@ ui <- fluidPage(
                                                    choices = NULL),
                                        uiOutput("sampling_select_simple_or_stratified"),
                                        conditionalPanel(
-                                         condition = "input.sampling_select_simple_or_stratified == 'stratified'",
+                                         condition = "input.sampling_select_simple_or_stratified == 'Stratified'",
                                          selectizeInput(inputId = "strata_variables", 
                                                         label = "Strata variable (limited to two): ", 
                                                         multiple = TRUE,
@@ -298,7 +298,7 @@ ui <- fluidPage(
                                          br(), br()
                                        ),
                                        conditionalPanel(
-                                         condition = "input.sampling_select_simple_or_stratified == 'simple'",
+                                         condition = "input.sampling_select_simple_or_stratified == 'Simple'",
                                          sliderInput(inputId = "sampling_slider_simple_n", 
                                                      label = "Sample size: ", 
                                                      min = 1, 
@@ -338,7 +338,7 @@ ui <- fluidPage(
                                        selectInput(inputId = "manual_select_sites_excl", 
                                                    label = "Exclude sites manually by site ID:", 
                                                    multiple = TRUE,
-                                                   choices = sort(unique(as.character(population_dataset$site_id)))),
+                                                   choices = sort(unique(as.character(population_dataset$`Site ID`)))),
                                        br(),
                                        HTML("<strong>Exclude sites by selecting rows on the table: </strong><br>"),
                                        br(),

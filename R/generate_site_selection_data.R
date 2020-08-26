@@ -86,13 +86,18 @@ data <- data[, setdiff(colnames(data), c("cost", "distance"))]
 data[, c("unemp", "pct_hs", "income", "comfort", "cost_to_approach", "cost_to_execute")] <-
   round(data[, c("unemp", "pct_hs", "income", "comfort", "cost_to_approach", "cost_to_execute")] , 3)
 
+# rename columns with regular names
+colnames(data) <- c("Site ID", "Region", "Urban", "Other program at site",
+                    "Unemployment rate", "High school degree rate", "Mean income",
+                    "Comfort", "Cost to approach site", "Cost to run RCT")
+
 
 # save the data -----------------------------------------------------------
 
 # save the data
 write.table(
   data,
-  file = "DS4SI-tool/data/jpta.csv",
+  file = "data/jpta.csv",
   col.names = TRUE,
   row.names = FALSE,
   sep = ","

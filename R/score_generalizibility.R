@@ -4,11 +4,12 @@ library(parallel) # for building simulated distribution for score_generalizabili
 set.seed(44)
 
 population_dataset <- read_csv('data/jpta.csv')
-numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost"))
-population_dataset <- population_dataset[, setdiff(colnames(population_dataset), "other_prog")]
+numeric_vars <- sort(c("Unemployment rate", "High school degree rate", "Mean income", 
+                       "Comfort", "Cost to approach site", "Cost to run RCT"))
+population_dataset <- population_dataset[, setdiff(colnames(population_dataset), "Other program at site")]
 
 # dummy code the variables
-dummies <- dummyVars(~ urban + region, population_dataset) %>% predict(., population_dataset)
+dummies <- dummyVars(~ Urban + Region, population_dataset) %>% predict(., population_dataset)
 dummied_data <- cbind(dummies, population_dataset[, numeric_vars])
 
 # run PCA
@@ -23,7 +24,7 @@ calc_generalizability <- function(sample_data, pca = population_pca, population 
   
   # get the row indices of the sample rows within the population dataset
   population$index <- 1:nrow(population)
-  indices <- population[population$site_id %in% sample_data$site_id,]$index
+  indices <- population[population$`Site ID` %in% sample_data$`Site ID`,]$index
   
   # for the sample_data, calculate euclidean distance of each row
   # from the center of (which = 0)
@@ -49,8 +50,8 @@ ns <- sample(100:1000, size = nsims, replace = TRUE)
 raw_scores <- mclapply(ns, function(n){
   boolean_urban <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
   regions <- sample(c("South", "Northeast", "South", "West"), size = runif(1, min = 1, max = 4))
-  boolean <- (population_dataset$urban %in% boolean_urban) &
-    (population_dataset$region %in% regions)
+  boolean <- (population_dataset$Urban %in% boolean_urban) &
+    (population_dataset$Region %in% regions)
   my_sample <- slice_sample(population_dataset[boolean,], 
                             n = n, replace = FALSE)
   # my_sample <- slice_sample(population_dataset, n = ns[i])
@@ -81,8 +82,8 @@ ns <- rep(seq(100, 1000, by = 50), 200)
 x <- sapply(ns, function(n){
   boolean_urban <- sample(list(TRUE, FALSE, c(TRUE, FALSE)), size = 1) %>% unlist()
   regions <- sample(c("South", "Northeast", "South", "West"), size = runif(1, min = 1, max = 4))
-  boolean <- (population_dataset$urban %in% boolean_urban) &
-    (population_dataset$region %in% regions)
+  boolean <- (population_dataset$Urban %in% boolean_urban) &
+    (population_dataset$Region %in% regions)
   my_sample <- slice_sample(population_dataset[boolean,], 
                             n = n, replace = FALSE)
   score_generalizability(my_sample)
@@ -97,5 +98,5 @@ rm(x)
 
 
 save(calc_generalizability, score_generalizability, ecdf_scores, population_pca,
-     file = 'DS4SI-tool/R/score_generalizability.RData')
+     file = 'DS4SI/R/score_generalizability.RData')
 

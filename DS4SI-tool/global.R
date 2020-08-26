@@ -12,17 +12,18 @@ set.seed(44)
 # dataset -----------------------------------------------------------------
 
 population_dataset <- read_csv(
-  file = "data/jpta.csv",
+  "data/jpta.csv",
   col_types = cols(
-    site_id = col_double(),
-    region = col_character(),
-    urban = col_logical(),
-    other_prog = col_logical(),
-    unemp = col_double(),
-    pct_hs = col_double(),
-    income = col_double(),
-    comfort = col_double(),
-    cost = col_double()
+    `Site ID` = col_integer(),
+    Region = col_character(),
+    Urban = col_logical(),
+    `Other program at site` = col_logical(),
+    `Unemployment rate` = col_double(),
+    `High school degree rate` = col_double(),
+    `Mean income` = col_double(),
+    Comfort = col_double(),
+    `Cost to approach site` = col_double(),
+    `Cost to run RCT` = col_double()
   )
 )
 
@@ -35,7 +36,7 @@ load('R/score_generalizability.RData')
 # create score_causality() ------------------------------------------------
 
 # create df of just site_id
-causal_scores <- population_dataset[, 'site_id']
+causal_scores <- population_dataset[, 'Site ID']
 
 # add causal score to the df
 # score is a 4 for sites without other_prog and 1 with
@@ -43,7 +44,7 @@ causal_scores <- population_dataset[, 'site_id']
 # make sure score is not below 0
 causal_scores$causal_score <- pmax(0, rnorm(
   n = nrow(causal_scores),
-  mean = ((!population_dataset$other_prog) * 3) + 1,
+  mean = ((!population_dataset$`Other program at site`) * 3) + 1,
   sd = 0.35
 ))
 
@@ -53,7 +54,7 @@ score_causality <- function(data, scores_df = causal_scores){
   # 1 indicates a perfect score
   
   # get the causal scores per sites that are selected
-  selected_sites <- left_join(data, scores_df, by = 'site_id')
+  selected_sites <- left_join(data, scores_df, by = 'Site ID')
   
   # define the best possible and worst possible scores as the means of the 
     # top 100 and bottom 100 site scores
@@ -121,11 +122,12 @@ invitations_plot_metrics_box_message <- list(
 
 # preset numeric and categorical variables; this is used widely in ui.R
   # and server.R; its important they remain alphabetical
-numeric_vars <- sort(c("unemp", "pct_hs", "income", "comfort", "cost_to_approach", "cost_to_execute"))
-categorical_vars <- sort(c('region', 'urban', 'other_prog'))
+categorical_vars <- sort(c("Region", "Urban", "Other program at site"))
+numeric_vars <- sort(c("Unemployment rate", "High school degree rate", "Mean income", 
+       "Comfort", "Cost to approach site", "Cost to run RCT"))
 
 # set order of metrics (used for plots)
-metrics_order <- c("sample_size", "total_cost", "generalizability_index", "causality_index")
+metrics_order <- c("Sample size", "Total cost", "Generalizability index", "Causality index")
 
 # total number of sites in the population
 population_n <- nrow(population_dataset)
@@ -146,9 +148,9 @@ violet_col <- "#5c5980"
 # choices for categorical selectInput
 # order must match order of categorical_vars
 categorical_choices <- list(
-  sort(unique(as.character(population_dataset$other_prog))),
-  sort(unique(as.character(population_dataset$region))),
-  sort(unique(as.character(population_dataset$urban)))
+  sort(unique(as.character(population_dataset$`Other program at site`))),
+  sort(unique(as.character(population_dataset$Region))),
+  sort(unique(as.character(population_dataset$Urban)))
 )
 
 # create dataframe of min and maxes to use in slider calculations
@@ -174,10 +176,10 @@ pop_data_for_numeric_limits <- population_dataset %>%
   filter(value == min(value) | value == max(value))
 pop_data_for_categorical_limits <-
   tibble(
-    'region' = unique(population_dataset$region),
-    'urban' = rep(unique(population_dataset$urban), 2),
-    'other_prog' = rep(unique(population_dataset$other_prog), 2)
+    'Region' = unique(population_dataset$Region),
+    'Urban' = rep(unique(population_dataset$Urban), 2),
+    'Other program at site' = rep(unique(population_dataset$`Other program at site`), 2)
   ) %>%
-  mutate(urban = as.character(urban),
-         other_prog = as.character(other_prog)) %>%
+  mutate(Urban = as.character(Urban),
+         `Other program at site` = as.character(`Other program at site`)) %>%
   pivot_longer(cols = everything())

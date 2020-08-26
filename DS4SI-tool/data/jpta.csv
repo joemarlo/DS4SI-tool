@@ -1,4 +1,4 @@
-"site_id","region","urban","other_prog","unemp","pct_hs","income","comfort","cost_to_approach","cost_to_execute"
+"Site ID","Region","Urban","Other program at site","Unemployment rate","High school degree rate","Mean income","Comfort","Cost to approach site","Cost to run RCT"
 8451,"South",TRUE,FALSE,0.072,0.805,60.429,0.465,0.661,1.542
 9015,"Northeast",FALSE,FALSE,0.141,0.626,54.378,0.676,0.647,1.51
 8161,"Northeast",FALSE,FALSE,0.116,0.734,58.659,0.59,0.649,1.514
