@@ -58,6 +58,19 @@ server <- function(input, output, session) {
                          inputId = save_button,
                          label = paste0("Save ", str_trim(input[[save_name]]))
       )
+      
+      # add popover to the dataset selector so user knows where to find their saved dataset
+      dropdown_id <- paste0(str_extract(id, "^[a-z]*"), "_dataset")
+      addPopover(
+        session = session,
+        id = dropdown_id,
+        title = "Look here!",
+        content = "You can access the dataset you just saved here!",
+        placement = 'top'
+      )
+      # force the popover to show itself
+      runjs(paste0("$('#", dropdown_id,"').popover('show')"))
+
     })
     
     # save dataset on button click
