@@ -1,6 +1,12 @@
 library(tidyverse)
 
-load("/home/joemarlo/.cache/.fr-WYtiWz/Selection_history.RData")
+# get default data
+source("DS4SI-tool/global.R")
+rm(list = setdiff(ls(), c("min_max_df", "population_dataset")))
+
+# load the student's data
+#load("/home/joemarlo/.cache/.fr-Bo636w/Selection_history.RData")
+load("/home/joemarlo/.cache/.fr-AclZQx/Selection_history.RData")
 
 # figure out which dataset was sent
 stacked_results <- selection_history$data[[length(selection_history$data)]]
@@ -16,30 +22,71 @@ selections <- selection_history$selections[index][[1]]
 last_page <- selections$nav
 last_page <- tolower(str_extract(last_page, "(Filtering|Sampling|Manual)"))
 
-if (last_page == 'sampling'){
+last_page <- 'filtering'
+
+if (last_page == 'filtering'){
+  
+  # only find sliders that do not have changes from the default
+  
+  # get just the filtering sliders and select inputs
+  # slider_select_names <- grep(x = names(selections), pattern = paste0("^", last_page, "_s"), value = TRUE)
+  slider_names <- grep(x = names(selections), pattern = paste0("^", last_page, "_slider"), value = TRUE)
+  select_names <- grep(x = names(selections), pattern = paste0("^", last_page, "_select"), value = TRUE)
+  
+  # munge the data to get it into the same format
+  slider_inputs_df <- as.data.frame(t(as.data.frame(selections[slider_names])))
+  colnames(slider_inputs_df) <- c("min", "max")
+  slider_inputs_df <- slider_inputs_df[order(rownames(slider_inputs_df)),]
+  rownames(min_max_df) <- rownames(slider_inputs_df)
+  min_max_df$min <- unlist(min_max_df$min)
+  min_max_df$max <- unlist(min_max_df$max)
+  
+  # find the sliders that are not equal to the min max defaults
+  diff_values <- anti_join(slider_inputs_df, min_max_df)
+  
+  # TODO: need to extract which cells are FALSE
+  slider_inputs_df == min_max_df
+
+  action <- paste0("The student used filtering with ")
+  
+} else if (last_page == 'sampling'){
   if (selections$sampling_select_simple_or_stratified == 'Simple'){
-    action <- paste("The student used simple sampling with n = ", sampling_slider_simple_n)
+    action <- paste0("The student used simple sampling with n = ", sampling_slider_simple_n)
   } else {
     
-    selections$strata_variables
-    sliders <- grep(x = names(selections), pattern = paste0("^", last_page,"_slider_stratified"), value = TRUE)
-    sliders_that_match <- 
+    # find the slider ids that match the entered strata variables
+    all_stratified_sliders <- grep(x = names(selections), pattern = "^sampling_slider_stratified", value = TRUE)
+    slider_names <- str_replace_all(paste0(selections$strata_variables, collapse = "_"), " ", "_")
+    sliders_of_interest <- grep(x = all_stratified_sliders, pattern = slider_names, value = TRUE)
     
-    action <- paste(
-      "The student used stratified sampling sampling with variables",
+    # create combines of varible: n
+    slider_values <- paste0(
+      sub(pattern = paste0(".*", slider_names, "_"), "", sliders_of_interest),
+      ": ", 
+      selections[sliders_of_interest]
+    )
+    
+    # paste all of it together
+    action <- paste0(
+      "The student used stratified sampling sampling with variables ",
       paste0(selections$strata_variables, collapse = ', '),
       " and the following inputs: ",
-      paste0()
+      paste0(slider_values, collapse = "; ")
+    )
   }
-}
+} else if (last_page == 'manual') {
+  
+} else action <- "No page found"
+
 
 if (paste0(last_page, "_dataset") != "Population"){
   # do everything above again
 }
 
+
+
+
 # return the variables 
 grep(x = names(selections), pattern = paste0("^", last_page), value = TRUE)
 
 rm(selection_history)
-
-sample_reset_sliders

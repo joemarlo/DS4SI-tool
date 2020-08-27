@@ -599,6 +599,13 @@ server <- function(input, output, session) {
     colnames(strata_combos) <- c("name", "n")
     strata_combos$name <- as.character(strata_combos$name)
     
+    # add id column for use with sliders
+    strata_combos$slider_id <- paste0("sampling_slider_stratified_n_",
+                                      paste0(input$strata_variables, collapse = "_"),
+                                      "_",
+                                      strata_combos$name)
+    strata_combos$slider_id <- str_replace_all(strata_combos$slider_id, " ", "_")
+    
     return(strata_combos)
     
   })
@@ -606,11 +613,12 @@ server <- function(input, output, session) {
   # generate sliders for each strata combinations
   output$sampling_strata_sliders <- renderUI({
     tagList(
-      map2(.x = strata_combos()$name,
-           .y = strata_combos()$n,
-           .f = function(combo, max_n) {
+      pmap(.l = list(strata_combos()$name,
+                     strata_combos()$n,
+                     strata_combos()$slider_id),
+           .f = function(combo, max_n, id) {
              sliderInput(
-               inputId = paste0("sampling_slider_stratified_n_", combo), 
+               inputId = id, 
                label = str_replace_all(combo, "_", ":"), 
                value = min(strata_combos()$n), 
                min = 0, max = max_n, step = 1) 
@@ -622,13 +630,13 @@ server <- function(input, output, session) {
   observeEvent(input$sampling_reset_sliders, {
     
     # get current list of sliders
-    slider_ids <- strata_combos()$name
+    slider_ids <- strata_combos()$slider_id
     
     # update the position of the sliders to the maximum amount that still
       # allows equality across the sliders
-    lapply(slider_ids, function(slider){
+    lapply(slider_ids, function(id){
       updateSliderInput(session = session, 
-                        inputId = paste0("sampling_slider_stratified_n_", slider), 
+                        inputId = id, 
                         value = min(strata_combos()$n))
     })
     
@@ -661,7 +669,7 @@ server <- function(input, output, session) {
       split_groups <- split_groups[strata_combos()$name]
       
       # list of current slider input values
-      sample_size_per_group <- reactiveValuesToList(input)[paste0("sampling_slider_stratified_n_", strata_combos()$name)]
+      sample_size_per_group <- reactiveValuesToList(input)[strata_combos()$slider_id]
       
       # sample n rows per strata
       sampled_data <- map2_dfr(
@@ -682,8 +690,7 @@ server <- function(input, output, session) {
   
   # show text below sample size slider indicating total sample size
   output$n_strata <- renderText({
-    slider_names <- paste0("sampling_slider_stratified_n_", strata_combos()$name)
-    slider_sum <- sum(unlist(reactiveValuesToList(input)[slider_names]))
+    slider_sum <- sum(unlist(reactiveValuesToList(input)[strata_combos()$slider_id]))
     paste0("The total selected sample size is ", slider_sum)
   })  
   
