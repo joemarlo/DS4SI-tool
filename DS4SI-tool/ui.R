@@ -294,10 +294,10 @@ ui <- fluidPage(
                                          br(),
                                        ),
                                        conditionalPanel(
-                                         condition = "input.sampling_select_simple_or_stratified == 'stratified'",
+                                         condition = "input.sampling_select_simple_or_stratified == 'Stratified'",
                                          htmlOutput("n_strata"),
                                          br(),
-                                         actionButton(inputId = "sample_reset_sliders", label = "Reset sliders"),
+                                         actionButton(inputId = "sampling_reset_sliders", label = "Reset sliders"),
                                          br(), br()
                                        ),
                                        conditionalPanel(

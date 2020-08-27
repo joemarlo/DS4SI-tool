@@ -619,7 +619,7 @@ server <- function(input, output, session) {
   })
   
   # on button click, reset the sliders to the starting position
-  observeEvent(input$sample_reset_sliders, {
+  observeEvent(input$sampling_reset_sliders, {
     
     # get current list of sliders
     slider_ids <- strata_combos()$name
@@ -627,7 +627,9 @@ server <- function(input, output, session) {
     # update the position of the sliders to the maximum amount that still
       # allows equality across the sliders
     lapply(slider_ids, function(slider){
-      updateSliderInput(session = session, inputId = slider, value = min(strata_combos()$n))
+      updateSliderInput(session = session, 
+                        inputId = paste0("sampling_slider_stratified_n_", slider), 
+                        value = min(strata_combos()$n))
     })
     
   })
@@ -680,7 +682,8 @@ server <- function(input, output, session) {
   
   # show text below sample size slider indicating total sample size
   output$n_strata <- renderText({
-    slider_sum <- sum(unlist(reactiveValuesToList(input)[strata_combos()$name]))
+    slider_names <- paste0("sampling_slider_stratified_n_", strata_combos()$name)
+    slider_sum <- sum(unlist(reactiveValuesToList(input)[slider_names]))
     paste0("The total selected sample size is ", slider_sum)
   })  
   
