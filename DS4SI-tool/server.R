@@ -11,8 +11,9 @@ server <- function(input, output, session) {
   
   # saving datasets ---------------------------------------------------------
   
-  # initialize list of saved datasets
-  datasets_available <- reactiveValues(data = NULL, data_names = NULL)
+  # initialize list of saved datasets and the selections made to create the 
+    # dataset
+  datasets_available <- reactiveValues(data = NULL, data_names = NULL, selections = NULL)
   datasets_available$data <- list(population_dataset$`Site ID`)
   datasets_available$data_names <- c("Population")
   
@@ -20,30 +21,12 @@ server <- function(input, output, session) {
     # this applies to every page that has a dataset dropdown
   observeEvent(datasets_available$data, {
     
-    # list of dropdown ids
-    dataset_selector_ids <- c(
-      "filtering_dataset", 
-      "sampling_dataset", 
-      "manual_dataset",
-      "invitations_dataset",
-      "exploration_dataset"
-    )
-    
     # update the dropdown options
     lapply(dataset_selector_ids, function(id){
       updateSelectInput(session = session, inputId = id,
                         choices = datasets_available$data_names)  
     })
   })
-  
-  # list of the prefixes for saving datasets on each page
-  # prefix_name = id of the inputText of the dataset name
-  # prefix_button = id of the actionButton to save the dataset
-  data_save_name_prefixes <- c(
-    "filtering_data_save",
-    "sampling_data_save",
-    "manual_data_save"
-  )
   
   # loop through each of the prefixes and take action
   # this code chunk controls most of the saving of datasets
@@ -118,13 +101,18 @@ server <- function(input, output, session) {
         need(nrow(dataset_to_save) >= min_sites_to_approach,
              paste0("Less than ", min_sites_to_approach, " sites are currently selected"))
       )
-      
+
       # append the selected sites as a new sublist to the master list of saved sites
       datasets_available$data <- c(datasets_available$data, list(dataset_to_save$`Site ID`))
       
       # add input string to list of dataset names
       datasets_available$data_names <- c(datasets_available$data_names,
                                          str_trim(input[[save_name]]))
+      
+      # add input selections to list
+      selections <- reactiveValuesToList(input)
+      datasets_available$selections <- c(datasets_available$selections,
+                                         list(selections))
       
       # destroy the user entered text
       updateTextInput(session = session,
@@ -423,8 +411,7 @@ server <- function(input, output, session) {
         brushedPoints(population_dataset, input$plot1_brush),
         selection = "none"
       ) %>%
-        formatRound(5:8, 2) %>%
-        formatRound(9, 0)
+        formatRound(5:10, 2)
     })
   
   
@@ -528,8 +515,7 @@ server <- function(input, output, session) {
       filtering_data(),
       selection = 'none'
     ) %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0))
+      formatRound(5:10, 2))
   
   # display the table in the 'table of excluded sites' tab
   output$filtering_table_excluded <- DT::renderDataTable(
@@ -537,8 +523,7 @@ server <- function(input, output, session) {
       anti_join(population_dataset, filtering_data()),
       selection = 'none'
     ) %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0))
+      formatRound(5:10, 2))
   
   
   # sampling page -----------------------------------------------------------
@@ -625,7 +610,7 @@ server <- function(input, output, session) {
            .y = strata_combos()$n,
            .f = function(combo, max_n) {
              sliderInput(
-               inputId = combo, 
+               inputId = paste0("sampling_slider_stratified_n_", combo), 
                label = str_replace_all(combo, "_", ":"), 
                value = min(strata_combos()$n), 
                min = 0, max = max_n, step = 1) 
@@ -674,7 +659,7 @@ server <- function(input, output, session) {
       split_groups <- split_groups[strata_combos()$name]
       
       # list of current slider input values
-      sample_size_per_group <- reactiveValuesToList(input)[strata_combos()$name]
+      sample_size_per_group <- reactiveValuesToList(input)[paste0("sampling_slider_stratified_n_", strata_combos()$name)]
       
       # sample n rows per strata
       sampled_data <- map2_dfr(
@@ -721,8 +706,7 @@ server <- function(input, output, session) {
       sampling_data(),
       selection = 'none'
     ) %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0)
+      formatRound(5:10, 2)
   )
   
   # display excluded table in the sampling tab
@@ -732,8 +716,7 @@ server <- function(input, output, session) {
                 sampling_data()),
       selection = 'none'
     ) %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0)
+      formatRound(5:10, 2)
   )
 
   
@@ -782,8 +765,7 @@ server <- function(input, output, session) {
     custom_datatable(
       manual_selected_data()
     ) %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0))
+      formatRound(5:10, 2))
   
   # display the table in the 'table of excluded sites' tab: Final selection tab
   output$manual_table_excluded <- DT::renderDataTable(
@@ -791,8 +773,7 @@ server <- function(input, output, session) {
       anti_join(population_dataset, manual_selected_data()),
       selection = 'none'
     ) %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0))
+      formatRound(5:10, 2))
   
   
   # send invitations page ---------------------------------------------------
@@ -1068,8 +1049,7 @@ server <- function(input, output, session) {
   output$invitations_table_send <- DT::renderDataTable({
     custom_datatable(sent_invitations_data(), 
                      selection = 'none') %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0)
+      formatRound(5:10, 2)
   })
   
   
@@ -1402,8 +1382,7 @@ server <- function(input, output, session) {
     
     # build the table
     custom_datatable(data, selection = 'none') %>%
-      formatRound(5:8, 2) %>%
-      formatRound(9, 0)
+      formatRound(5:10, 2)
   })
   
   # download the table, plots, and sites dataframe
@@ -1449,6 +1428,21 @@ server <- function(input, output, session) {
              height = 25,
              units = "cm")
       files <- c("sampled_v_population_plots.png", files)
+      
+      # save an .RData of the selctions made for all datasets
+      # necessary b/c if user e.g. filtered then sampled then we need the history
+      # first get the list of datasets which contains the data, the dataset names, and selections
+      selection_history <- reactiveValuesToList(datasets_available)
+      
+      # trim off the population dataframe that is also stored here
+      selection_history$data_names <- selection_history$data_names[-1]
+      selection_history$data <- selection_history$data[-1]
+      n_datasets <- length(selection_history$data)
+      if (n_datasets == 1) selection_history <- "Student did not make any selections"
+
+      # save the object
+      save(selection_history, file = "Selection_history.RData")
+      files <- c("Selection_history.RData", files)
       
       # create the zip file
       zip(file, files)

@@ -183,3 +183,22 @@ pop_data_for_categorical_limits <-
   mutate(Urban = as.character(Urban),
          `Other program at site` = as.character(`Other program at site`)) %>%
   pivot_longer(cols = everything())
+
+# list of the prefixes for saving datasets on each page
+# prefix_name = id of the inputText of the dataset name
+# prefix_button = id of the actionButton to save the dataset
+data_save_name_prefixes <- c(
+  "filtering_data_save",
+  "sampling_data_save",
+  "manual_data_save"
+)
+
+# list of dropdown ids
+dataset_selector_ids <- c(
+  "filtering_dataset", 
+  "sampling_dataset", 
+  "manual_dataset",
+  "invitations_dataset",
+  "exploration_dataset"
+)
+
