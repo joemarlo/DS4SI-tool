@@ -189,15 +189,15 @@ server <- function(input, output, session) {
   output$description_plots <- renderPlot(draw_histograms(population_dataset))
   
   # add popovers
-  map2(.x = paste0("description_text_", c(categorical_vars, numeric_vars)),
+  map2(.x = c(categorical_vars, numeric_vars),
        .y = c(categorical_popover_messages, numeric_popover_messages),
-       .f = function(id, message){
+       .f = function(variable, message){
         addPopover(
           session = session,
-          id = id,
+          id = paste0("description_text_", tolower(str_replace_all(variable, " ", "_"))),
           title = "Hint!",
           content = message,
-          placement = 'bottom'
+          placement = 'top'
         )
       })
   
@@ -213,7 +213,7 @@ server <- function(input, output, session) {
       data <- get_dataset("stacked_results", datasets_available)
       
       # apply filters from checkmark boxes
-      data <- data[data$site_group %in% input$exploration_checkboxes,]
+      data <- data[data$`Site group` %in% input$exploration_checkboxes,]
       
       return(data)
       
@@ -909,20 +909,20 @@ server <- function(input, output, session) {
       # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
       # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
       tmp1 <- sent_invitations_data()
-      tmp1$site_group <- "Sent_invitation"
+      tmp1$`Site group` <- "Sent invitation"
       tmp2 <- sites_that_accepted
-      tmp2$site_group <- "Accepted_invitation"
+      tmp2$`Site group` <- "Accepted invitation"
       tmp3 <- population_dataset[, setdiff(colnames(population_dataset),
                                            c("sent_invitation", "accepted"))]
-      tmp3$site_group <- "Population"
+      tmp3$`Site group` <- "Population"
       stacked_results <- rbind(tmp1, tmp2, tmp3)
       rm(tmp1, tmp2, tmp3)
       
       # factor the site_group variable so its in the right order
-      stacked_results$site_group <- factor(
-        stacked_results$site_group,
-        levels = c("Accepted_invitation",
-                   "Sent_invitation",
+      stacked_results$`Site group` <- factor(
+        stacked_results$`Site group`,
+        levels = c("Accepted invitation",
+                   "Sent invitation",
                    "Population")
       )
       
@@ -940,13 +940,13 @@ server <- function(input, output, session) {
       updateSelectInput(
         session = session,
         inputId = "exploration_variable_facet",
-        choices = c("None", "site_group", categorical_vars),
-        selected = "site_group"
+        choices = c("None", "Site group", categorical_vars),
+        selected = "Site group"
       )
       updateSelectInput(
         session = session,
         inputId = "exploration_variable_group",
-        choices = c("None", "site_group", categorical_vars)
+        choices = c("None", "Site group", categorical_vars)
       )
       
       # create the three checkmark boxes on the data exploration page
@@ -957,10 +957,10 @@ server <- function(input, output, session) {
             label = "Sites to include:",
             choices = list(
               "Population" = "Population",
-              "Sent invitation" = "Sent_invitation",
-              "Accepted invitation" = "Accepted_invitation"
+              "Sent invitation" = "Sent invitation",
+              "Accepted invitation" = "Accepted invitation"
             ),
-            selected = c("Population", "Sent_invitation", "Accepted_invitation")
+            selected = c("Population", "Sent invitation", "Accepted invitation")
           ),
           # add "Information" expansion below the checkmark boxes
           HTML('<details><summary>Information</summary>'),
@@ -981,13 +981,13 @@ server <- function(input, output, session) {
         list(input$exploration_variable_facet, input$exploration_checkboxes)
       })
       observeEvent(events_to_listen(), {
-        if (input$exploration_variable_facet != "site_group" &
-            input$exploration_variable_group != "site_group" &
+        if (input$exploration_variable_facet != "Site group" &
+            input$exploration_variable_group != "Site group" &
             length(input$exploration_checkboxes) > 1) {
           
           show_alert(
             title = "Multiple groups of sites are being shown without faceting",
-            text = "Including multiple groups of sites without faceting on `site_group` will cause duplicate data to be shown on the plot(s). Either facet on `site_group` or check only one group under 'Sites to include'",
+            text = "Including multiple groups of sites without faceting on `Site group` will cause duplicate data to be shown on the plot(s). Either facet on `Site group` or check only one group under 'Sites to include'",
             type = "warning",
             btn_colors = "#302f42",
             session = session
@@ -1006,25 +1006,25 @@ server <- function(input, output, session) {
     
     # get stacked dataset from list 
     selected_sites <- sent_invitations_data()
-    selected_sites$site_group <- "Sites_to_send_invitations"
+    selected_sites$`Site group` <- "Sites to send invitations"
     pop <- population_dataset
-    pop$site_group <- "Population"
+    pop$`Site group` <- "Population"
     data_for_plot <- rbind(selected_sites, pop)
-    data_for_plot$site_group <- factor(data_for_plot$site_group,
-                                       levels = c("Sites_to_send_invitations",
+    data_for_plot$`Site group` <- factor(data_for_plot$`Site group`,
+                                       levels = c("Sites to send invitations",
                                                   "Population"))
     
     # barplots
     p1 <- data_for_plot %>% 
-      select(site_group, all_of(categorical_vars)) %>% 
+      select(`Site group`, all_of(categorical_vars)) %>% 
       mutate_at(categorical_vars, as.character) %>% 
-      pivot_longer(cols = -c("site_group")) %>%
-      group_by(site_group, name, value) %>%
+      pivot_longer(cols = -c("Site group")) %>%
+      group_by(`Site group`, name, value) %>%
       tally() %>%
-      group_by(site_group, name) %>% 
+      group_by(`Site group`, name) %>% 
       mutate(prop = n / sum(n),
              name = factor(name, levels = categorical_vars)) %>% 
-      ggplot(aes(x = value, y = prop, group = site_group, fill = site_group)) +
+      ggplot(aes(x = value, y = prop, group = `Site group`, fill = `Site group`)) +
       geom_col(position = 'dodge', color = 'white', alpha = 0.6) +
       scale_fill_viridis_d() +
       facet_wrap(~name, scales = 'free_x') +
@@ -1035,9 +1035,9 @@ server <- function(input, output, session) {
     
     # density plots
     p2 <- data_for_plot %>% 
-      select(site_group, all_of(numeric_vars)) %>% 
-      pivot_longer(cols = -c("site_group")) %>% 
-      ggplot(aes(x = value, group = site_group, fill = site_group)) +
+      select(`Site group`, all_of(numeric_vars)) %>% 
+      pivot_longer(cols = -c("Site group")) %>% 
+      ggplot(aes(x = value, group = `Site group`, fill = `Site group`)) +
       geom_density(alpha = 0.24) +
       facet_wrap(~name, scales = 'free') +
       scale_fill_viridis_d() +
@@ -1179,7 +1179,7 @@ server <- function(input, output, session) {
     
     # get the dataset
     data <- get_dataset("stacked_results", datasets_available)
-    data <- data[data$site_group == "Accepted_invitation",]
+    data <- data[data$`Site group` == "Accepted invitation",]
     
     # calculate summary stats
     n_sites <- nrow(data)
@@ -1200,7 +1200,7 @@ server <- function(input, output, session) {
     
     # create list of dataframes representing the three groups
     list_of_tables <- split(x = data,
-                            f = data$site_group)
+                            f = data$`Site group`)
     
     # calculate mean numeric stats per group
     numeric_means <- sapply(list_of_tables, function(df){
@@ -1307,8 +1307,8 @@ server <- function(input, output, session) {
     
     # replace cost estimates so cost to approach comes from all sites the user approached
       # and cost to execute comes from just the sites that accepted
-    accepted_df <- data[data$site_group == 'Accepted_invitation',]
-    sent_invitation_df <- data[data$site_group == 'Sent_invitation',]
+    accepted_df <- data[data$`Site group` == 'Accepted invitation',]
+    sent_invitation_df <- data[data$`Site group` == 'Sent invitation',]
     final_table['Total cost', 1] <- scales::dollar_format()(round(sum(sent_invitation_df$`Cost to approach site`, accepted_df$`Cost to run RCT`), 0))
     final_table['Total cost', 2:3] <- NA
     
@@ -1324,7 +1324,7 @@ server <- function(input, output, session) {
     
     # get the data
     data <- get_dataset("stacked_results", datasets_available)
-    data <- data[data$site_group == 'Accepted_invitation',]
+    data <- data[data$`Site group` == 'Accepted invitation',]
     
     draw_histograms(data)
   })
@@ -1340,15 +1340,15 @@ server <- function(input, output, session) {
     
     # barplots
     p1 <- data_for_plot %>% 
-      select(site_group, all_of(categorical_vars)) %>% 
+      select(`Site group`, all_of(categorical_vars)) %>% 
       mutate_at(categorical_vars, as.character) %>% 
-      pivot_longer(cols = -c("site_group")) %>%
-      group_by(site_group, name, value) %>%
+      pivot_longer(cols = -c("Site group")) %>%
+      group_by(`Site group`, name, value) %>%
       tally() %>%
-      group_by(site_group, name) %>% 
+      group_by(`Site group`, name) %>% 
       mutate(prop = n / sum(n),
              name = factor(name, levels = categorical_vars)) %>% 
-      ggplot(aes(x = value, y = prop, group = site_group, fill = site_group)) +
+      ggplot(aes(x = value, y = prop, group = `Site group`, fill = `Site group`)) +
       geom_col(position = 'dodge', color = 'white', alpha = 0.6) +
       scale_fill_viridis_d() +
       facet_wrap(~name, scales = 'free_x') +
@@ -1359,9 +1359,9 @@ server <- function(input, output, session) {
     
     # density plots
     p2 <- data_for_plot %>% 
-      select(site_group, all_of(numeric_vars)) %>% 
-      pivot_longer(cols = -c("site_group")) %>% 
-      ggplot(aes(x = value, group = site_group, fill = site_group)) +
+      select(`Site group`, all_of(numeric_vars)) %>% 
+      pivot_longer(cols = -c("Site group")) %>% 
+      ggplot(aes(x = value, group = `Site group`, fill = `Site group`)) +
       geom_density(alpha = 0.24) +
       facet_wrap(~name, scales = 'free') +
       scale_fill_viridis_d() +
@@ -1382,10 +1382,10 @@ server <- function(input, output, session) {
     
     # get the data
     data <- get_dataset("stacked_results", datasets_available)
-    data <- data[data$site_group == 'Accepted_invitation',]
+    data <- data[data$`Site group` == 'Accepted invitation',]
     
     # remove site_group column
-    data <- data[, setdiff(colnames(data), 'site_group')]
+    data <- data[, setdiff(colnames(data), 'Site group')]
     
     # build the table
     custom_datatable(data, selection = 'none') %>%
@@ -1406,10 +1406,10 @@ server <- function(input, output, session) {
       # create data frame of all sites indicator columns 
        # if site was sent invitation and if accepted
       data <- get_dataset("stacked_results", datasets_available)
-      population_dataset$sent_invitation <-
-        population_dataset$`Site ID` %in% data$`Site ID`[data$site_group == "Sent_invitation"]
-      population_dataset$accepted <-
-        population_dataset$`Site ID` %in% data$`Site ID`[data$site_group == "Accepted_invitation"]
+      population_dataset$`Sent invitation` <-
+        population_dataset$`Site ID` %in% data$`Site ID`[data$`Site group` == "Sent invitation"]
+      population_dataset$Accepted <-
+        population_dataset$`Site ID` %in% data$`Site ID`[data$`Site group` == "Accepted invitation"]
       
       # write out the dataframe containing every site and its status
       write.csv(population_dataset, "sites.csv", row.names = FALSE)
