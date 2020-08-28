@@ -3,7 +3,7 @@
 server <- function(input, output, session) {
   
   # hide the Results tab on start
-  hideTab(inputId = "nav", target = "4. Results", session = session)
+  hideTab(inputId = "nav", target = "&nbsp &nbsp Summary results", session = session)
   
   # name the data exploration tab panel (this name is later changed to 
     # 'sites exploration' once the send invitations button is clicked)
@@ -437,7 +437,7 @@ server <- function(input, output, session) {
       pmap(
         .l = list(categorical_vars, categorical_choices, categorical_popover_messages),
         .f = function(variable, var_choices, popover_message) {
-          checkboxGroupInput(
+          prettyCheckboxGroup(
             inputId = paste0("filtering_select_", tolower(str_replace_all(variable, " ", "_"))),
             label = paste0(variable, ": "),
             inline = TRUE,
@@ -839,19 +839,42 @@ server <- function(input, output, session) {
     )
   })
   
+
   # if the user confirms on the popup, then do the following actions
     # otherwise stop here
   observeEvent(input$invitations_popup_confirm, {
     if (isTRUE(input$invitations_popup_confirm)) {
-      
+      # launch popup to download the data
+      show_alert(
+        title = "Invitations (metaphorically) sent!",
+        text =
+          list(
+            br(),
+            "Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so be sure to save it somewhere safe.",
+            br(), br(),
+            div(
+              downloadButton(outputId = "invitations_button_download_data",
+                             label = "Download your data"),
+              actionButton(inputId = "invitations_button_restart",
+                           label = 'Erase and restart')
+            )
+          ),
+        type = 'success',
+        btn_labels = "Move to Assignment Three",
+        btn_colors = "#c7c7c7",
+        session = session,
+        html = TRUE
+      )
+
+    
       # show and move user to the final tab
       showTab(inputId = "nav",
-              target = "4. Results",
+              target = "&nbsp &nbsp Summary results",
               session = session)
       updateNavlistPanel(session = session,
                          inputId = "nav",
-                         selected = "4. Results")
-      
+                         selected = "&nbsp &nbsp Summary results")
+
       # add popover elements
       addPopover(
         session = session,
@@ -869,13 +892,13 @@ server <- function(input, output, session) {
       )
       # force the popover to show itself on load
       runjs("$('#exploration_tab_name').popover('show')")
-      
+
       # change the tab name from 'data exploration' to 'results exploration' so
         # user knows it's a new tab
       output$exploration_tab_name = renderText({
         HTML("&nbsp &nbsp Results exploration")
       })
-      
+
       # hide old tabs
       hide(selector = "li.navbar-brand") # this hides the "1. ..." and "2. ..." text in the nav
       hideTab(
@@ -901,7 +924,7 @@ server <- function(input, output, session) {
       hideTab(inputId = "nav",
               target = "3. Send invitations",
               session = session)
-      
+
       # flip a coin with prob = comfort to see which sites accepted
       accepted_boolean <- rbinom(
         n = nrow(sent_invitations_data()),
@@ -921,7 +944,7 @@ server <- function(input, output, session) {
       tmp3$`Site group` <- "Population"
       stacked_results <- rbind(tmp1, tmp2, tmp3)
       rm(tmp1, tmp2, tmp3)
-      
+
       # factor the site_group variable so its in the right order
       stacked_results$`Site group` <- factor(
         stacked_results$`Site group`,
@@ -929,13 +952,13 @@ server <- function(input, output, session) {
                    "Sent invitation",
                    "Population")
       )
-      
+
       # add stacked_results to list of dataframes available
       datasets_available$data <- c(datasets_available$data,
                                    list(stacked_results))
       datasets_available$data_names <- c(datasets_available$data_names,
                                          "stacked_results")
-      
+
       # on the data exploration page, add a grouping variable that represents
         # population, sent invitations, and accepted invitations sites
       updateSelectInput(session = session,
@@ -952,11 +975,11 @@ server <- function(input, output, session) {
         inputId = "exploration_variable_group",
         choices = c("None", "Site group", categorical_vars)
       )
-      
+
       # create the three checkmark boxes on the data exploration page
       output$exploration_selection_data_spawn <- renderUI({
         tagList(
-          checkboxGroupInput(
+          prettyCheckboxGroup(
             inputId = "exploration_checkboxes",
             label = "Sites to include:",
             choices = list(
@@ -973,14 +996,14 @@ server <- function(input, output, session) {
           br()
         )
       })
-      
+
       # remove dataset selector element from the data exploration page
       removeUI(selector = "#exploration_dataset_div")
-      
-      # add popup indicating to user dangers of not faceting on site_group if there are 
+
+      # add popup indicating to user dangers of not faceting on site_group if there are
         # multiple populations selected
       # this is triggered if the user checks multiple groups while facet != site_group or
-        # if the user unselects facet == site_group while multiples are checked 
+        # if the user unselects facet == site_group while multiples are checked
       events_to_listen <- reactive({
         list(input$exploration_variable_facet, input$exploration_checkboxes)
       })
@@ -988,7 +1011,7 @@ server <- function(input, output, session) {
         if (input$exploration_variable_facet != "Site group" &
             input$exploration_variable_group != "Site group" &
             length(input$exploration_checkboxes) > 1) {
-          
+
           show_alert(
             title = "Multiple groups of sites are being shown without faceting",
             text = "Including multiple groups of sites without faceting on `Site group` will cause duplicate data to be shown on the plot(s). Either facet on `Site group` or check only one group under 'Sites to include'",
@@ -996,10 +1019,29 @@ server <- function(input, output, session) {
             btn_colors = "#302f42",
             session = session
           )
-          
+
         }
       })
     }
+  })
+  
+  
+  # download the data
+  output$invitations_button_download_data <- downloadHandler(
+    
+    # use plot title as file name but only retain alpha-numeric characters
+    filename <- function() "sites_sent_invitation.csv", 
+    
+    # plot to save
+    content <- function(file) {
+      write.csv(sent_invitations_data(), file, row.names = FALSE)
+    }
+  )
+  
+  # restart the session based on button click
+  observeEvent(input$invitations_button_restart, {
+    session$reload()
+    gc()
   })
   
   # plots on send invitations page

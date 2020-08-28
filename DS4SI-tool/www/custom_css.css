@@ -134,13 +134,19 @@ within the selectize dropdowns */
 }
 
 /* specfic ids to modify */
-#exploration_button_download_plot{
+#exploration_button_download_plot, #invitations_button_download_data, #invitations_button_restart {
   width: 120px; 
   height: 43px;
   border-radius: 5px;
   vertical-align: middle; 
   font-size: 0.85em;
 }
+
+#invitations_button_download_data, #invitations_button_restart {
+  display: inline-block; 
+  width: 200px; 
+}
+
 
 #inline label{
   display: table-cell;
@@ -160,7 +166,7 @@ within the selectize dropdowns */
   /*padding: 10px 0 10px 0;*/
 }
 
-#results_button_restart {
+#results_button_restart, #invitations_button_restart {
   background-color: #ab2c2c !important;
 }
 

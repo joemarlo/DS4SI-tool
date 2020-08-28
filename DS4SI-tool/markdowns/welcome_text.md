@@ -1,40 +1,35 @@
-# Welcome to the site selection and recruitment assignment
-### Use data to select sites to recruit!
-In this assignment pretend that you have been charged with evaluating the impact of a job training program. The target population is similar to the population targeted by the JTPA. However, the hypothetical program is more fully defined with a prescribed curriculum, activities, and requirements for participation. We’ll call this program the JPTA (Job Pretend Training Activity). Each site will evaluate the effectiveness of the program using a randomized experiment where treatment is assigned at the individual level. The overall goal is to choose sites to target for recruitment into the study and then recruit them.
+# Welcome to the site selection and recruitment assignment tool
 
-The challenge is to balance the goals of the evaluators (and funders) with the probability that a site will actually agree to participate while also considering the site's cost. You will use the information in the accompanying dataset to decide which sites to approach.
+You'll use this tool to complete assignments one, two, and three. First, for assignment one you'll need to explore the data and then select 100 (hypothetical) sites to invite to participate in a randomized control trial. For assignment two, you'll write a two-page memo to the managers of the sites explaining the benefits of randomization and why they should participate in the trial. For assignment three, you'll receive the results containing the sites that accepted the invitations to participate — influenced by how persuasive you were in your memo — and, finally, you'll produce a reproducible analysis of the trial.
 
-### Considerations
-We learned from your readings and from our two most recent guest speakers (Mike Weiss, Fred Doolittle) several of the considerations that are involved when selecting sites for a multi-site trial. For this assignment you will need to take into account the follow considerations:
+See each of the assignment tabs for more details.
 
-1. Choosing sites that will represent a reasonable counterfactual  
-2. Creating a representative sample from the population of interest (maximizing external validity)  
-3. Targeting sites that are likely to accept the invitation 
-4. Keeping costs under control  
+### How to use this tool
+The tool is broken into four parts to help guide you through the process. You'll have the ability to explore the data, create your sample, _send invitations_ to the hypothetical sites, and finally see the results of which sites _accepted the invitation_ to participate in the trial.
 
-### Additional information 
-MDRC researchers have information on how likely a site is to accept an invitation to participate. Based on past research they believe it is directly related to their comfort level with the concept of randomization (also represented in the data based in an initial survey). Pr(accept invitation) = level of comfort.
+1. **Site attributes:** a 'playground' for exploring the data, understanding its definitions and finding underlying patterns
+2. **Site selection:** contains the methods to create your own sample of the population of sites. Once you're finished with a given method you'll want to save your dataset using the button at the bottom of each page. You can later access these saved datasets on other method pages and for when you decide to _send the invitations_. Note that you do not have to use each method.
+  - Filtering: exclude certain categorical data and set minimums/maximums for numerical data
+  - Sampling: create simple and stratified random samples
+  - Manual exclusions: exclude sites manually by their ID
+3. **Send invitations:** an overview of your selected sample. You must _send the invitations_ to progress to the **Results** page. Once the invitations are sent, you'll no longer be able to use the **Site attributes** or **Site selection** pages.
+4. **Results:** an overview of the sites that _accepted the invitations_ to the trial. Plotting tools are provided for exploring the final sample
 
-From the population of sites provided, create a sample to approach to participate in the study in a way that accounts for the considerations above. There are trade-offs between satisfying each of these requirements, and it may be impossible to satisfy all of them. Therefore, you should focus on just a few and then defend your choices about which considerations to privilege.
+### Summary metrics
+There's four main metrics that summarize your selected sample of sites:
+- Total cost: the total cost of all the sites to participate in the trial
+- Generalizability index: an estimate of how well your sample represents the population. Scaled between [0, 1]
+- Causality index: an estimate of how the results of the trial conducted at the selected sites can be interpreted causally  
+- Sample size: the number of sites
 
-### The objective
-The goal is to recruit 100 sites to participate in the randomized control trial — so you probably want to approach more than 100.
+You will not be graded based on the metric scores, however you will be graded on how well you interpret and communicate how these metrics impact the results of the trial.
 
-Your final product will be a 2-3 page report in which you do the following: 
-
-1. Describe your approach to choosing the sites 
-2. Profile your intended sample with regard to the variables provided 
-3. Report your overall cost of site recruitment and the expected number of sites (probability of recruitment times the number of sites approached) 
-4. Explain and defend your choices with regard to each of the considerations (#1-4) above 
-
-You will be graded on your ability to thoughtfully discuss these issues, the trade-offs between the issues, and how to implement a strategy that addresses your priorities.
-
-### Suggested organizational structure of your report
-- **1/2 page:** Overview of goals with regard to the considerations you are going to prioritize over others and why 
-- **1/2 page to 1 page:** More detail (step-by-step) about how your sites were selected, tying the choices to the specific considerations
-- **1-2 paragraphs:** Descriptives about the sample you would try to recruit. This should optimally be in the form of a table or (even better!) figure(s) as well as text describing the interesting features of the sample. Feel free to use the built-in tools to create visualizations of your sites
-- **1 paragraph:** Short discussion of overall cost and how that fits with the goals laid out in (1) above
-- **2-3 paragraphs:** Conclusion/discussion. A brief overview of your ability to achieve the goals you had laid out for yourself as well as frustrations or limitations with why it was difficult/impossible to achieve them all.  
+### Tips: 
+- It's suggested to use your desktop or laptop. The tool does work on mobile but the experience is not optimized
+- Do not stay idle for more than 15 minutes. The tool will time-out and you may have to restart your selection process
+- On the **Results** page you'll be able to download the data. Feel free to use this to do further analyses and summarizations
+- Use the plots you create here in your report. You can download your custom plots under Advanced -> Download the plot. For any of the other plots, take screenshots
+- You can visualize your saved datasets by going back to the Data exploration page -> Advanced filters and then select your dataset
 
 <br>
 <br>

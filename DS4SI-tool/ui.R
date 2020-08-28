@@ -32,14 +32,20 @@ ui <- fluidPage(
                                     type = "tabs",
                                     tabPanel("Welcome",
                                              includeMarkdown("markdowns/welcome_text.md")),
-                                    tabPanel("Tool instructions", 
-                                             includeMarkdown("markdowns/tool_instructions.md"))
+                                    tabPanel("Assignment One",
+                                             includeMarkdown("markdowns/assignment_1.md")),
+                                    tabPanel("Assignment Two",
+                                             includeMarkdown("markdowns/assignment_2.md")),
+                                    tabPanel("Assignment Three",
+                                             includeMarkdown("markdowns/assignment_3.md"),
+                                             actionButton(inputId = "welcome_button_jump_to_Results",
+                                                          label = 'Skip Site Selection and jump to Results'))
                                   ))
                ),
 
 # results page ------------------------------------------------------------
 
-               tabPanel(title = "4. Results",
+               tabPanel(title = HTML("&nbsp &nbsp Summary results"),
                         sidebarLayout(
                           sidebarPanel(
                             width = 4,
@@ -423,6 +429,11 @@ ui <- fluidPage(
                             )
                           )
                         )
-               )
+               ),
+
+        # these are the fake nav text
+        HTML('<div><h5>4. Results</h5></div>'),
+        HTML('<div><h5>&nbsp &nbsp Summary results</h5></div>'),
+        HTML('<div><h5>&nbsp &nbsp Results exploration</h5></div>')
   )
 )
