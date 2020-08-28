@@ -1237,10 +1237,10 @@ server <- function(input, output, session) {
       output$upload_selection_siteid <- renderUI({
         tagList(
           textInput(inputId = "upload_selection_input",
-                    label = "Looks like you're having some issues with uploading the CSV. You can manually enter your Site IDs — each separated by a single space — here instead:"),
+                    label = "Looks like you're having some issues with uploading the CSV. You can paste your Site IDs — each separated by a single space — here instead:"),
           materialSwitch(
             inputId = "upload_switch_use_site_ids",
-            label = strong("Use site IDs"),
+            label = strong("Use manually entered Site IDs"),
             value = FALSE,
             status = "danger"
           ),
@@ -1256,13 +1256,8 @@ server <- function(input, output, session) {
                   rownames = FALSE, 
                   selection = "none",
                   options = list(
-                    paging = FALSE,
-                    # sets n observations shown
-                    pageLength = 20,
-                    # removes option to change n observations shown
-                    lengthChange = FALSE,
-                    # removes the search bar
-                    sDom  = '<"top">lrt<"bottom">ip',
+                    # show only the table
+                    dom = 't',
                     # enable side scroll so table doesn't overflow
                     scrollX = TRUE
                   )) %>%
@@ -1274,6 +1269,15 @@ server <- function(input, output, session) {
     parsed_IDs <- unlist(str_split(input$upload_selection_input, " "))
     siteID_df <- population_dataset[population_dataset$`Site ID` %in% parsed_IDs,]
     return(siteID_df)
+  })
+  
+  # flip the switch if user starts entering text into the manual Site ID field
+  observeEvent(input$upload_selection_input, {
+    if (nchar(input$upload_selection_input) > 0) {
+      updateMaterialSwitch(session = session,
+                           inputId = 'upload_switch_use_site_ids',
+                           value = TRUE)
+    }
   })
   
   # if both switches are flipped then flip the other one
