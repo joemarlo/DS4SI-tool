@@ -64,19 +64,19 @@ ui <- fluidPage(
                            ),
                            materialSwitch(
                              inputId = "upload_switch_use_site_selection_data",
-                             label = "Or, if you came from Site selection, then you can use your data directly:",
+                             label = "Or, if you came from Site selection, you can use your data directly:",
                              value = FALSE, 
                              status = "danger"),
                            br(),
                            numericInput(inputId = "upload_numeric_persuasion",
                                         label = "Enter your persuasion score from Assignment Two",
-                                        value = 50,
+                                        value = 75,
                                         min = 1,
                                         max = 100,
                                         step = 1),
                            br(),
                            actionButton(inputId = "upload_button_get_results",
-                                        label = "Get results"),
+                                        label = "Get the final results"),
                            ),
                          mainPanel(
                            width = 6,
@@ -137,7 +137,7 @@ ui <- fluidPage(
 
 # data exploration page ---------------------------------------------------
 
-               tabPanel(title = htmlOutput("exploration_tab_name"),
+               tabPanel(title = HTML("&nbsp &nbsp Data exploration"), #htmlOutput("exploration_tab_name"),
                         sidebarLayout(
                           sidebarPanel(
                             width = 4,
@@ -484,7 +484,7 @@ ui <- fluidPage(
         # these are the fake nav text
         HTML('<div><h5>4. Results</h5></div>'),
         HTML('<div><h5>&nbsp &nbsp Upload dataset</h5></div>'),
-        HTML('<div><h5>&nbsp &nbsp Summary results</h5></div>'),
-        HTML('<div><h5>&nbsp &nbsp Results exploration</h5></div>')
+        HTML('<div><h5>&nbsp &nbsp Summary results</h5></div>')
+        # HTML('<div><h5>&nbsp &nbsp Data exploration</h5></div>')
   )
 )

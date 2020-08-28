@@ -1,9 +1,4 @@
 
-scale_01 <- function(x) {
-  # function scales the vector between 0 and 1
-  (x - min(x)) / (max(x) - min(x))
-}
-
 custom_datatable <- function(...){
   # wrapper around DT::datatable so commonly used arguments
   # can be set as global defaults
@@ -158,3 +153,30 @@ get_dataset <- function(dataset_name, list_of_datasets){
   return(data)
 }
 
+
+scale_persuasion <- function(persuasion_score){
+  # function takes input$upload_numeric_persuasion and transforms it so 
+  # we can tweak its affect on the probability of site accepting invitations
+  # output should be 1 for a median score which means no benefit or penalty
+  # maybe some sort of logit function so tails aren't extreme?
+  # median_score <- 75
+  # ((persuasion_score - median_score) / median_score) + 1
+  
+  # center at a raw score of 75
+  shifted_score <- persuasion_score - 25
+  
+  # first scale between -10 and 10
+  p <- ((shifted_score * 2) - 100) / 10
+  # p <- p * 10
+  
+  # apply logit transformation
+  logit_transform <- (exp(1)^p) / (1 + exp(1)^p)
+  
+  # scale curve between .75 and 1.25
+  logit_scaled <- ((1.75 - 1.25) * logit_transform) + .75
+  
+  return(logit_scaled)
+
+}
+
+# plot(x = 1:100, y = scale_persuasion(1:100), xlab = "Raw score", ylab = 'Transformed score')

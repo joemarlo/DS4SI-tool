@@ -171,6 +171,11 @@ server <- function(input, output, session) {
                  save_name,
                  '").style.color = "#c92626"')
         )
+        runjs(
+          paste0('document.getElementById("',
+                 save_name,
+                 '").style.fontWeight = "bold"')
+        )
       } else {
         # javascript permanently changes text color so it needs to change it back
          # to black when the input text is valid
@@ -178,6 +183,11 @@ server <- function(input, output, session) {
           paste0('document.getElementById("',
                  save_name,
                  '").style.color = "#363636"')
+        )
+        runjs(
+          paste0('document.getElementById("',
+                 save_name,
+                 '").style.fontWeight = 350')
         )
       }
     })
@@ -861,7 +871,7 @@ server <- function(input, output, session) {
         text =
           list(
             br(),
-            "Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so be sure to save it somewhere safe.",
+            "Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so save it somewhere safe.",
             br(), br(),
             div(
               downloadButton(outputId = "invitations_button_download_data",
@@ -883,43 +893,24 @@ server <- function(input, output, session) {
                              value = TRUE)
       }
       
+      # remove the button on the welcome page as this causes errors if clicked again
+      removeUI(selector = '#welcome_button_jump_to_Results')
+      
       # show and move user to the final tab
       showTab(inputId = "nav",
               target = "&nbsp &nbsp Upload dataset",
-              session = session)
-      showTab(inputId = "nav",
-              target = "&nbsp &nbsp Summary results",
               session = session)
       updateNavlistPanel(session = session,
                          inputId = "nav",
                          selected = "&nbsp &nbsp Upload dataset")
 
-      # add popover elements
-      addPopover(
-        session = session,
-        id = 'exploration_tab_name',
-        title = "Explore your data further",
-        content = 'Create custom plots to understand how your sites compare',
-        placement = 'bottom'
-      )
-      addPopover(
-        session = session,
-        id = 'results_button_download',
-        title = "Download your data",
-        content = 'Be sure to download your data for future assignments',
-        placement = 'bottom'
-      )
-      # force the popover to show itself on load
-      runjs("$('#exploration_tab_name').popover('show')")
-
-      # change the tab name from 'data exploration' to 'results exploration' so
-        # user knows it's a new tab
-      output$exploration_tab_name = renderText({
-        HTML("&nbsp &nbsp Results exploration")
-      })
-
       # hide old tabs
       hide(selector = "li.navbar-brand") # this hides the "1. ..." and "2. ..." text in the nav
+      hideTab(
+        inputId = "nav",
+        target = HTML("&nbsp &nbsp Data exploration"),
+        session = session
+      )
       hideTab(
         inputId = "nav",
         target = HTML("&nbsp &nbsp Data description"),
@@ -948,107 +939,17 @@ server <- function(input, output, session) {
                 tab = HTML('<div><h5>4. Results</h5></div>'),
                 target = "&nbsp &nbsp Upload dataset",
                 position = 'before')
-
-      # flip a coin with prob = comfort to see which sites accepted
-      accepted_boolean <- rbinom(
-        n = nrow(sent_invitations_data()),
-        size = 1,
-        prob = sent_invitations_data()$Comfort
-      ) == 1
-      sites_that_accepted <- sent_invitations_data()[accepted_boolean,]
-
-      # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
-      # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
-      tmp1 <- sent_invitations_data()
-      tmp1$`Site group` <- "Sent invitation"
-      tmp2 <- sites_that_accepted
-      tmp2$`Site group` <- "Accepted invitation"
-      tmp3 <- population_dataset[, setdiff(colnames(population_dataset),
-                                           c("sent_invitation", "accepted"))]
-      tmp3$`Site group` <- "Population"
-      stacked_results <- rbind(tmp1, tmp2, tmp3)
-      rm(tmp1, tmp2, tmp3)
-
-      # factor the site_group variable so its in the right order
-      stacked_results$`Site group` <- factor(
-        stacked_results$`Site group`,
-        levels = c("Accepted invitation",
-                   "Sent invitation",
-                   "Population")
-      )
-
-      # add stacked_results to list of dataframes available
-      datasets_available$data <- c(datasets_available$data,
-                                   list(stacked_results))
-      datasets_available$data_names <- c(datasets_available$data_names,
-                                         "stacked_results")
-
+      insertTab(inputId = "nav",
+                tab = HTML('<div><h5>&nbsp &nbspSummary Results</h5></div>'),
+                target = "&nbsp &nbsp Upload dataset",
+                position = 'after')
+      # insertTab(inputId = "nav",
+      #           tab = HTML('<div><h5>&nbsp &nbsp Data exploration</h5></div>'),
+      #           target = '<div><h5>&nbsp &nbspSummary Results</h5></div>',
+      #           position = 'after')
+      
       # save which dataset was used to send the invitations
       sent_invitations_data <<- sent_invitations_data()
-      
-      # on the data exploration page, add a grouping variable that represents
-        # population, sent invitations, and accepted invitations sites
-      updateSelectInput(session = session,
-                        inputId = "exploration_dataset",
-                        selected = "stacked_results")
-      updateSelectInput(
-        session = session,
-        inputId = "exploration_variable_facet",
-        choices = c("None", "Site group", categorical_vars),
-        selected = "Site group"
-      )
-      updateSelectInput(
-        session = session,
-        inputId = "exploration_variable_group",
-        choices = c("None", "Site group", categorical_vars)
-      )
-
-      # create the three checkmark boxes on the data exploration page
-      output$exploration_selection_data_spawn <- renderUI({
-        tagList(
-          prettyCheckboxGroup(
-            inputId = "exploration_checkboxes",
-            label = "Sites to include:",
-            choices = list(
-              "Population" = "Population",
-              "Sent invitation" = "Sent invitation",
-              "Accepted invitation" = "Accepted invitation"
-            ),
-            selected = c("Population", "Sent invitation", "Accepted invitation")
-          ),
-          # add "Information" expansion below the checkmark boxes
-          HTML('<details><summary>Information</summary>'),
-          "These datasets are nested within each other. Including multiple without faceting or grouping will cause duplicates to appear on the plot.",
-          HTML('</details><br>'),
-          br()
-        )
-      })
-
-      # remove dataset selector element from the data exploration page
-      removeUI(selector = "#exploration_dataset_div")
-
-      # add popup indicating to user dangers of not faceting on site_group if there are
-        # multiple populations selected
-      # this is triggered if the user checks multiple groups while facet != site_group or
-        # if the user unselects facet == site_group while multiples are checked
-      events_to_listen <- reactive({
-        list(input$exploration_variable_facet, input$exploration_checkboxes)
-      })
-      observeEvent(events_to_listen(), {
-        if (input$exploration_variable_facet != "Site group" &
-            input$exploration_variable_group != "Site group" &
-            length(input$exploration_checkboxes) > 1) {
-
-          show_alert(
-            title = "Multiple groups of sites are being shown without faceting",
-            text = "Including multiple groups of sites without faceting on `Site group` will cause duplicate data to be shown on the plot(s). Either facet on `Site group` or check only one group under 'Sites to include'",
-            type = "warning",
-            btn_colors = "#302f42",
-            session = session
-          )
-
-        }
-      })
     }
   })
   
@@ -1060,7 +961,7 @@ server <- function(input, output, session) {
     
     # plot to save
     content <- function(file) {
-      write.csv(sent_invitations_data(), file, row.names = FALSE)
+      write.csv(sent_invitations_data, file, row.names = FALSE)
     }
   )
   
@@ -1248,31 +1149,254 @@ server <- function(input, output, session) {
   # TODO: add error handling
   # choose which dataset to use
   upload_dataset <- reactive({
-    
     # use the sent invitations data if the switch is TRUE
-    if (isTRUE(input$upload_switch_use_site_selection_data)){
+    if (isTRUE(input$upload_switch_use_site_selection_data)) {
       return(sent_invitations_data)
     }
-
+    
     # otherwise use the uploaded dataset
     req(input$upload_file)
-    tryCatch(
-      {
-        upload_csv <- read.csv(
-          file = input$upload_file$datapath,
-          header = TRUE,
-          sep = ',',
-          stringsAsFactors = FALSE,
-          check.names = FALSE
+    tryCatch({
+      upload_csv <- read_csv(
+        file = input$upload_file$datapath,
+        col_types = cols(
+          `Site ID` = col_integer(),
+          Region = col_character(),
+          Urban = col_logical(),
+          `Other program at site` = col_logical(),
+          `Unemployment rate` = col_double(),
+          `High school degree rate` = col_double(),
+          `Mean income` = col_double(),
+          Comfort = col_double(),
+          `Cost to approach site` = col_double(),
+          `Cost to run RCT` = col_double()
         )
-      },
-      error = function(e) {
-        # return a safeError if a parsing error occurs
-        stop(safeError(e))
-      }
-    )
-    return(upload_csv)
+      )
+    },
+    error = function(e) {
+      # return a safeError if a parsing error occurs or if dataset isn't yet uploaded
+      stop(safeError(e))
     })
+    return(upload_csv)
+  })
+  
+  # trigger all these events once the user clicks "get results"
+  observeEvent(input$upload_button_get_results, {
+    
+    # make sure dataset is selected
+    # TODO: this doesn't work; possible an issue with is.data.frame()
+    if (!isTRUE(is.data.frame(upload_dataset())))  {
+      show_alert(
+        title = "Dataset not selected",
+        text = "Please upload a dataset or flip the switch to use the one from Site selection",
+        type = "error",
+        btn_colors = "#302f42",
+        session = session
+      )
+    }
+    
+    # make sure score is between [1, 100]
+    if (input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100)  {
+      show_alert(
+        title = "Persuasion score must be between [1, 100]",
+        text = "Please update the score",
+        type = "error",
+        btn_colors = "#302f42",
+        session = session
+      )
+    }
+    
+    validate(
+      need(is.data.frame(upload_dataset()),
+           "Dataset not yet uploaded or selected"),
+      need(input$upload_numeric_persuasion >= 1 & input$upload_numeric_persuasion <= 100,
+           "Persuasion score not between [1, 100]")
+    )
+    
+    # flip a coin with prob = comfort to see which sites accepted
+    accepted_boolean <- rbinom(
+      n = nrow(upload_dataset()),
+      size = 1,
+      prob = upload_dataset()$Comfort * scale_persuasion(input$upload_numeric_persuasion)
+    ) == 1
+    sites_that_accepted <- upload_dataset()[accepted_boolean,]
+    
+    # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
+    # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
+    tmp1 <- upload_dataset()
+    tmp1$`Site group` <- "Sent invitation"
+    tmp2 <- sites_that_accepted
+    tmp2$`Site group` <- "Accepted invitation"
+    tmp3 <- population_dataset[, setdiff(colnames(population_dataset),
+                                         c("sent_invitation", "accepted"))]
+    tmp3$`Site group` <- "Population"
+    stacked_results <- rbind(tmp1, tmp2, tmp3)
+    rm(tmp1, tmp2, tmp3)
+    
+    # factor the site_group variable so its in the right order
+    stacked_results$`Site group` <- factor(
+      stacked_results$`Site group`,
+      levels = c("Accepted invitation",
+                 "Sent invitation",
+                 "Population")
+    )
+    
+    # add stacked_results to list of dataframes available
+    datasets_available$data <- c(datasets_available$data,
+                                 list(stacked_results))
+    datasets_available$data_names <- c(datasets_available$data_names,
+                                       "stacked_results")
+    
+    # move the user to the Summary results page
+    updateNavlistPanel(session = session,
+                       inputId = "nav",
+                       selected = "&nbsp &nbsp Summary results")
+    
+    # show Summary results tab and replace Upload dataset tab with unclickable version
+    hide(selector = "li.dropdown-header") # this hides the "1. ..." and "2. ..." text in the nav
+    insertTab(inputId = "nav",
+              tab = HTML('<div><h5>4. Results</h5></div>'),
+              target = "&nbsp &nbsp Upload dataset",
+              position = 'before')
+    hideTab(inputId = "nav",
+            target = "&nbsp &nbsp Upload dataset",
+            session = session)
+    insertTab(inputId = "nav",
+              tab = HTML('<div><h5>&nbsp &nbsp Upload dataset</h5></div>'),
+              target = "&nbsp &nbsp Summary results",
+              position = 'before')
+    showTab(inputId = "nav",
+            target = "&nbsp &nbsp Summary results",
+            session = session)
+    showTab(inputId = "nav",
+            target = HTML("&nbsp &nbsp Data exploration"),
+            session = session
+    )
+    
+    # change the tab name from 'data exploration' to 'results exploration' so
+    # user knows it's a new tab
+    output$exploration_tab_name = renderText({
+      HTML("&nbsp &nbsp Results exploration")
+    })
+    showTab(inputId = "nav",
+            target = "&nbsp &nbsp Results exploration",
+            session = session)
+
+    # add popover elements
+    # addPopover(
+    #   session = session,
+    #   id = 'exploration_tab_name',
+    #   title = "Explore your data further",
+    #   content = 'Create custom plots to understand how your sites compare',
+    #   placement = 'bottom'
+    # )
+    addPopover(
+      session = session,
+      id = 'results_button_download',
+      title = "Download your data",
+      content = 'Be sure to download your data for future assignments',
+      placement = 'bottom'
+    )
+    # force the popover to show itself on load
+    # runjs("$('#exploration_tab_name').popover('show')")
+    
+    # on the data exploration page, add a grouping variable that represents
+    # population, sent invitations, and accepted invitations sites
+    updateSelectInput(session = session,
+                      inputId = "exploration_dataset",
+                      selected = "stacked_results")
+    updateSelectInput(
+      session = session,
+      inputId = "exploration_variable_facet",
+      choices = c("None", "Site group", categorical_vars),
+      selected = "Site group"
+    )
+    updateSelectInput(
+      session = session,
+      inputId = "exploration_variable_group",
+      choices = c("None", "Site group", categorical_vars)
+    )
+    
+    # create the three checkmark boxes on the data exploration page
+    output$exploration_selection_data_spawn <- renderUI({
+      tagList(
+        prettyCheckboxGroup(
+          inputId = "exploration_checkboxes",
+          label = "Sites to include:",
+          choices = list(
+            "Population" = "Population",
+            "Sent invitation" = "Sent invitation",
+            "Accepted invitation" = "Accepted invitation"
+          ),
+          selected = c("Population", "Sent invitation", "Accepted invitation")
+        ),
+        # add "Information" expansion below the checkmark boxes
+        HTML('<details><summary>Information</summary>'),
+        "These datasets are nested within each other. Including multiple without faceting or grouping will cause duplicates to appear on the plot.",
+        HTML('</details><br>'),
+        br()
+      )
+    })
+    
+    # remove dataset selector element from the data exploration page
+    removeUI(selector = "#exploration_dataset_div")
+    
+    # add popup indicating to user dangers of not faceting on site_group if there are
+    # multiple populations selected
+    # this is triggered if the user checks multiple groups while facet != site_group or
+    # if the user unselects facet == site_group while multiples are checked
+    events_to_listen <- reactive({
+      list(input$exploration_variable_facet, input$exploration_checkboxes)
+    })
+    observeEvent(events_to_listen(), {
+      if (input$exploration_variable_facet != "Site group" &
+          input$exploration_variable_group != "Site group" &
+          length(input$exploration_checkboxes) > 1) {
+        
+        show_alert(
+          title = "Multiple groups of sites are being shown without faceting",
+          text = "Including multiple groups of sites without faceting on `Site group` will cause duplicate data to be shown on the plot(s). Either facet on `Site group` or check only one group under 'Sites to include'",
+          type = "warning",
+          btn_colors = "#302f42",
+          session = session
+        )
+        
+      }
+    })
+  })
+  
+  # numeric input does not respect min max limits so need to inform user when theres an error
+  observe({
+    
+    boolean <- input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100
+    
+    # make text red
+    if(isTRUE(boolean)) {
+      runjs(
+        paste0('document.getElementById("',
+               "upload_numeric_persuasion",
+               '").style.color = "#c92626"')
+      )
+      runjs(
+        paste0('document.getElementById("',
+               "upload_numeric_persuasion",
+               '").style.fontWeight = "bold"')
+      )
+    } else {
+      # javascript permanently changes text color so it needs to change it back
+      # to black when the input text is valid
+      runjs(
+        paste0('document.getElementById("',
+               "upload_numeric_persuasion",
+               '").style.color = "#363636"')
+      )
+      runjs(
+        paste0('document.getElementById("',
+               "upload_numeric_persuasion",
+               '").style.fontWeight = "350"')
+      )
+    }
+  })
   
   # table of selected dataset
   output$upload_table <- DT::renderDataTable({
@@ -1285,6 +1409,7 @@ server <- function(input, output, session) {
   
   # render the histograms
   output$upload_plot_hist <- renderPlot(draw_histograms(upload_dataset()))
+  
   
   # results page ------------------------------------------------------------
   
@@ -1550,6 +1675,7 @@ server <- function(input, output, session) {
              units = "cm")
       files <- c("sampled_v_population_plots.png", files)
       
+      # TODO: move this to the send invitations data download
       # save an .RData of the selctions made for all datasets
       # necessary b/c if user e.g. filtered then sampled then we need the history
       # first get the list of datasets which contains the data, the dataset names, and selections
