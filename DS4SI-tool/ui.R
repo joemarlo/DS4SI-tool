@@ -62,6 +62,21 @@ ui <- fluidPage(
                                        buttonLabel = "Browse"
                                        )
                            ),
+                           materialSwitch(
+                             inputId = "upload_switch_use_site_selection_data",
+                             label = "Or, if you came from Site selection, then you can use your data directly:",
+                             value = FALSE, 
+                             status = "danger"),
+                           br(),
+                           numericInput(inputId = "upload_numeric_persuasion",
+                                        label = "Enter your persuasion score from Assignment Two",
+                                        value = 50,
+                                        min = 1,
+                                        max = 100,
+                                        step = 1),
+                           br(),
+                           actionButton(inputId = "upload_button_get_results",
+                                        label = "Get results"),
                            ),
                          mainPanel(
                            width = 6,
@@ -69,6 +84,8 @@ ui <- fluidPage(
                              id = "upload_tabs",
                              type = "tabs",
                              tabPanel("Plots",
+                                      absolutePanel("Please upload a dataset or flip the Site Selection switch",
+                                                    style = "z-index: -2;"),
                                       plotOutput("upload_plot_hist", height = 650)),
                              tabPanel("Sites invited",
                                       DT::dataTableOutput('upload_table'))

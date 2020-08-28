@@ -876,6 +876,11 @@ server <- function(input, output, session) {
         session = session,
         html = TRUE
       )
+        # since the user came through site selection then make that the default option
+          # on the upload dataset page
+        updateMaterialSwitch(session = session,
+                             inputId = 'upload_switch_use_site_selection_data',
+                             value = TRUE)
       }
       
       # show and move user to the final tab
@@ -978,6 +983,9 @@ server <- function(input, output, session) {
       datasets_available$data_names <- c(datasets_available$data_names,
                                          "stacked_results")
 
+      # save which dataset was used to send the invitations
+      sent_invitations_data <<- sent_invitations_data()
+      
       # on the data exploration page, add a grouping variable that represents
         # population, sent invitations, and accepted invitations sites
       updateSelectInput(session = session,
@@ -1237,17 +1245,36 @@ server <- function(input, output, session) {
 
   # upload dataset page -----------------------------------------------------
   
-  # read in the uploaded data
   # TODO: add error handling
+  # choose which dataset to use
   upload_dataset <- reactive({
-    read.csv(file = input$upload_file$datapath,
-            header = TRUE,
-            sep = ',',
-            stringsAsFactors = FALSE,
-            check.names = FALSE)
+    
+    # use the sent invitations data if the switch is TRUE
+    if (isTRUE(input$upload_switch_use_site_selection_data)){
+      return(sent_invitations_data)
+    }
+
+    # otherwise use the uploaded dataset
+    req(input$upload_file)
+    tryCatch(
+      {
+        upload_csv <- read.csv(
+          file = input$upload_file$datapath,
+          header = TRUE,
+          sep = ',',
+          stringsAsFactors = FALSE,
+          check.names = FALSE
+        )
+      },
+      error = function(e) {
+        # return a safeError if a parsing error occurs
+        stop(safeError(e))
+      }
+    )
+    return(upload_csv)
     })
   
-  # table of brushed data points from plot
+  # table of selected dataset
   output$upload_table <- DT::renderDataTable({
       custom_datatable(
         upload_dataset(),
