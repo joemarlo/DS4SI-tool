@@ -871,7 +871,7 @@ server <- function(input, output, session) {
         text =
           list(
             br(),
-            "Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so save it somewhere safe.",
+            "This is as far as you need to go from Assignments One and Two. Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so save it somewhere safe.",
             br(), br(),
             div(
               downloadButton(outputId = "invitations_button_download_data",
@@ -1228,7 +1228,7 @@ server <- function(input, output, session) {
       
       show_alert(session = session,
                  title = "Hmmm, that dataset doesn't look quite right",
-                 text = list("Try another file or if you continue to have issues, copy/paste your Site IDs into the text field. Here's how your CSV should be structured:",
+                 text = list(HTML("Try another file or if you continue to have issues, copy/paste your Site IDs into the text field. <br><br> Here's how your CSV should be structured:"),
                              DT::dataTableOutput("upload_dataset_example")),
                  type = "error",
                  btn_colors = "#302f42",
@@ -1250,11 +1250,23 @@ server <- function(input, output, session) {
     }
   })
   
-  # dataset to show in popup
+  # dataset example to show in popup
   output$upload_dataset_example <- DT::renderDataTable({
-    custom_datatable(head(population_dataset),
-                     selection = "none") %>%
-      formatRound(5:10, 2)
+    DT::datatable(head(population_dataset), 
+                  rownames = FALSE, 
+                  selection = "none",
+                  options = list(
+                    paging = FALSE,
+                    # sets n observations shown
+                    pageLength = 20,
+                    # removes option to change n observations shown
+                    lengthChange = FALSE,
+                    # removes the search bar
+                    sDom  = '<"top">lrt<"bottom">ip',
+                    # enable side scroll so table doesn't overflow
+                    scrollX = TRUE
+                  )) %>%
+                    formatRound(5:10, 2)
   })
   
   # create a dataset from the manually inputted site IDs
