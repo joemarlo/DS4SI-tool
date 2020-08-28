@@ -375,7 +375,7 @@ server <- function(input, output, session) {
     if (input$exploration_select_plot_type == 'Boxplot'){
       p <- p + 
         geom_boxplot(fill = violet_col, alpha = 0.5,
-                     if(input$exploration_variable_group != 'None') aes_string(y = input$exploration_variable_group)
+                     if(input$exploration_variable_group != 'None') aes_string(y = sym(input$exploration_variable_group))
         ) +
         coord_flip() +
         scale_y_discrete()
@@ -1228,7 +1228,7 @@ server <- function(input, output, session) {
       
       show_alert(session = session,
                  title = "Hmmm, that dataset doesn't look quite right",
-                 text = list(HTML("Try another file or if you continue to have issues, copy/paste your Site IDs into the text field. <br><br> Here's how your CSV should be structured:"),
+                 text = list(HTML("Try another file or, if you continue to have issues, copy/paste your Site IDs into the text field. <br><br> Here's how your CSV should be structured:"),
                              DT::dataTableOutput("upload_dataset_example")),
                  type = "error",
                  btn_colors = "#302f42",
@@ -1252,7 +1252,7 @@ server <- function(input, output, session) {
   
   # dataset example to show in popup
   output$upload_dataset_example <- DT::renderDataTable({
-    DT::datatable(head(population_dataset), 
+    DT::datatable(head(population_dataset, n = 5), 
                   rownames = FALSE, 
                   selection = "none",
                   options = list(
