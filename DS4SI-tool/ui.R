@@ -62,9 +62,10 @@ ui <- fluidPage(
                                        buttonLabel = "Browse"
                                        )
                            ),
+                           uiOutput("upload_selection_siteid"),
                            materialSwitch(
                              inputId = "upload_switch_use_site_selection_data",
-                             label = "Or, if you came from Site selection, you can use your data directly:",
+                             label = strong("Or, if you came directly from Site selection, you can use your data directly:"),
                              value = FALSE, 
                              status = "danger"),
                            br(),
@@ -84,7 +85,8 @@ ui <- fluidPage(
                              id = "upload_tabs",
                              type = "tabs",
                              tabPanel("Plots",
-                                      absolutePanel("Please upload a dataset or flip the Site Selection switch",
+                                      absolutePanel(id = "upload_panel_message",
+                                                    "Please upload a dataset or, if you came from Site selection, flip the Site selection switch to use that dataset",
                                                     style = "z-index: -2;"),
                                       plotOutput("upload_plot_hist", height = 650)),
                              tabPanel("Sites invited",

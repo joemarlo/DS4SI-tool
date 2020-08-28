@@ -27,7 +27,7 @@ You will not be graded based on the metric scores, however you will be graded on
 ### Tips: 
 - It's suggested to use your desktop or laptop. The tool does work on mobile but the experience is not optimized
 - Do not stay idle for more than 15 minutes. The tool will time-out and you may have to restart your selection process
-- On the **Results** page you'll be able to download the data. Feel free to use this to do further analyses and summarizations
+- On the **Summary results** page you'll be able to download the data. Feel free to use this to do further analyses and summarizations
 - Use the plots you create here in your report. You can download your custom plots under Advanced -> Download the plot. For any of the other plots, take screenshots
 - You can visualize your saved datasets by going back to the Data exploration page -> Advanced filters and then select your dataset
 

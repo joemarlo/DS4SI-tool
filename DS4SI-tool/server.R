@@ -957,11 +957,37 @@ server <- function(input, output, session) {
   output$invitations_button_download_data <- downloadHandler(
     
     # use plot title as file name but only retain alpha-numeric characters
-    filename <- function() "sites_sent_invitation.csv", 
+    filename <- function() "DS4SI_site_selection_invitations.zip", 
     
     # plot to save
     content <- function(file) {
-      write.csv(sent_invitations_data, file, row.names = FALSE)
+      
+      # go to a temp dir to avoid permission issues
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      files <- NULL;
+      
+      # write out the dataframe containing only the sites the user sent invitations to
+      write.csv(sent_invitations_data, "sites_sent_invitations.csv", row.names = FALSE)
+      files <- "sites_sent_invitations.csv"
+      
+      # save an .RData of the selctions made for all datasets
+      # necessary b/c if user e.g. filtered then sampled then we need the history
+      # first get the list of datasets which contains the data, the dataset names, and selections
+      selection_history <- reactiveValuesToList(datasets_available)
+      
+      # trim off the population dataframe that is also stored here
+      selection_history$data_names <- selection_history$data_names[-1]
+      selection_history$data <- selection_history$data[-1]
+      n_datasets <- length(selection_history$data)
+      if (n_datasets == 0) selection_history <- "Student did not make any selections"
+      
+      # save the object
+      save(selection_history, file = "Selection_history.RData")
+      files <- c("Selection_history.RData", files)
+      
+      # create the zip file
+      zip(file, files)
     }
   )
   
@@ -1146,15 +1172,9 @@ server <- function(input, output, session) {
 
   # upload dataset page -----------------------------------------------------
   
-  # TODO: add error handling
-  # choose which dataset to use
-  upload_dataset <- reactive({
-    # use the sent invitations data if the switch is TRUE
-    if (isTRUE(input$upload_switch_use_site_selection_data)) {
-      return(sent_invitations_data)
-    }
+  # read in the CSV that was uploaded
+  upload_dataset_csv <- reactive({
     
-    # otherwise use the uploaded dataset
     req(input$upload_file)
     tryCatch({
       upload_csv <- read_csv(
@@ -1177,9 +1197,107 @@ server <- function(input, output, session) {
       # return a safeError if a parsing error occurs or if dataset isn't yet uploaded
       stop(safeError(e))
     })
+    
+    # ensure dataframe is valid by comparing it to the population_dataset
+    # cols_match <- base::setequal(colnames(upload_csv), colnames(population_dataset))
+    # classes_match <- all(apply(upload_csv, 2, class) == apply(population_dataset, 2, class))
+    # 
+    # if (!isTRUE(cols_match) | !isTRUE(classes_match)) {
+    #   # if there is an error then remove #upload_panel_message b/c it obfuscates the error message
+    #   removeUI(selector = "#upload_panel_message")
+    # }
+    # 
+    # validate(
+    #   need(isTRUE(cols_match) & isTRUE(classes_match),
+    #        "Uploaded data frame is not valid: columns and/or classes do not match"
+    #   ))
+    
     return(upload_csv)
   })
+
+  # generate the text input for site IDs if there is an issue with the uploaded dataframe
+  observeEvent(upload_dataset_csv(), {
+    
+    # ensure dataframe is valid by comparing it to the population_dataset
+    cols_match <- base::setequal(colnames(upload_dataset_csv()), colnames(population_dataset))
+    classes_match <- all(apply(upload_dataset_csv(), 2, class) == apply(population_dataset, 2, class))
+    
+    df_validated <- !isTRUE(cols_match) | !isTRUE(classes_match)
+    
+    if (df_validated){
+      
+      show_alert(session = session,
+                 title = "Hmmm, that dataset doesn't look quite right",
+                 text = list("Try another file or if you continue to have issues, copy/paste your Site IDs into the text field. Here's how your CSV should be structured:",
+                             DT::dataTableOutput("upload_dataset_example")),
+                 type = "error",
+                 btn_colors = "#302f42",
+                 html = TRUE)
+      
+      output$upload_selection_siteid <- renderUI({
+        tagList(
+          textInput(inputId = "upload_selection_input",
+                    label = "Looks like you're having some issues with uploading the CSV. You can manually enter your Site IDs — each separated by a single space — here instead:"),
+          materialSwitch(
+            inputId = "upload_switch_use_site_ids",
+            label = strong("Use site IDs"),
+            value = FALSE,
+            status = "danger"
+          ),
+          br()
+        )
+      })
+    }
+  })
   
+  # dataset to show in popup
+  output$upload_dataset_example <- DT::renderDataTable({
+    custom_datatable(head(population_dataset),
+                     selection = "none") %>%
+      formatRound(5:10, 2)
+  })
+  
+  # create a dataset from the manually inputted site IDs
+  upload_dataset_manual <- reactive({
+    parsed_IDs <- unlist(str_split(input$upload_selection_input, " "))
+    siteID_df <- population_dataset[population_dataset$`Site ID` %in% parsed_IDs,]
+    return(siteID_df)
+  })
+  
+  # if both switches are flipped then flip the other one
+  observeEvent(input$upload_switch_use_site_ids, {
+    if (isTRUE(input$upload_switch_use_site_ids) &
+        isTRUE(input$upload_switch_use_site_selection_data)) {
+      updateMaterialSwitch(session = session,
+                           inputId = 'upload_switch_use_site_selection_data',
+                           value = FALSE)
+    }
+  })
+  observeEvent(input$upload_switch_use_site_selection_data, {
+    if (isTRUE(input$upload_switch_use_site_ids) &
+        isTRUE(input$upload_switch_use_site_selection_data)) {
+      updateMaterialSwitch(session = session,
+                           inputId = 'upload_switch_use_site_ids',
+                           value = FALSE)
+    }
+  })
+  
+  
+  # choose which dataset to use based on the switches postions
+  upload_dataset <- reactive({
+
+    # use the sent invitations data if the switch is TRUE
+    if (isTRUE(input$upload_switch_use_site_selection_data)) {
+      return(sent_invitations_data)
+    }
+    
+    if (isTRUE(input$upload_switch_use_site_ids)){
+      return(upload_dataset_manual())
+    }
+    
+    return(upload_dataset_csv())
+  })
+
   # trigger all these events once the user clicks "get results"
   observeEvent(input$upload_button_get_results, {
     
@@ -1217,7 +1335,7 @@ server <- function(input, output, session) {
     accepted_boolean <- rbinom(
       n = nrow(upload_dataset()),
       size = 1,
-      prob = upload_dataset()$Comfort * scale_persuasion(input$upload_numeric_persuasion)
+      prob = pmin(1, upload_dataset()$Comfort * scale_persuasion(input$upload_numeric_persuasion))
     ) == 1
     sites_that_accepted <- upload_dataset()[accepted_boolean,]
     
@@ -1247,11 +1365,6 @@ server <- function(input, output, session) {
     datasets_available$data_names <- c(datasets_available$data_names,
                                        "stacked_results")
     
-    # move the user to the Summary results page
-    updateNavlistPanel(session = session,
-                       inputId = "nav",
-                       selected = "&nbsp &nbsp Summary results")
-    
     # show Summary results tab and replace Upload dataset tab with unclickable version
     hide(selector = "li.dropdown-header") # this hides the "1. ..." and "2. ..." text in the nav
     insertTab(inputId = "nav",
@@ -1270,17 +1383,21 @@ server <- function(input, output, session) {
             session = session)
     showTab(inputId = "nav",
             target = HTML("&nbsp &nbsp Data exploration"),
-            session = session
-    )
+            session = session)
+    
+    # move the user to the Summary results page
+    updateNavlistPanel(session = session,
+                       inputId = "nav",
+                       selected = "&nbsp &nbsp Summary results")
     
     # change the tab name from 'data exploration' to 'results exploration' so
     # user knows it's a new tab
-    output$exploration_tab_name = renderText({
-      HTML("&nbsp &nbsp Results exploration")
-    })
-    showTab(inputId = "nav",
-            target = "&nbsp &nbsp Results exploration",
-            session = session)
+    # output$exploration_tab_name = renderText({
+    #   HTML("&nbsp &nbsp Results exploration")
+    # })
+    # showTab(inputId = "nav",
+    #         target = "&nbsp &nbsp Results exploration",
+    #         session = session)
 
     # add popover elements
     # addPopover(
@@ -1674,22 +1791,6 @@ server <- function(input, output, session) {
              height = 25,
              units = "cm")
       files <- c("sampled_v_population_plots.png", files)
-      
-      # TODO: move this to the send invitations data download
-      # save an .RData of the selctions made for all datasets
-      # necessary b/c if user e.g. filtered then sampled then we need the history
-      # first get the list of datasets which contains the data, the dataset names, and selections
-      selection_history <- reactiveValuesToList(datasets_available)
-      
-      # trim off the population dataframe that is also stored here
-      selection_history$data_names <- selection_history$data_names[-1]
-      selection_history$data <- selection_history$data[-1]
-      n_datasets <- length(selection_history$data)
-      if (n_datasets == 1) selection_history <- "Student did not make any selections"
-
-      # save the object
-      save(selection_history, file = "Selection_history.RData")
-      files <- c("Selection_history.RData", files)
       
       # create the zip file
       zip(file, files)
