@@ -43,6 +43,39 @@ ui <- fluidPage(
                                   ))
                ),
 
+
+# upload data page --------------------------------------------------------
+
+              tabPanel(title = HTML("&nbsp &nbsp Upload dataset"),
+                       sidebarLayout(
+                         sidebarPanel(
+                           width = 4,
+                           h4("Upload your dataset that you downloaded in Assignment One"),
+                           br(),
+                           div(id = "upload_file_div",
+                             fileInput(inputId = "upload_file", 
+                                       label = "Find the CSV",
+                                       multiple = FALSE,
+                                       accept = c("text/csv",
+                                                  "text/comma-separated-values",
+                                                  ".csv"),
+                                       buttonLabel = "Browse"
+                                       )
+                           ),
+                           ),
+                         mainPanel(
+                           width = 6,
+                           tabsetPanel(
+                             id = "upload_tabs",
+                             type = "tabs",
+                             tabPanel("Plots",
+                                      plotOutput("upload_plot_hist", height = 650)),
+                             tabPanel("Sites invited",
+                                      DT::dataTableOutput('upload_table'))
+                             )
+                           )
+                         )),
+
 # results page ------------------------------------------------------------
 
                tabPanel(title = HTML("&nbsp &nbsp Summary results"),
@@ -433,6 +466,7 @@ ui <- fluidPage(
 
         # these are the fake nav text
         HTML('<div><h5>4. Results</h5></div>'),
+        HTML('<div><h5>&nbsp &nbsp Upload dataset</h5></div>'),
         HTML('<div><h5>&nbsp &nbsp Summary results</h5></div>'),
         HTML('<div><h5>&nbsp &nbsp Results exploration</h5></div>')
   )

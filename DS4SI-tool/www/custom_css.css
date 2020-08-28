@@ -147,7 +147,6 @@ within the selectize dropdowns */
   width: 200px; 
 }
 
-
 #inline label{
   display: table-cell;
   text-align: left; 
@@ -168,6 +167,30 @@ within the selectize dropdowns */
 
 #results_button_restart, #invitations_button_restart {
   background-color: #ab2c2c !important;
+}
+
+#upload_file_div .btn {
+  font-size: normal;
+  word-wrap: normal;
+  padding: 7px;
+}
+
+#upload_file_div .progress-bar {
+  background-color: #5d5c7a;
+}
+
+#upload_file_div .form-control {
+  -webkit-border-radius: 0 0 0 0;
+  -moz-border-radius: 0 0 0 0;
+  border-radius: 0 0 0 0;
+}
+
+#upload_file_div .form-control:focus {
+  border-color: #5c5980;
+  /*color: #f5f5f5 !important;*/
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(92, 89, 128, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(92, 89, 128, 0.6);
 }
 
 .floating_message {

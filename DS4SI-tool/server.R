@@ -3,6 +3,7 @@
 server <- function(input, output, session) {
   
   # hide the Results tab on start
+  hideTab(inputId = "nav", target = "&nbsp &nbsp Upload dataset", session = session)
   hideTab(inputId = "nav", target = "&nbsp &nbsp Summary results", session = session)
   
   # name the data exploration tab panel (this name is later changed to 
@@ -840,11 +841,21 @@ server <- function(input, output, session) {
   })
   
 
-  # if the user confirms on the popup, then do the following actions
+  # if the user confirms on the popup or clicks on fromt the welcome page, then do the following actions
     # otherwise stop here
-  observeEvent(input$invitations_popup_confirm, {
-    if (isTRUE(input$invitations_popup_confirm)) {
-      # launch popup to download the data
+  button_or_confirm <- reactive({
+    list(input$invitations_popup_confirm, input$welcome_button_jump_to_Results)
+  })
+  button_clicked <- FALSE
+  # create switch indicating if user clicked the button
+  observeEvent(input$welcome_button_jump_to_Results, {
+    button_clicked <<- TRUE
+  })
+  observeEvent(button_or_confirm(), {
+    if (isTRUE(input$invitations_popup_confirm) | button_clicked) {
+      
+      if (isTRUE(input$invitations_popup_confirm)){
+      # launch popup to download the data but only if the user came through Site Selection
       show_alert(
         title = "Invitations (metaphorically) sent!",
         text =
@@ -865,15 +876,18 @@ server <- function(input, output, session) {
         session = session,
         html = TRUE
       )
-
-    
+      }
+      
       # show and move user to the final tab
+      showTab(inputId = "nav",
+              target = "&nbsp &nbsp Upload dataset",
+              session = session)
       showTab(inputId = "nav",
               target = "&nbsp &nbsp Summary results",
               session = session)
       updateNavlistPanel(session = session,
                          inputId = "nav",
-                         selected = "&nbsp &nbsp Summary results")
+                         selected = "&nbsp &nbsp Upload dataset")
 
       # add popover elements
       addPopover(
@@ -924,6 +938,11 @@ server <- function(input, output, session) {
       hideTab(inputId = "nav",
               target = "3. Send invitations",
               session = session)
+      # insert fake tab header
+      insertTab(inputId = "nav",
+                tab = HTML('<div><h5>4. Results</h5></div>'),
+                target = "&nbsp &nbsp Upload dataset",
+                position = 'before')
 
       # flip a coin with prob = comfort to see which sites accepted
       accepted_boolean <- rbinom(
@@ -1024,7 +1043,6 @@ server <- function(input, output, session) {
       })
     }
   })
-  
   
   # download the data
   output$invitations_button_download_data <- downloadHandler(
@@ -1216,6 +1234,30 @@ server <- function(input, output, session) {
     removeUI(selector = "#invitations_plot_metrics_box")
   })
   
+
+  # upload dataset page -----------------------------------------------------
+  
+  # read in the uploaded data
+  # TODO: add error handling
+  upload_dataset <- reactive({
+    read.csv(file = input$upload_file$datapath,
+            header = TRUE,
+            sep = ',',
+            stringsAsFactors = FALSE,
+            check.names = FALSE)
+    })
+  
+  # table of brushed data points from plot
+  output$upload_table <- DT::renderDataTable({
+      custom_datatable(
+        upload_dataset(),
+        selection = "none"
+      ) %>%
+        formatRound(5:10, 2)
+  })
+  
+  # render the histograms
+  output$upload_plot_hist <- renderPlot(draw_histograms(upload_dataset()))
   
   # results page ------------------------------------------------------------
   
