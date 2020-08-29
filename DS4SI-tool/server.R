@@ -648,6 +648,13 @@ server <- function(input, output, session) {
   # on button click, reset the sliders to the starting position
   observeEvent(input$sampling_reset_sliders, {
     
+    # ensure that there are input variables first
+    validate(
+      need(length(input$strata_variables) > 0,
+           "Please select at least one strata variable"
+      )
+    )
+    
     # get current list of sliders
     slider_ids <- strata_combos()$slider_id
     
@@ -677,6 +684,13 @@ server <- function(input, output, session) {
       
     } else {
       # stratified sampling
+      
+      # ensure that there are input variables first
+      validate(
+        need(length(input$strata_variables) > 0,
+             "Please select at least one strata variable"
+        )
+      )
       
       # split the data into groups corresponding to
         # combinations of input$strata_variables 
