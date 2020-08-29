@@ -1324,14 +1324,20 @@ server <- function(input, output, session) {
 
     # use the sent invitations data if the switch is TRUE
     if (isTRUE(input$upload_switch_use_site_selection_data)) {
-      return(sent_invitations_data)
+      final_df <- sent_invitations_data
+    } else if (isTRUE(input$upload_switch_use_site_ids)){
+      final_df <- upload_dataset_manual()
+    } else {
+      final_df <- upload_dataset_csv()
     }
     
-    if (isTRUE(input$upload_switch_use_site_ids)){
-      return(upload_dataset_manual())
-    }
+    # ensure dataframe is valid by comparing it to the population_dataset
+    cols_match <- base::setequal(colnames(final_df), colnames(population_dataset))
+    classes_match <- all(apply(final_df, 2, class) == apply(population_dataset, 2, class))
+    df_validated <- isTRUE(cols_match) & isTRUE(classes_match)
+    validate(need(df_validated, ""))
     
-    return(upload_dataset_csv())
+    return(final_df)
   })
 
   # trigger all these events once the user clicks "get results"
