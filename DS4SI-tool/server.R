@@ -174,7 +174,7 @@ server <- function(input, output, session) {
         runjs(
           paste0('document.getElementById("',
                  save_name,
-                 '").style.fontWeight = "bold"')
+                 '").style.fontWeight = "700"')
         )
       } else {
         # javascript permanently changes text color so it needs to change it back
@@ -871,7 +871,7 @@ server <- function(input, output, session) {
         text =
           list(
             br(),
-            "This is as far as you need to go from Assignments One and Two. Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so save it somewhere safe.",
+            "This is as far as you need to go for Assignments One and Two. Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so save it somewhere safe.",
             br(), br(),
             div(
               downloadButton(outputId = "invitations_button_download_data",
@@ -943,10 +943,6 @@ server <- function(input, output, session) {
                 tab = HTML('<div><h5>&nbsp &nbspSummary Results</h5></div>'),
                 target = "&nbsp &nbsp Upload dataset",
                 position = 'after')
-      # insertTab(inputId = "nav",
-      #           tab = HTML('<div><h5>&nbsp &nbsp Data exploration</h5></div>'),
-      #           target = '<div><h5>&nbsp &nbspSummary Results</h5></div>',
-      #           position = 'after')
       
       # save which dataset was used to send the invitations
       sent_invitations_data <<- sent_invitations_data()
@@ -1198,20 +1194,6 @@ server <- function(input, output, session) {
       stop(safeError(e))
     })
     
-    # ensure dataframe is valid by comparing it to the population_dataset
-    # cols_match <- base::setequal(colnames(upload_csv), colnames(population_dataset))
-    # classes_match <- all(apply(upload_csv, 2, class) == apply(population_dataset, 2, class))
-    # 
-    # if (!isTRUE(cols_match) | !isTRUE(classes_match)) {
-    #   # if there is an error then remove #upload_panel_message b/c it obfuscates the error message
-    #   removeUI(selector = "#upload_panel_message")
-    # }
-    # 
-    # validate(
-    #   need(isTRUE(cols_match) & isTRUE(classes_match),
-    #        "Uploaded data frame is not valid: columns and/or classes do not match"
-    #   ))
-    
     return(upload_csv)
   })
 
@@ -1225,7 +1207,6 @@ server <- function(input, output, session) {
     df_validated <- !isTRUE(cols_match) | !isTRUE(classes_match)
     
     if (df_validated){
-      
       show_alert(session = session,
                  title = "Hmmm, that dataset doesn't look quite right",
                  text = list(HTML("Try another file or, if you continue to have issues, copy/paste your Site IDs into the text field. <br><br> Here's how your CSV should be structured:"),
@@ -1298,9 +1279,8 @@ server <- function(input, output, session) {
     }
   })
   
-  
   # choose which dataset to use based on the switches postions
-  upload_dataset <- reactive({
+  upload_data <- reactive({
 
     # use the sent invitations data if the switch is TRUE
     if (isTRUE(input$upload_switch_use_site_selection_data)) {
@@ -1319,7 +1299,7 @@ server <- function(input, output, session) {
     
     # make sure dataset is selected
     # TODO: this doesn't work; possible an issue with is.data.frame()
-    if (!isTRUE(is.data.frame(upload_dataset())))  {
+    if (!isTRUE(is.data.frame(upload_data())))  {
       show_alert(
         title = "Dataset not selected",
         text = "Please upload a dataset or flip the switch to use the one from Site selection",
@@ -1341,7 +1321,7 @@ server <- function(input, output, session) {
     }
     
     validate(
-      need(is.data.frame(upload_dataset()),
+      need(is.data.frame(upload_data()),
            "Dataset not yet uploaded or selected"),
       need(input$upload_numeric_persuasion >= 1 & input$upload_numeric_persuasion <= 100,
            "Persuasion score not between [1, 100]")
@@ -1349,15 +1329,15 @@ server <- function(input, output, session) {
     
     # flip a coin with prob = comfort to see which sites accepted
     accepted_boolean <- rbinom(
-      n = nrow(upload_dataset()),
+      n = nrow(upload_data()),
       size = 1,
-      prob = pmin(1, upload_dataset()$Comfort * scale_persuasion(input$upload_numeric_persuasion))
+      prob = pmin(1, upload_data()$Comfort * scale_persuasion(input$upload_numeric_persuasion))
     ) == 1
-    sites_that_accepted <- upload_dataset()[accepted_boolean,]
+    sites_that_accepted <- upload_data()[accepted_boolean,]
     
     # create a stacked dataframe with observation per population, sent invitations, and accepted invitations
     # i.e. nrow(...) should be nrow(population) + nrow(sent_invitations) + nrow(accepted)
-    tmp1 <- upload_dataset()
+    tmp1 <- upload_data()
     tmp1$`Site group` <- "Sent invitation"
     tmp2 <- sites_that_accepted
     tmp2$`Site group` <- "Accepted invitation"
@@ -1513,7 +1493,7 @@ server <- function(input, output, session) {
       runjs(
         paste0('document.getElementById("',
                "upload_numeric_persuasion",
-               '").style.fontWeight = "bold"')
+               '").style.fontWeight = "700"')
       )
     } else {
       # javascript permanently changes text color so it needs to change it back
@@ -1534,14 +1514,14 @@ server <- function(input, output, session) {
   # table of selected dataset
   output$upload_table <- DT::renderDataTable({
       custom_datatable(
-        upload_dataset(),
+        upload_data(),
         selection = "none"
       ) %>%
         formatRound(5:10, 2)
   })
   
   # render the histograms
-  output$upload_plot_hist <- renderPlot(draw_histograms(upload_dataset()))
+  output$upload_plot_hist <- renderPlot(draw_histograms(upload_data()))
   
   
   # results page ------------------------------------------------------------

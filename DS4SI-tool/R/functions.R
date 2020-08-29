@@ -1,7 +1,7 @@
 
 custom_datatable <- function(...){
   # wrapper around DT::datatable so commonly used arguments
-  # can be set as global defaults
+    # can be set as global defaults
   
   DT::datatable(..., rownames = FALSE, 
                 options = list(
@@ -19,8 +19,8 @@ custom_datatable <- function(...){
 
 draw_histograms <- function(data){
   # function takes in a dataset and then draws histograms for continuous
-  # variables and barplots for categoricals. Returns a single grid.arrange
-  # object to pass to renderPlot({})
+    # variables and barplots for categoricals. Returns a single grid.arrange
+    # object to pass to renderPlot({})
   
   # bar plot of categorical variables
   p1 <- data %>%
@@ -88,17 +88,6 @@ score_attributes <- function(data){
   
 }
 
-n_sites_text <- function(data){
-  # function to output HTML text indicating
-  # how many rows are a dataframe
-  
-  paste0('<h4>',
-         nrow(data),' 
-        sites are currently selected to be approached</h4>'
-  )
-}
-
-
 determine_x_pos <- function(value){
   # for ggplot
   # determines x position for drawing horizontal 
@@ -134,7 +123,7 @@ show_alert_min_sites <- function(session = session) {
 get_dataset <- function(dataset_name, list_of_datasets){
   # function returns a dataset based on its name from the 
     # pre-defined reactiveList
-  # the function is only (currently) used to access 2. dataframes saved by the user
+  # the function is only (currently) used to 1. access dataframes saved by the user
     # and 2. the 'stacked_results' dataframe
   
   # get list of site_ids
@@ -156,18 +145,15 @@ get_dataset <- function(dataset_name, list_of_datasets){
 
 scale_persuasion <- function(persuasion_score){
   # function takes input$upload_numeric_persuasion and transforms it so 
-  # we can tweak its affect on the probability of site accepting invitations
-  # output should be 1 for a median score which means no benefit or penalty
+    # we can tweak its affect on the probability of site accepting invitations
+    # output should be 1 for a median score which means no benefit or penalty
   # maybe some sort of logit function so tails aren't extreme?
-  # median_score <- 75
-  # ((persuasion_score - median_score) / median_score) + 1
   
   # center at a raw score of 75
   shifted_score <- persuasion_score - 25
   
-  # first scale between -10 and 10
+  # scale between -10 and 10
   p <- ((shifted_score * 2) - 100) / 10
-  # p <- p * 10
   
   # apply logit transformation
   logit_transform <- (exp(1)^p) / (1 + exp(1)^p)

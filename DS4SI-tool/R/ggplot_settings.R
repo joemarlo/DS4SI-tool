@@ -1,4 +1,3 @@
-library(tidyverse)
 
 # build custom theme
 theme_custom <- function()
