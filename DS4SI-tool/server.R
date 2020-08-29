@@ -556,7 +556,7 @@ server <- function(input, output, session) {
   # determine which popover message to display above sampling_select_simple_or_stratified
   sampling_popover_message <- reactive({
     if (is.null(input$sampling_select_simple_or_stratified)) {
-      return("Error in message rendering")
+      return("Message text not found")
     } else {
       if (input$sampling_select_simple_or_stratified == "Simple") {
         return(sampling_simple_message)
@@ -623,6 +623,14 @@ server <- function(input, output, session) {
   
   # generate sliders for each strata combinations
   output$sampling_strata_sliders <- renderUI({
+    
+    # ensure that there are input variables first
+    validate(
+      need(length(input$strata_variables) > 0,
+           "Please select at least one strata variable"
+      )
+    )
+    
     tagList(
       pmap(.l = list(strata_combos()$name,
                      strata_combos()$n,
@@ -701,6 +709,15 @@ server <- function(input, output, session) {
   
   # show text below sample size slider indicating total sample size
   output$n_strata <- renderText({
+    
+    # ensure that there are input variables first
+    # forgo the message b/c it would be a duplicate of the slider error message
+    validate(
+      need(length(input$strata_variables) > 0,
+           ""
+      )
+    )
+    
     slider_sum <- sum(unlist(reactiveValuesToList(input)[strata_combos()$slider_id]))
     paste0("The total selected sample size is ", slider_sum)
   })  
