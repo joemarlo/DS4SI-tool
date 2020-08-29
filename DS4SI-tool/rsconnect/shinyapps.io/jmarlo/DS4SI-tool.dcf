@@ -5,8 +5,8 @@ account: jmarlo
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2542468
-bundleId: 3570683
+bundleId: 3571021
 url: https://jmarlo.shinyapps.io/DS4SI-tool/
-when: 1598727806.61852
+when: 1598739905.32839
 asMultiple: FALSE
 asStatic: FALSE

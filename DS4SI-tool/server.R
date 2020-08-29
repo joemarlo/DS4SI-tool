@@ -260,11 +260,11 @@ server <- function(input, output, session) {
                       value = "Figure 1: My plot"),
             numericInput(inputId = "exploration_numeric_width",
                             label = "Set width (cm)",
-                            value = 16,
+                            value = 20,
                             min = 1),
             numericInput(inputId = "exploration_numeric_height",
                          label = "Set height (cm)",
-                         value = 12,
+                         value = 16,
                          min = 1)
           ), 
           br(),
@@ -1229,12 +1229,12 @@ server <- function(input, output, session) {
   })
 
   # generate the text input for site IDs if there is an issue with the uploaded dataframe
+  # if there isn't an issue then then make sure the switches are flipped off
   observeEvent(upload_dataset_csv(), {
     
     # ensure dataframe is valid by comparing it to the population_dataset
     cols_match <- base::setequal(colnames(upload_dataset_csv()), colnames(population_dataset))
     classes_match <- all(apply(upload_dataset_csv(), 2, class) == apply(population_dataset, 2, class))
-    
     df_validated <- !isTRUE(cols_match) | !isTRUE(classes_match)
     
     if (df_validated){
@@ -1259,6 +1259,15 @@ server <- function(input, output, session) {
           br()
         )
       })
+    } else {
+      # flip the manual site ID and Site selection switches off so upload_data()
+        # defaults to the uploaded CSV
+      updateMaterialSwitch(session = session,
+                           inputId = 'upload_switch_use_site_ids',
+                           value = FALSE)
+      updateMaterialSwitch(session = session,
+                           inputId = 'upload_switch_use_site_selection_data',
+                           value = FALSE)
     }
   })
   
@@ -1328,18 +1337,6 @@ server <- function(input, output, session) {
   # trigger all these events once the user clicks "get results"
   observeEvent(input$upload_button_get_results, {
     
-    # make sure dataset is selected
-    # TODO: this doesn't work; possible an issue with is.data.frame()
-    if (!isTRUE(is.data.frame(upload_data())))  {
-      show_alert(
-        title = "Dataset not selected",
-        text = "Please upload a dataset or flip the switch to use the one from Site selection",
-        type = "error",
-        btn_colors = "#302f42",
-        session = session
-      )
-    }
-    
     # make sure score is between [1, 100]
     if (input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100)  {
       show_alert(
@@ -1351,9 +1348,14 @@ server <- function(input, output, session) {
       )
     }
     
+    # ensure dataframe is valid by comparing it to the population_dataset
+    cols_match <- base::setequal(colnames(upload_data()), colnames(population_dataset))
+    classes_match <- all(apply(upload_data(), 2, class) == apply(population_dataset, 2, class))
+    df_validated <- isTRUE(cols_match) & isTRUE(classes_match)
+    
     validate(
-      need(is.data.frame(upload_data()),
-           "Dataset not yet uploaded or selected"),
+      need(df_validated,
+           "Dataset not yet uploaded or is incorrect format"),
       need(input$upload_numeric_persuasion >= 1 & input$upload_numeric_persuasion <= 100,
            "Persuasion score not between [1, 100]")
     )
