@@ -152,17 +152,20 @@ scale_persuasion <- function(persuasion_score){
   # center at a raw score of 75
   shifted_score <- persuasion_score - 25
   
-  # scale between -10 and 10
-  p <- ((shifted_score * 2) - 100) / 10
+  # scale between -100 and 100
+  scaled_score <- (shifted_score * 2) - 100
+  
+  # apply smoothing parameter
+  smoothed_score <- scaled_score / 15
   
   # apply logit transformation
-  logit_transform <- (exp(1)^p) / (1 + exp(1)^p)
+  logit_transform <- (exp(1)^smoothed_score) / (1 + exp(1)^smoothed_score)
   
   # scale curve between .75 and 1.25
-  logit_scaled <- ((1.75 - 1.25) * logit_transform) + .75
+  logit_scaled <- ((1.25 - 0.75) * logit_transform) + .75
   
   return(logit_scaled)
 
 }
 
-# plot(x = 1:100, y = scale_persuasion(1:100), xlab = "Raw score", ylab = 'Transformed score')
+plot(x = 1:100, y = scale_persuasion(1:100), xlab = "Raw score", ylab = 'Multiplier to be applied to `Comfort`')
