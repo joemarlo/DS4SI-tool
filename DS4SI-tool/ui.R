@@ -62,13 +62,8 @@ ui <- fluidPage(
                                        buttonLabel = "Browse"
                                        )
                            ),
-                           uiOutput("upload_selection_siteid"),
-                           materialSwitch(
-                             inputId = "upload_switch_use_site_selection_data",
-                             label = strong("Or, if you came directly from Site selection, you can use your data directly:"),
-                             value = FALSE, 
-                             status = "danger"),
-                           br(),
+                           uiOutput("upload_UI_selection_siteid"),
+                           uiOutput("upload_UI_switch_use_site_selection_data"),
                            numericInput(inputId = "upload_numeric_persuasion",
                                         label = "Enter your persuasion score from Assignment Two",
                                         value = 75,

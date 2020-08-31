@@ -919,9 +919,17 @@ server <- function(input, output, session) {
       )
         # since the user came through site selection then make that the default option
           # on the upload dataset page
-        updateMaterialSwitch(session = session,
-                             inputId = 'upload_switch_use_site_selection_data',
-                             value = TRUE)
+        output$upload_UI_switch_use_site_selection_data <- renderUI({
+          tagList(
+            materialSwitch(
+              inputId = "upload_switch_use_site_selection_data",
+              label = strong("Since you came directly from Site selection, you can use your data directly:"),
+              value = TRUE,
+              status = "danger"
+            ),
+            br()
+          )
+        })
       }
       
       # remove the button on the welcome page as this causes errors if clicked again
@@ -1246,7 +1254,7 @@ server <- function(input, output, session) {
                  btn_colors = "#302f42",
                  html = TRUE)
       
-      output$upload_selection_siteid <- renderUI({
+      output$upload_UI_selection_siteid <- renderUI({
         tagList(
           textInput(inputId = "upload_selection_input",
                     label = "Looks like you're having some issues with uploading the CSV. You can paste your Site IDs — each separated by a single space — here instead:"),

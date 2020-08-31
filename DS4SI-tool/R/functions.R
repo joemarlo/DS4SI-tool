@@ -152,7 +152,7 @@ scale_persuasion <- function(persuasion_score){
   # center at a raw score of 75
   shifted_score <- persuasion_score - 25
   
-  # scale between -100 and 100
+  # scale between (-100 and 100) - 25
   scaled_score <- (shifted_score * 2) - 100
   
   # apply smoothing parameter
@@ -168,4 +168,5 @@ scale_persuasion <- function(persuasion_score){
 
 }
 
-plot(x = 1:100, y = scale_persuasion(1:100), xlab = "Raw score", ylab = 'Multiplier to be applied to `Comfort`')
+# plot(x = 1:100, y = scale_persuasion(1:100), xlab = "Raw score", ylab = 'Multiplier to be applied to `Comfort`')
+# range(scale_persuasion(-1000:1000))
