@@ -26,6 +26,8 @@ Live version of the current draft can be found here: [jmarlo.shinyapps.io/DS4SI-
 - /R
   - `generate_site_selection_data.R`: generates the jpta.csv dataset
   - `score_generalizibility.R`: generates score_generalizability.RData
+  - `score_causality.R`: generates score_causality.RData
+  - `reconstruct_sample.R`: script to reconstruct the choices the users made to generate their sample
 
 <br>
 

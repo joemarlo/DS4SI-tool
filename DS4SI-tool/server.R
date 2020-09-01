@@ -312,7 +312,7 @@ server <- function(input, output, session) {
       
       # run kmeans algo
       km <- kmeans(x = plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)],
-                   centers = input$n_clusters, iter.max = 50, nstart = 5)
+                   centers = input$exploration_variable_n_clusters, iter.max = 50, nstart = 5)
       
       # add cluster assignment to the dataframe
       plot_data$Cluster <- as.factor(km$cluster)
@@ -320,7 +320,7 @@ server <- function(input, output, session) {
       # run hclust algo instead
       # dist_matrix <- dist(plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)])
       # clust <- hclust(d = dist_matrix,  method = 'ward.D2')
-      # plot_data$cluster <- as.factor(cutree(clust, input$n_clusters))
+      # plot_data$cluster <- as.factor(cutree(clust, input$exploration_variable_n_clusters))
       
     }
     
@@ -597,9 +597,9 @@ server <- function(input, output, session) {
   strata_combos <- reactive({
     
     # create vector of the pairwise variable names
-    # this method works even if one or two input$strata_variables are entered
+    # this method works even if one or two input$sampling_select_strata_variables are entered
     name_combos <- Reduce(
-      x = sampling_selected_data()[, input$strata_variables],
+      x = sampling_selected_data()[, input$sampling_select_strata_variables],
       f = function(var1, var2) paste(var1, var2, sep = "_")
     )
     
@@ -612,7 +612,7 @@ server <- function(input, output, session) {
     
     # add id column for use with sliders
     strata_combos$slider_id <- paste0("sampling_slider_stratified_n_",
-                                      paste0(input$strata_variables, collapse = "_"),
+                                      paste0(input$sampling_select_strata_variables, collapse = "_"),
                                       "_",
                                       strata_combos$name)
     strata_combos$slider_id <- str_replace_all(strata_combos$slider_id, " ", "_")
@@ -626,7 +626,7 @@ server <- function(input, output, session) {
     
     # ensure that there are input variables first
     validate(
-      need(length(input$strata_variables) > 0,
+      need(length(input$sampling_select_strata_variables) > 0,
            "Please select at least one strata variable"
       )
     )
@@ -650,7 +650,7 @@ server <- function(input, output, session) {
     
     # ensure that there are input variables first
     validate(
-      need(length(input$strata_variables) > 0,
+      need(length(input$sampling_select_strata_variables) > 0,
            "Please select at least one strata variable"
       )
     )
@@ -687,15 +687,15 @@ server <- function(input, output, session) {
       
       # ensure that there are input variables first
       validate(
-        need(length(input$strata_variables) > 0,
+        need(length(input$sampling_select_strata_variables) > 0,
              "Please select at least one strata variable"
         )
       )
       
       # split the data into groups corresponding to
-        # combinations of input$strata_variables 
+        # combinations of input$sampling_select_strata_variables 
       split_groups <- split(x = data,
-                            f = data[, input$strata_variables],
+                            f = data[, input$sampling_select_strata_variables],
                             sep = "_")
       
       # reorder list so it matches strata_combos() order
@@ -727,7 +727,7 @@ server <- function(input, output, session) {
     # ensure that there are input variables first
     # forgo the message b/c it would be a duplicate of the slider error message
     validate(
-      need(length(input$strata_variables) > 0,
+      need(length(input$sampling_select_strata_variables) > 0,
            ""
       )
     )

@@ -174,7 +174,7 @@ ui <- fluidPage(
                               conditionalPanel(
                                 condition = "input.exploration_variable_fill == 'Cluster'",
                                 sliderInput(
-                                  inputId = "n_clusters",
+                                  inputId = "exploration_variable_n_clusters",
                                   label = "Number of clusters: ",
                                   min = 2,
                                   max = 10,
@@ -336,7 +336,7 @@ ui <- fluidPage(
                                        uiOutput("sampling_select_simple_or_stratified"),
                                        conditionalPanel(
                                          condition = "input.sampling_select_simple_or_stratified == 'Stratified'",
-                                         selectizeInput(inputId = "strata_variables", 
+                                         selectizeInput(inputId = "sampling_select_strata_variables", 
                                                         label = "Strata variable (limited to two): ", 
                                                         multiple = TRUE,
                                                         options = list(maxItems = 2),
