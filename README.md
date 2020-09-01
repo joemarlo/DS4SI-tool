@@ -16,11 +16,9 @@ Live version of the current draft can be found here: [jmarlo.shinyapps.io/DS4SI-
     - `functions.R`: various functions that are used multiple times
     - `ggplot_settings.R`: color and theme settings for ggplot
     - `score_generalizability.RData`: pre-defined score_generalizability() function to be loaded by global.R. This is an .RData file because it contains an underlying empirical distribution
+    - `score_casuality.RData`: pre-defined score_casuality() function to be loaded by global.R
   - /data/`jpta.csv`: dataset of the population of sites
-  - /markdowns
-    - `data_description.md`: text on the data description page
-    - `tool_instructions.md`: text on the tool instructions tab of the landing page
-    - `welcome_text.md`: text on the landing page
+  - /markdowns: contains all the body text across the pages
   - /www/`custom_css.css`: custom CSS that gives the tool its look and feel
   - `global.R`: pre-created R objects that are accessible by both ui.R and server.R
   - `server.R`: the server side calculations

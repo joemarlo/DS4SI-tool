@@ -2,7 +2,7 @@
 
 <!-- the html id tags tie this text to the popover elements -->
 
-The data consists of 1,000 sites measured across eight variables:
+The data consists of 1,000 sites measured across nine variables:
 - <p id="description_text_other_program_at_site">`Other program at site`: are there other training programs available in the same county </p>
 - <p id="description_text_region">`Region`: the region the site is located in </p>
 - <p id="description_text_urban">`Urban`: is the site located in an urban area </p>

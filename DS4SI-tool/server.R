@@ -991,7 +991,7 @@ server <- function(input, output, session) {
   # download the data
   output$invitations_button_download_data <- downloadHandler(
     
-    # use plot title as file name but only retain alpha-numeric characters
+    # define the filename
     filename <- function() "DS4SI_site_selection_invitations.zip", 
     
     # plot to save
@@ -1432,33 +1432,6 @@ server <- function(input, output, session) {
     updateNavlistPanel(session = session,
                        inputId = "nav",
                        selected = "&nbsp &nbsp Summary results")
-    
-    # change the tab name from 'data exploration' to 'results exploration' so
-    # user knows it's a new tab
-    # output$exploration_tab_name = renderText({
-    #   HTML("&nbsp &nbsp Results exploration")
-    # })
-    # showTab(inputId = "nav",
-    #         target = "&nbsp &nbsp Results exploration",
-    #         session = session)
-
-    # add popover elements
-    # addPopover(
-    #   session = session,
-    #   id = 'exploration_tab_name',
-    #   title = "Explore your data further",
-    #   content = 'Create custom plots to understand how your sites compare',
-    #   placement = 'bottom'
-    # )
-    addPopover(
-      session = session,
-      id = 'results_button_download',
-      title = "Download your data",
-      content = 'Be sure to download your data for future assignments',
-      placement = 'bottom'
-    )
-    # force the popover to show itself on load
-    # runjs("$('#exploration_tab_name').popover('show')")
     
     # on the data exploration page, add a grouping variable that represents
     # population, sent invitations, and accepted invitations sites
