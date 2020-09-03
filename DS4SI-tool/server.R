@@ -390,7 +390,16 @@ server <- function(input, output, session) {
         p <- p + facet_grid(list(sym(input$exploration_variable_facet), sym(input$exploration_variable_facet_second)),
                             labeller = label_both)
       }
-    } 
+    }
+    
+    # once the user progress to the "Summary results" page, add an validation
+      # check in case the user unchecks all the checkmark boxes for site_group
+    if ("stacked_results" %in% datasets_available$data_names) {
+      validate(
+        need(length(input$exploration_checkboxes) > 0,
+                    "Please check at least one site group")
+        )
+    }
     
     # show plot
     return(p)
@@ -1257,7 +1266,7 @@ server <- function(input, output, session) {
       output$upload_UI_selection_siteid <- renderUI({
         tagList(
           textInput(inputId = "upload_selection_input",
-                    label = "Looks like you're having some issues with uploading the CSV. You can paste your Site IDs — each separated by a single space — here instead:"),
+                    label = "Looks like you're having some issues uploading the CSV. You can paste your Site IDs — each separated by a single space — here instead:"),
           materialSwitch(
             inputId = "upload_switch_use_site_ids",
             label = strong("Use manually entered Site IDs"),
@@ -1685,6 +1694,9 @@ server <- function(input, output, session) {
       check.names = FALSE)
     rownames(persuasion_score_df) <- "Persuasion score"
     final_table <- rbind(final_table, persuasion_score_df)
+    
+    # remove implicit factors
+    final_table <- apply(final_table, c(1, 2), as.character)
     
     # replace cost estimates so cost to approach comes from all sites the user approached
       # and cost to execute comes from just the sites that accepted
