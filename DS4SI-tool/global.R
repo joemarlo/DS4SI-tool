@@ -23,7 +23,7 @@ population_dataset <- read_csv(
     `Mean income` = col_double(),
     Comfort = col_double(),
     `Cost to approach site` = col_double(),
-    `Cost to run RCT` = col_double()
+    `Cost to run study` = col_double()
   )
 )
 
@@ -77,7 +77,7 @@ invitations_plot_metrics_box_message <- list(
   # and server.R; its important they remain alphabetical
 categorical_vars <- sort(c("Region", "Urban", "Other program at site"))
 numeric_vars <- sort(c("Unemployment rate", "High school degree rate", "Mean income", 
-       "Comfort", "Cost to approach site", "Cost to run RCT"))
+       "Comfort", "Cost to approach site", "Cost to run study"))
 
 # set order of metrics (used for plots)
 metrics_order <- c("Sample size", "Total cost", "Generalizability index", "Causality index")

@@ -3,9 +3,9 @@ library(caret) # for dummy coding
 library(parallel) # for building simulated distribution for score_generalizability()
 set.seed(44)
 
-population_dataset <- read_csv('data/jpta.csv')
+population_dataset <- read_csv('DS4SI-tool/data/jpta.csv')
 numeric_vars <- sort(c("Unemployment rate", "High school degree rate", "Mean income", 
-                       "Comfort", "Cost to approach site", "Cost to run RCT"))
+                       "Comfort", "Cost to approach site", "Cost to run study"))
 population_dataset <- population_dataset[, setdiff(colnames(population_dataset), "Other program at site")]
 
 # dummy code the variables
@@ -98,5 +98,5 @@ rm(x)
 
 
 save(calc_generalizability, score_generalizability, ecdf_scores, population_pca,
-     file = 'DS4SI/R/score_generalizability.RData')
+     file = 'DS4SI-tool/R/score_generalizability.RData')
 

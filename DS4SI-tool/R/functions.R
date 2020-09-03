@@ -70,7 +70,7 @@ score_attributes <- function(data){
   n_sites <- scales::comma(n_sites)
   
   # total cost
-  total_cost <- round(sum(data$`Cost to approach site`, data$`Cost to run RCT`))
+  total_cost <- round(sum(data$`Cost to approach site`, data$`Cost to run study`))
   total_cost <- scales::dollar(total_cost)
   
   # generalizability score

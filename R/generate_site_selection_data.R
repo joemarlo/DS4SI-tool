@@ -76,8 +76,8 @@ data$other_prog <- as.logical(data$other_prog)
 data$cost <- (1000 + (data$distance * 500)) / 1000
 
 # split cost into two variables
-data$cost_to_approach <- data$cost * 0.3
-data$cost_to_execute <- data$cost * 0.7
+data$cost_to_approach <- data$cost * 0.2 * rnorm(n = N, mean = 0.2, sd = 0.01)
+data$cost_to_execute <- data$cost - data$cost_to_approach
 
 # remove distance and cost
 data <- data[, setdiff(colnames(data), c("cost", "distance"))]
@@ -89,7 +89,7 @@ data[, c("unemp", "pct_hs", "income", "comfort", "cost_to_approach", "cost_to_ex
 # rename columns with regular names
 colnames(data) <- c("Site ID", "Region", "Urban", "Other program at site",
                     "Unemployment rate", "High school degree rate", "Mean income",
-                    "Comfort", "Cost to approach site", "Cost to run RCT")
+                    "Comfort", "Cost to approach site", "Cost to run study")
 
 
 # save the data -----------------------------------------------------------
@@ -97,7 +97,7 @@ colnames(data) <- c("Site ID", "Region", "Urban", "Other program at site",
 # save the data
 write.table(
   data,
-  file = "data/jpta.csv",
+  file = "DS4SI-tool/data/jpta.csv",
   col.names = TRUE,
   row.names = FALSE,
   sep = ","

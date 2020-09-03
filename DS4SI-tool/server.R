@@ -498,8 +498,8 @@ server <- function(input, output, session) {
                    data$`Cost to approach site` <= input$filtering_slider_cost_to_approach_site[2],]
     data <- data[data$`Cost to approach site` >= input$filtering_slider_cost_to_approach_site[1] &
                    data$`Cost to approach site` <= input$filtering_slider_cost_to_approach_site[2],]
-    data <- data[data$`Cost to run RCT` >= input$filtering_slider_cost_to_run_rct[1] &
-                   data$`Cost to run RCT` <= input$filtering_slider_cost_to_run_rct[2],]
+    data <- data[data$`Cost to run study` >= input$filtering_slider_cost_to_run_study[1] &
+                   data$`Cost to run study` <= input$filtering_slider_cost_to_run_study[2],]
     
     return(data)
   })
@@ -1123,7 +1123,7 @@ server <- function(input, output, session) {
       
       # create dataframe of scores
       scores[i, 'Sample size'] <- sum(accepted_boolean)
-      scores[i, 'Total cost'] <- sum(data$`Cost to approach site`, accepted_data$`Cost to run RCT`)
+      scores[i, 'Total cost'] <- sum(data$`Cost to approach site`, accepted_data$`Cost to run study`)
       scores[i, 'Generalizability index'] <- score_generalizability(accepted_data)
       scores[i, 'Causality index'] <- score_causality(accepted_data)
     }
@@ -1224,7 +1224,7 @@ server <- function(input, output, session) {
           `Mean income` = col_double(),
           Comfort = col_double(),
           `Cost to approach site` = col_double(),
-          `Cost to run RCT` = col_double()
+          `Cost to run study` = col_double()
         )
       )
     },
@@ -1628,7 +1628,7 @@ server <- function(input, output, session) {
       'row_name' = c(
         "Comfort",
         "Cost to approach site",
-        "Cost to run RCT",
+        "Cost to run study",
         "Mean income",
         "High school degree rate",
         "Unemployment rate",
@@ -1642,7 +1642,7 @@ server <- function(input, output, session) {
       'clean_row_name' = c(
         "Mean comfort",
         "Mean cost to approach site",
-        "Mean cost to run RCT",
+        "Mean cost to run study",
         "Mean income",
         "Mean HS rate",
         "Mean unemployment",
@@ -1677,14 +1677,22 @@ server <- function(input, output, session) {
     colnames(scores_char) <- colnames(final_table)
     final_table <- rbind(scores_char, round(final_table, 2))
     
+    # add persuasion score to table for posterity
+    persuasion_score_df <- data.frame(
+      'Accepted' = as.character(input$upload_numeric_persuasion),
+      'Sent invitation' = NA,
+      'Population' = NA,
+      check.names = FALSE)
+    rownames(persuasion_score_df) <- "Persuasion score"
+    final_table <- rbind(final_table, persuasion_score_df)
+    
     # replace cost estimates so cost to approach comes from all sites the user approached
       # and cost to execute comes from just the sites that accepted
     accepted_df <- data[data$`Site group` == 'Accepted invitation',]
     sent_invitation_df <- data[data$`Site group` == 'Sent invitation',]
-    final_table['Total cost', 1] <- scales::dollar_format()(round(sum(sent_invitation_df$`Cost to approach site`, accepted_df$`Cost to run RCT`), 0))
+    final_table['Total cost', 1] <- scales::dollar_format()(round(sum(sent_invitation_df$`Cost to approach site`, accepted_df$`Cost to run study`), 0))
     final_table['Total cost', 2:3] <- NA
-    
-    
+  
     return(final_table)
   })
   

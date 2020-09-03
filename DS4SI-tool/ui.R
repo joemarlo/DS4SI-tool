@@ -16,8 +16,8 @@ ui <- fluidPage(
   includeCSS("www/custom_css.css"),
   
   # set top left title
-  titlePanel(title = h1("NYU DS4SI Site Selection"),
-             windowTitle = "DS4SI Site Selection"),
+  titlePanel(title = h1("NYU DS4SI"),
+             windowTitle = "NYU DS4SI"),
   
   br(),
   
@@ -39,7 +39,7 @@ ui <- fluidPage(
                                     tabPanel("Assignment Three",
                                              includeMarkdown("markdowns/assignment_3.md"),
                                              actionButton(inputId = "welcome_button_jump_to_Results",
-                                                          label = 'Skip Site Selection and jump to Results'))
+                                                          label = 'I already did Site Selection! Take me to Reproducibility.'))
                                   ))
                ),
 

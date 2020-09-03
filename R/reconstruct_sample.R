@@ -1,5 +1,4 @@
 library(tidyverse)
-setwd("DS4SI-tool")
 
 # this script recreates the student's selection history which lead to their final results
 # it requires the Selecction_history.RData file downloaded on the sent invitations page
@@ -14,9 +13,13 @@ student_selections <- selection_history
 all_sites <- read_csv("~/Desktop/sites.csv")
 
 # load the data containing all default variables
-setwd("..")
+# this file was created by opening every page on the tool so Shiny would create
+  # each possible variable combination (some inputs$ are lazy so they're only created
+  # when needed). Then saving a dataset via each page, and then downloading the 
+  # selection_history.RData file on the send invitations page
 load("R/default_selection_history.RData")
 default_selections <- selection_history
+rm(selection_history)
 
 # set the default filtering slider and select values
 selections_filtering <- default_selections$selections[[1]]
@@ -49,10 +52,8 @@ get_student_action <- function(selections) {
     # get slider values and sort alphabetically
     slider_inputs <- unlist(selections[slider_names])
     slider_inputs <- slider_inputs[sort(names(slider_inputs))]
-    names(slider_inputs) <-
-      str_replace(names(slider_inputs), "1", "_min")
-    names(slider_inputs) <-
-      str_replace(names(slider_inputs), "2", "_max")
+    names(slider_inputs) <- str_replace(names(slider_inputs), "1", "_min")
+    names(slider_inputs) <- str_replace(names(slider_inputs), "2", "_max")
 
     # get default slider inputs
     default_slider_inputs <- default_filtering[grep(
@@ -120,12 +121,17 @@ get_student_action <- function(selections) {
   } else if (current_page == 'sampling') {
     if (selections$sampling_select_simple_or_stratified == 'Simple') {
       
+      # TODO validate sampling inputs add up to dataframe
+      
       action <- paste0(
         "The student used simple sampling with n = ",
         selections$sampling_slider_simple_n
         )
       
     } else {
+      
+      # TODO validate sampling inputs add up to dataframe
+      
       # find the slider ids that match the entered strata variables
       all_stratified_sliders <- grep(x = names(selections),
              pattern = "^sampling_slider_stratified",
@@ -214,9 +220,13 @@ get_selection_history <- function(selection_history){
   
   return(actions)
 }
-  
+
+# workflow is to load the student data then run the function:
+
+# load students selection
+load("~/Desktop/Selection_history.RData")
+student_selections <- selection_history
+
 # get the itemized selection history
 get_selection_history(student_selections)
-
-
 
