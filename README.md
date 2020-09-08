@@ -1,7 +1,7 @@
 # DS4SI-tool
 Pedagogical tool for selecting where to conduct randomized control trials. Built in Shiny.
 
-Live version of the current draft can be found here: [jmarlo.shinyapps.io/DS4SI-tool/](https://jmarlo.shinyapps.io/DS4SI-tool/)
+Live version of the current draft can be found here: [apsta.shinyapps.io/DS4SI-tool/](https://apsta.shinyapps.io/DS4SI-tool/)
 
 <br>
 

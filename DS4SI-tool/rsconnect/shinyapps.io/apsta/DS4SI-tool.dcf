@@ -1,0 +1,12 @@
+name: DS4SI-tool
+title: DS4SI-tool
+username:
+account: apsta
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2751379
+bundleId: 3591006
+url: https://apsta.shinyapps.io/DS4SI-tool/
+when: 1599177747.91622
+asMultiple: FALSE
+asStatic: FALSE
