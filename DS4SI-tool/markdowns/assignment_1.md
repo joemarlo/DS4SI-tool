@@ -43,9 +43,9 @@ Please structure your report to include the following subsections, each with app
 - **1 paragraph:** Short discussion of overall cost and how that fits with the goals laid out in (1) above
 - **2-3 paragraphs:** Conclusion/discussion. A brief overview of your ability to achieve the goals you had laid out for yourself as well as frustrations or limitations with why it was difficult/impossible to achieve them all.  
 
-<br>
-
-Finally, after you send the invitations be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Four so save it somewhere safe. 
+### What to turn in
+- The report
+- The zip file downloaded from the tool on the ‘Results summary’ page. Without this you'll be unable to do Assignment Four so save it somewhere safe. 
 
 <br>
 <br>
