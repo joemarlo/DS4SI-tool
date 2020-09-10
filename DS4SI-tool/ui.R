@@ -36,8 +36,8 @@ ui <- fluidPage(
                                              includeMarkdown("markdowns/assignment_1.md")),
                                     tabPanel("Assignment Two",
                                              includeMarkdown("markdowns/assignment_2.md")),
-                                    tabPanel("Assignment Three",
-                                             includeMarkdown("markdowns/assignment_3.md"),
+                                    tabPanel("Assignment Four",
+                                             includeMarkdown("markdowns/assignment_4.md"),
                                              actionButton(inputId = "welcome_button_jump_to_Results",
                                                           label = 'I already did Site Selection! Take me to Reproducibility.'))
                                   ))
@@ -173,6 +173,13 @@ ui <- fluidPage(
                               ),
                               conditionalPanel(
                                 condition = "input.exploration_variable_fill == 'Cluster'",
+                                selectInput(
+                                  inputId = "exploration_variable_cluster",
+                                  label = "Clustering algorithm: ",
+                                  multiple = FALSE,
+                                  choices = c('k-means', 'Hierarchical'),
+                                  selected = 'k-means'
+                                ),
                                 sliderInput(
                                   inputId = "exploration_variable_n_clusters",
                                   label = "Number of clusters: ",
@@ -182,7 +189,7 @@ ui <- fluidPage(
                                   step = 1
                                 ),
                                 HTML(
-                                  'Hartigan-Wong K-means clustering based on selected X and Y variables. Not recommended when faceting.<br><br>'
+                                  'Clustering using only selected X and Y variables. Not recommended when faceting.<br><br>'
                                 )
                               ),
                               selectInput(

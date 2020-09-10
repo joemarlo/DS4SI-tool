@@ -310,18 +310,21 @@ server <- function(input, output, session) {
     # add kmeans cluster to data dataframe
     if(input$exploration_select_plot_type == 'Scatter' & input$exploration_variable_fill == "Cluster"){
       
-      # run kmeans algo
-      km <- kmeans(x = plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)],
-                   centers = input$exploration_variable_n_clusters, iter.max = 50, nstart = 5)
-      
-      # add cluster assignment to the dataframe
-      plot_data$Cluster <- as.factor(km$cluster)
-      
-      # run hclust algo instead
-      # dist_matrix <- dist(plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)])
-      # clust <- hclust(d = dist_matrix,  method = 'ward.D2')
-      # plot_data$cluster <- as.factor(cutree(clust, input$exploration_variable_n_clusters))
-      
+      if(input$exploration_variable_cluster == 'k-means'){
+        # run kmeans algo
+        km <- kmeans(x = plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)],
+                     centers = input$exploration_variable_n_clusters, iter.max = 50, nstart = 5)
+        
+        # add cluster assignment to the dataframe
+        plot_data$Cluster <- as.factor(km$cluster)
+      } else {
+        # run hclust algo 
+        dist_matrix <- dist(plot_data[, c(input$exploration_variable_x, input$exploration_variable_y)])
+        clust <- hclust(d = dist_matrix,  method = 'ward.D2')
+        
+        # add cluster assignment to the dataframe
+        plot_data$Cluster <- as.factor(cutree(clust, input$exploration_variable_n_clusters))
+      }
     }
     
     # create base ggplot object
@@ -347,14 +350,14 @@ server <- function(input, output, session) {
       } 
       
       # cluster centers
-      if(input$exploration_variable_fill == "Cluster"){
-        p <- p +
-          geom_point(data = as_tibble(km$centers),
-                     aes_string(x = sym(colnames(km$centers)[1]),
-                                y = sym(colnames(km$centers)[2])),
-                     color = violet_col,
-                     shape = 4, size = 8, stroke = 1.5)
-      }
+      # if(input$exploration_variable_fill == "Cluster"){
+      #   p <- p +
+      #     geom_point(data = as_tibble(km$centers),
+      #                aes_string(x = sym(colnames(km$centers)[1]),
+      #                           y = sym(colnames(km$centers)[2])),
+      #                color = violet_col,
+      #                shape = 4, size = 8, stroke = 1.5)
+      # }
       
     }
     
@@ -911,7 +914,7 @@ server <- function(input, output, session) {
         text =
           list(
             br(),
-            "This is as far as you need to go for Assignments One and Two. Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Three so save it somewhere safe.",
+            "This is as far as you need to go for Assignments One and Two. Be sure to download the dataset of sites you've selected. Without this you'll be unable to do Assignment Four so save it somewhere safe.",
             br(), br(),
             div(
               downloadButton(outputId = "invitations_button_download_data",
@@ -921,7 +924,7 @@ server <- function(input, output, session) {
             )
           ),
         type = 'success',
-        btn_labels = "Move to Assignment Three",
+        btn_labels = "Move to Assignment Four",
         btn_colors = "#c7c7c7",
         session = session,
         html = TRUE
