@@ -1249,7 +1249,7 @@ server <- function(input, output, session) {
   })
 
   # generate the text input for site IDs if there is an issue with the uploaded dataframe
-  # if there isn't an issue then then make sure the switches are flipped off
+  # if there isn't an issue then make sure the switches are flipped off
   observeEvent(upload_dataset_csv(), {
     
     # ensure dataframe is valid by comparing it to the population_dataset
@@ -1385,6 +1385,15 @@ server <- function(input, output, session) {
       need(input$upload_numeric_persuasion >= 1 & input$upload_numeric_persuasion <= 100,
            "Persuasion score not between [1, 100]")
     )
+    
+    # show alert for user suspense
+    show_alert(session = session, 
+               title = "...crunching your numbers...",
+               type = 'success', 
+               btn_labels = NA,
+               closeOnClickOutside = FALSE)
+    Sys.sleep(time = 3)
+    closeSweetAlert(session = session)
     
     # flip a coin with prob = comfort to see which sites accepted
     accepted_boolean <- rbinom(
