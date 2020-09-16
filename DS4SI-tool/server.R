@@ -1389,10 +1389,16 @@ server <- function(input, output, session) {
     # show alert for user suspense
     show_alert(session = session, 
                title = "...crunching your numbers...",
+               type = 'info', 
+               btn_labels = NA,
+               closeOnClickOutside = FALSE)
+    Sys.sleep(time = 2.25)
+    show_alert(session = session, 
+               title = "Finished!",
                type = 'success', 
                btn_labels = NA,
                closeOnClickOutside = FALSE)
-    Sys.sleep(time = 3)
+    Sys.sleep(time = 1.5)
     closeSweetAlert(session = session)
     
     # flip a coin with prob = comfort to see which sites accepted
