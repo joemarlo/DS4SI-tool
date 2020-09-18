@@ -61,7 +61,7 @@ data = data.frame(site_id=site_id, region=region,urban=urban,
 # # 2020 cleaning ---------------------------------------------------------
 
 # label regions
-data$region <- case_when(
+data$region <- dplyr::case_when(
   data$region == 1 ~ "Northeast",
   data$region == 2 ~ "Northcentral",
   data$region == 3 ~ "South",

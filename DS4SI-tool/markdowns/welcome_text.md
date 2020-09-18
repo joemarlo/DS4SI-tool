@@ -1,6 +1,7 @@
 # Welcome to the site selection and recruitment assignment tool
 ### Your assignments
-You'll use this tool to complete assignments one, two, and four. First, for assignment one you'll need to explore the data and then select 100 (hypothetical) sites to invite to participate in a randomized control trial. For assignment two, you'll write up talking points and create a hand-out or brief presentation for a metting you will have with the key stakeholders of each site that you select to recruit. In this meeting, you will explain the benefits of randomization and recruit them to participate in the trial. For assignment four, you'll receive the results containing the sites that accepted the invitations to participate — influenced by how persuasive you were — and, finally, you'll produce a reproducible analysis of the trial.
+
+You'll use this tool to complete assignments one, two, and four. First, for assignment one you'll need to explore the data and then select (hypothetical) sites to invite to participate in a randomized control trial. For assignment two, you'll write up talking points and create a hand-out or brief presentation for a meeting you will have with the key stakeholders of each site that you select to recruit. In this meeting, you will explain the benefits of randomization and recruit them to participate in the trial. For assignment four, you'll receive the results containing the sites that accepted the invitations to participate — influenced by how persuasive you were  — and, finally, you'll produce a reproducible analysis of the trial.
 
 See each of the assignment tabs for more details.
 
@@ -8,7 +9,7 @@ See each of the assignment tabs for more details.
 The tool is broken into four parts to help guide you through the process. You'll have the ability to explore the data, create your sample, _send invitations_ to the hypothetical sites, and finally see the results of which sites _accepted the invitation_ to participate in the trial.
 
 1. **Site attributes:** a 'playground' for exploring the data, understanding its definitions and finding underlying patterns.
-2. **Site selection:** contains the methods to create your own sample of the population of sites. Once you're finished with a given method you'll want to save your dataset using the button at the bottom of each page. You can later access these saved datasets on other method pages and for when you decide to _send the invitations_. Note that you do not have to use each method.
+2. **Site selection:** contains the methods to create your own sample of sites. Once you're finished with a given method you'll want to save your dataset using the button at the bottom of each page. You can later access these saved datasets on other method pages and for when you decide to _send the invitations_. Note that you do not have to use each method.
   - Filtering: exclude certain categorical data and set minimums/maximums for numerical data.
   - Sampling: create simple and stratified random samples.
   - Manual exclusions: exclude sites manually by their ID.
