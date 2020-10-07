@@ -381,6 +381,9 @@ ui <- fluidPage(
                                     tabsetPanel(
                                       type = "tabs",
                                       tabPanel("Plots",
+                                               absolutePanel(id = "sampling_panel_message",
+                                                             HTML("'Sample the data' first to generate the plots"),
+                                                             style = "z-index: -2;"),
                                                plotOutput("sampling_plots", height = 650)), 
                                       tabPanel("Table of selected sites", DT::dataTableOutput('sampling_table_selected')),
                                       tabPanel("Table of excluded sites", DT::dataTableOutput('sampling_table_excluded'))

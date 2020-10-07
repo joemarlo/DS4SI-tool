@@ -28,11 +28,11 @@ population_dataset <- read_csv(
 )
 
 
-# load score_generalizbility() and score_causality() ----------------------
+# load score_generalizbility(), score_causality(), and individual  --------
 
 load('R/score_generalizability.RData')
 load('R/score_causality.RData')
-
+load('R/score_causality_individuality.RData')
 
 # # messages for tooltips and popovers ------------------------------------
 

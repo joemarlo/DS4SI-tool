@@ -1525,7 +1525,7 @@ server <- function(input, output, session) {
     })
   })
   
-  # numeric input does not respect min max limits so need to inform user when theres an error
+  # numeric input does not respect min max limits so need to inform user when there's an error
   observe({
     
     boolean <- input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100
@@ -1812,7 +1812,7 @@ server <- function(input, output, session) {
       on.exit(setwd(owd))
       files <- NULL;
       
-      # create data frame of all sites indicator columns 
+      # create data frame of all sites and with indicator columns 
        # if site was sent invitation and if accepted
       data <- get_dataset("stacked_results", datasets_available)
       population_dataset$`Sent invitation` <-
@@ -1823,6 +1823,19 @@ server <- function(input, output, session) {
       # write out the dataframe containing every site and its status
       write.csv(population_dataset, "sites.csv", row.names = FALSE)
       files <- "sites.csv"
+      
+      # create dataframe of just the sites that accepted
+      individual_dataset <-
+        population_dataset[population_dataset$Accepted,
+                           setdiff(colnames(population_dataset),
+                                   c("Sent invitation", "Accepted"))]
+      
+      # add in the individual level causal metrics (y0, y1, z,)
+      individual_dataset <- left_join(individual_dataset, individual_causal, by = 'Site ID')
+
+      # write out the dataframe containing the individual level causal metrics
+      write.csv(individual_dataset, "individuals.csv", row.names = TRUE)
+      files <- c("individuals.csv", files)
       
       # write out the summary metrics and attributes table
       write.csv(results_table(), "summary.csv", row.names = TRUE)
