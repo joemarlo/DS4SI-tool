@@ -1834,7 +1834,7 @@ server <- function(input, output, session) {
       individual_dataset <- left_join(individual_dataset, individual_causal, by = 'Site ID')
 
       # write out the dataframe containing the individual level causal metrics
-      write.csv(individual_dataset, "individuals.csv", row.names = TRUE)
+      write.csv(individual_dataset, "individuals.csv", row.names = FALSE)
       files <- c("individuals.csv", files)
       
       # write out the summary metrics and attributes table

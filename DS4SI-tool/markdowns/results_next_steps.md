@@ -5,7 +5,7 @@
 3. Follow the directions for Assignment Four to create your own reproducible analysis.
 
 ### What's in the downloaded zip?
-- `individuals.csv`: the results of the study for the sites that accepted your invitation. Each site contains 100 individuals.  `z` indicates if treatment was assigned to the individual. `y` is their observed outcome (hourly wages).
+- `individuals.csv`: the results of the study for the sites that accepted your invitation. Each site contains 100 individuals.  `Treatment` indicates if treatment was assigned to the individual. `Income` is their observed outcome (annual income (in thousands) one year later).
 - `sampled_plots.png`: histograms of the sites that accepted. Identical to the Plots tab to the right.
 - `sampled_v_population_plots.png`: histograms and densities of the sites that accepted, sites that were sent the invitation, and the population. Identical to the Sampled vs. population tab to the right.
 - `sites.csv`: data on all 1,000 sites with flags identifying if you sent an invitation and if the site accepted the invitation.

@@ -20,7 +20,7 @@ The tool is broken into four parts to help guide you through the process. You'll
 There's four main metrics that summarize your selected sample of sites:
 - Total cost: the total cost of all the sites. This consists of both the `cost to approach site` for the sites you send invitations to and the `cost to run study` for the sites that accept the invitation to participate.
 - Generalizability index: an estimate of how well your sample represents the population. Scaled between [0, 1]
-- Causality index: an estimate of how the results of the trial conducted at the selected sites can be interpreted causally  
+- Causality index: shows what the program staff at your firm anticipate the treatment effect (in annual income (in thousands)) will be for each site. The index is an average across the sites selected.
 - Sample size: the number of sites
 
 You will not be graded based on the metric scores, however you will be graded on how well you interpret and communicate how these metrics impact the results of the trial.
