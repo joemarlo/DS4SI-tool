@@ -5,8 +5,8 @@ account: apsta
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2881963
-bundleId: 3721434
+bundleId: 3749998
 url: https://apsta.shinyapps.io/DS4SI/
-when: 1602260719.63624
+when: 1602874705.67874
 asMultiple: FALSE
 asStatic: FALSE
