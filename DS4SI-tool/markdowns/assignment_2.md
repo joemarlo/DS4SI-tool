@@ -16,6 +16,12 @@ One potential organizational structure for this assignment would be to address t
 There is also a debate as to what the control group should be offered in this study. Specifically, the question is whether the control individuals should be offered no job training/preparation services (above and beyond what they can find on their own independently) or a spot on a waitlist to take place in the PNGD at a future date. The latter is a waitlist control design and has pros and cons from a research standpoint. Which would you advocate for and why? What are the pros and cons of these two different designs in terms of what we are able to learn about the impact of the program? Please respond in one to two paragraphs. Feel free to offer a third option if you would like, explaining why you think it would be a better approach than either of the above.
 
 
+### What to turn in
+- A handout (one page of information with relevant content potential including visuals) plus a script of what you plan to say at the meeting  
+**OR**  
+- A slide deck plus a script of what you plan to say at the meeting  
+
+
 ### Rubric
 <!--
 Used this tool to generate an html table 
