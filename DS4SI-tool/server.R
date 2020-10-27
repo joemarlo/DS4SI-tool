@@ -1260,7 +1260,7 @@ server <- function(input, output, session) {
     if (df_validated){
       show_alert(session = session,
                  title = "Hmmm, that dataset doesn't look quite right",
-                 text = list(HTML("Try another file or, if you continue to have issues, copy/paste your Site IDs into the text field. <br><br> Here's how your CSV should be structured:"),
+                 text = list(HTML("If you're having trouble finding the file, it's default name is 'sites_sent_invitations.csv'. If you continue to have issues, copy/paste your Site IDs into the text field. <br><br> Here's how your CSV should be structured:"),
                              DT::dataTableOutput("upload_dataset_example")),
                  type = "error",
                  btn_colors = "#302f42",
@@ -1339,7 +1339,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # choose which dataset to use based on the switches postions
+  # choose which dataset to use based on the switches positions
   upload_data <- reactive({
 
     # use the sent invitations data if the switch is TRUE
@@ -1359,20 +1359,45 @@ server <- function(input, output, session) {
     
     return(final_df)
   })
+  
+  # update button with number of sites found so user knows can do a quick double
+  #   check that its the correct data
+  observe({
+    
+    # try to define the button label with the number of rows of the 
+    #   upload_data() dataframe. If that doesn't work then that means the user has not
+    #   selected etiher uploaded a valid csv, typed in site IDs or progressed from site selection
+    message <- tryCatch({
+      message <- paste0("Get the final results for your ",
+                        scales::comma_format()(nrow(upload_data())),
+                        " sites")
+    },
+    error = function(e) {
+      "No valid dataframe selected"
+    })
+    
+    # update button label
+    updateActionButton(
+      session = session,
+      inputId = "upload_button_get_results",
+      label = message
+    )
+  })
 
   # trigger all these events once the user clicks "get results"
   observeEvent(input$upload_button_get_results, {
     
     # make sure score is between [1, 100]
-    if (input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100)  {
-      show_alert(
-        title = "Persuasion score must be between [1, 100]",
-        text = "Please update the score",
-        type = "error",
-        btn_colors = "#302f42",
-        session = session
-      )
-    }
+    # UNCOMMENT THIS CHUNK IF REMOVING HARDCODED PERSUASION SCORE
+    # if (input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100)  {
+    #   show_alert(
+    #     title = "Persuasion score must be between [1, 100]",
+    #     text = "Please update the score",
+    #     type = "error",
+    #     btn_colors = "#302f42",
+    #     session = session
+    #   )
+    # }
     
     # ensure dataframe is valid by comparing it to the population_dataset
     cols_match <- base::setequal(colnames(upload_data()), colnames(population_dataset))
@@ -1381,9 +1406,10 @@ server <- function(input, output, session) {
     
     validate(
       need(df_validated,
-           "Dataset not yet uploaded or is incorrect format"),
-      need(input$upload_numeric_persuasion >= 1 & input$upload_numeric_persuasion <= 100,
-           "Persuasion score not between [1, 100]")
+           "Dataset not yet uploaded or is incorrect format")
+      # UNCOMMENT THIS CHUNK IF REMOVING HARDCODED PERSUASION SCORE
+      # need(input$upload_numeric_persuasion >= 1 & input$upload_numeric_persuasion <= 100,
+      #      "Persuasion score not between [1, 100]")
     )
     
     # show alert for user suspense
@@ -1405,7 +1431,10 @@ server <- function(input, output, session) {
     accepted_boolean <- rbinom(
       n = nrow(upload_data()),
       size = 1,
-      prob = pmin(1, upload_data()$Comfort * scale_persuasion(input$upload_numeric_persuasion))
+      # COMMENT OUT THIS CHUNK IF REMOVING HARDCODED PERSUASION SCORE
+      prob = pmin(1, upload_data()$Comfort)
+      # UNCOMMENT THIS CHUNK IF REMOVING HARDCODED PERSUASION SCORE
+      # prob = pmin(1, upload_data()$Comfort * scale_persuasion(input$upload_numeric_persuasion))
     ) == 1
     sites_that_accepted <- upload_data()[accepted_boolean,]
     
@@ -1526,37 +1555,38 @@ server <- function(input, output, session) {
   })
   
   # numeric input does not respect min max limits so need to inform user when there's an error
-  observe({
-    
-    boolean <- input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100
-    
-    # make text red
-    if(isTRUE(boolean)) {
-      runjs(
-        paste0('document.getElementById("',
-               "upload_numeric_persuasion",
-               '").style.color = "#c92626"')
-      )
-      runjs(
-        paste0('document.getElementById("',
-               "upload_numeric_persuasion",
-               '").style.fontWeight = "700"')
-      )
-    } else {
-      # javascript permanently changes text color so it needs to change it back
-      # to black when the input text is valid
-      runjs(
-        paste0('document.getElementById("',
-               "upload_numeric_persuasion",
-               '").style.color = "#363636"')
-      )
-      runjs(
-        paste0('document.getElementById("',
-               "upload_numeric_persuasion",
-               '").style.fontWeight = "350"')
-      )
-    }
-  })
+  # UNCOMMENT THIS CHUNK IF REMOVING HARDCODED PERSUASION SCORE
+  # observe({
+  #   
+  #   boolean <- input$upload_numeric_persuasion < 1 | input$upload_numeric_persuasion > 100
+  #   
+  #   # make text red
+  #   if(isTRUE(boolean)) {
+  #     runjs(
+  #       paste0('document.getElementById("',
+  #              "upload_numeric_persuasion",
+  #              '").style.color = "#c92626"')
+  #     )
+  #     runjs(
+  #       paste0('document.getElementById("',
+  #              "upload_numeric_persuasion",
+  #              '").style.fontWeight = "700"')
+  #     )
+  #   } else {
+  #     # javascript permanently changes text color so it needs to change it back
+  #     # to black when the input text is valid
+  #     runjs(
+  #       paste0('document.getElementById("',
+  #              "upload_numeric_persuasion",
+  #              '").style.color = "#363636"')
+  #     )
+  #     runjs(
+  #       paste0('document.getElementById("',
+  #              "upload_numeric_persuasion",
+  #              '").style.fontWeight = "350"')
+  #     )
+  #   }
+  # })
   
   # table of selected dataset
   output$upload_table <- DT::renderDataTable({
@@ -1705,13 +1735,14 @@ server <- function(input, output, session) {
     final_table <- rbind(scores_char, round(final_table, 2))
     
     # add persuasion score to table for posterity
-    persuasion_score_df <- data.frame(
-      'Accepted' = as.character(input$upload_numeric_persuasion),
-      'Sent invitation' = NA,
-      'Population' = NA,
-      check.names = FALSE)
-    rownames(persuasion_score_df) <- "Persuasion score"
-    final_table <- rbind(final_table, persuasion_score_df)
+    # UNCOMMENT THIS CHUNK IF REMOVING HARDCODED PERSUASION SCORE
+    # persuasion_score_df <- data.frame(
+    #   'Accepted' = as.character(input$upload_numeric_persuasion),
+    #   'Sent invitation' = NA,
+    #   'Population' = NA,
+    #   check.names = FALSE)
+    # rownames(persuasion_score_df) <- "Persuasion score"
+    # final_table <- rbind(final_table, persuasion_score_df)
     
     # remove implicit factors
     final_table <- apply(final_table, c(1, 2), as.character)

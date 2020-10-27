@@ -129,8 +129,12 @@ within the selectize dropdowns */
     width: 100%;
 }
 
+.btn:hover {
+  background-color: #424159 !important;  
+}
+
 .btn:active {
-  background-color: #1e1d29 !important;
+  background-color: #54536e !important;
 }
 
 /* specfic ids to modify */
@@ -167,6 +171,14 @@ within the selectize dropdowns */
 
 #results_button_restart, #invitations_button_restart {
   background-color: #ab2c2c !important;
+}
+
+#results_button_restart:hover, #invitations_button_restart:hover {
+  background-color: #ba3030 !important;
+}
+
+#results_button_restart:active, #invitations_button_restart:active {
+  background-color: #c73a3a !important;
 }
 
 #upload_file_div .btn {
