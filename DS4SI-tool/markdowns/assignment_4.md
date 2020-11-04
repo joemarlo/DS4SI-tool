@@ -15,10 +15,14 @@ The assignment requires a mix of (reproducible) programming and communication sk
 7. R users should bundle the packages used as demonstrated by Vicky Steeves.  
 
 ### What to turn in
+<!--
+Used this tool to generate an html table 
+https://www.tablesgenerator.com/html_tables
+-->
 
 *For R users:*
 - PDF created by knitting R Markdown file
-- R Markdown file and everything needed for me to run it to produce your PDF (including the csv file)
+- R Markdown file and everything needed for me to run it to produce your PDF (including the csv file within the zip file)
 - The zip file downloaded from the tool on the ‘Summary results’ page
 
 *For Stata users:*
@@ -27,5 +31,67 @@ The assignment requires a mix of (reproducible) programming and communication sk
 - An excel file with your table shell of your regression results (using putexcel)
 - The zip file downloaded from the tool on the ‘Summary results’ page
 
+### Rubric
+<!--
+Used this tool to generate an html table 
+https://www.tablesgenerator.com/html_tables
+-->
 
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
+</style>
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-0pky"></th>
+    <th class="tg-0pky"><span style="font-weight:bold">Great</span><br><span style="font-style:italic">90-100% of possible points</span></th>
+    <th class="tg-0pky"><span style="font-weight:bold">Needs work</span><br><span style="font-style:italic">&lt;90% of possible points</span><br></th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-0pky"><span style="font-weight:bold">Load the data</span> <span style="font-style:italic">5pts</span></td>
+    <td class="tg-0pky">- <span style="font-weight:400;font-style:normal;text-decoration:none">Includes code that loads the data into R or Stata</span></td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Does not include code that loads the data</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><span style="font-weight:bold">Summary table or figure </span><span style="font-style:italic">25pts total</span><br>Table or figure - 15pts<br>Description - 10pts<br></td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Includes a table or figure that appropriately summarizes the data for the given data type (e.g. do not use a 5-number summary for a binary variable)</span><br><span style="font-weight:400;font-style:normal;text-decoration:none">- Includes a brief description of what the table or figure is showing</span></td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Includes inappropriate descriptive summaries for variable types</span><br><span style="font-weight:400;font-style:normal;text-decoration:none">- Inaccurate or unclear description</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><span style="font-weight:bold">Analysis</span> <span style="font-style:italic">40pts total</span><br>Analysis - 15pts<br>Description of how you implemented it - 15pts<br>Description of why it is important to your organization - 10pts</td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Analysis reflects the effect(s) of the program for the sample of sites</span><br><span style="font-weight:400;font-style:normal;text-decoration:none">- Describes why you chose the command</span><br><span style="font-weight:400;font-style:normal;text-decoration:none">- Describes how results of the analysis and why it is useful to your organization</span></td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Analysis does not address the effect(s) of the program for the sample of sites</span><br><span style="font-weight:400;font-style:normal;text-decoration:none">- Unclear how to implement the analysis</span><br><span style="font-weight:400;font-style:normal;text-decoration:none">- Includes a pie chart</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><span style="font-weight:bold">Title for your manual </span><span style="font-style:italic">5pts</span></td>
+    <td class="tg-0pky">- <span style="font-weight:400;font-style:normal;text-decoration:none">Title is clear and accurately summarizes the manual</span></td>
+    <td class="tg-0pky">- <span style="font-weight:400;font-style:normal;text-decoration:none">Title is not included, not clear, or not descriptive of the manual</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><span style="font-weight:bold">Reproducible</span> <span style="font-style:italic">10pts</span></td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Reproducible as demonstrated by Vicky Steeves using renv (for R users)</span><br><span style="font-weight:400;font-style:normal;text-decoration:none">- Stata code is well documents and uses the required commands; output is identical to contents of the PDF (for Stata users)</span></td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Is not reproducible (i.e. code does not run for R users)</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><span style="font-weight:bold">Submission files</span> <span style="font-style:italic">15pts</span></td>
+    <td class="tg-0pky"><span style="font-weight:400;font-style:normal;text-decoration:none">- Includes all the files mentioned above in 'What to turn in'</span></td>
+    <td class="tg-0pky">- <span style="font-weight:400;font-style:normal;text-decoration:none">Missing files</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky"><span style="font-weight:bold">Extra credit</span> <span style="font-style:italic">5pts</span></td>
+    <td class="tg-0pky" colspan="2">- <span style="font-weight:400;font-style:normal;text-decoration:none">Exceptional plots, tables, or insights. Or exceptionally well organized</span></td>
+  </tr>
+</tbody>
+</table>
+
+
+<br>
+<br>
 <br>
