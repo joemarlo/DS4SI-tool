@@ -23,13 +23,23 @@ https://www.tablesgenerator.com/html_tables
 *For R users:*
 - PDF created by knitting R Markdown file
 - R Markdown file and everything needed for me to run it to produce your PDF (including the csv file within the zip file)
+- Make sure you include the file created by renv that details the dependencies.
 - The zip file downloaded from the tool on the ‘Summary results’ page
+
+An important note about the distinction between a specific practice that Vicky Steeves taught you and what you will do for this assignment. Vicky provided an example where plots and table were exported to a separate file. You do not need to do that for this assignment. For this assignment you can keep the figures within the document so that they can be seen when you run a code chunk and so that they display in the PDF when you knit the RMarkdown.
+
+We are hoping that everyone's code will work seamlessly on Joe's computer.  However,  
+1. Please make sure what you upload works on another computer before uploading it to Classes.  
+2. If we find that there are systematic problems getting your code to reproduce even though you have followed all the appropriate steps will we will either work with you to figure out a solution or allow for a different type of submission.
 
 *For Stata users:*
 - A clean and readable do-file containing all of your code
 - A 1-2 page PDF write-up of your process containing your final tables and figures. Your write-up should also describe the results of each table in a clearly written paragraph
 - An excel file with your table shell of your regression results (using putexcel)
 - The zip file downloaded from the tool on the ‘Summary results’ page
+
+
+
 
 ### Rubric
 <!--
